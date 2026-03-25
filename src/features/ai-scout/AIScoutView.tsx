@@ -1,29 +1,28 @@
+import { useMemo } from 'react'
 import { Robot } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import type { Band } from '@/lib/types'
+import { generateAIPrediction } from '@/lib/voting'
+import { seededRandom } from '@/lib/utils'
 
 interface AIScoutViewProps {
   bands: Band[]
 }
 
-/** Seeded-random helper for stable AI score display across renders. */
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed + 1) * 10000
-  return x - Math.floor(x)
+interface PredictionRow {
+  band: Band
+  confidenceScore: number
+  predictedBreakthrough: boolean
+  factors: {
+    voteVelocity: number
+    streamGrowth: number
+    genreMomentum: number
+  }
 }
 
-/** Derives a deterministic confidence score from a band's properties. */
-function deriveConfidenceScore(band: Band, idx: number): number {
-  const listenerFactor = Math.min(band.spotifyMonthlyListeners / 50_000, 1)
-  const positionBonus = Math.max(0, 1 - idx * 0.05)
-  const raw = (listenerFactor * 0.6 + positionBonus * 0.4) * 85 + seededRandom(idx * 13) * 15
-  return Math.min(Math.round(raw), 95)
-}
-
-/** Empty state when no band data is available for prediction. */
 function EmptyAIScout() {
   return (
     <Card className="p-12 glassmorphism text-center">
@@ -39,12 +38,37 @@ function EmptyAIScout() {
 /**
  * Renders the AI Newcomer Scout view with breakthrough confidence scores.
  *
- * Predictions combine vote velocity, stream growth, and genre momentum to identify
- * bands statistically likely to tier-up within the next 3 months. Confidence
- * scores above 65% indicate a predicted breakthrough.
+ * Uses generateAIPrediction with mock historical vote data derived from
+ * each band's listener count and seeded velocity for reproducible demos.
+ * Bands with confidence above 65% are flagged as likely breakthrough acts.
  */
 export function AIScoutView({ bands }: AIScoutViewProps) {
-  const analysedBands = bands.slice(0, 8)
+  const predictions = useMemo<PredictionRow[]>(() => {
+    const genreAvgGrowth = 12
+
+    return bands
+      .slice(0, 10)
+      .map((band, idx) => {
+        const now = Date.now()
+        const velocity = seededRandom(idx * 7) * 8 + 0.5
+        const historicalVotes = Array.from({ length: 10 }, (_, i) => ({
+          timestamp: now - (10 - i) * 3 * 24 * 60 * 60 * 1000,
+          votes: Math.floor(i * velocity + seededRandom(idx * 7 + i) * 5),
+        }))
+        const previousListeners = Math.max(1, Math.floor(band.spotifyMonthlyListeners * (1 - seededRandom(idx * 3 + 1) * 0.3)))
+
+        const result = generateAIPrediction(
+          band.id,
+          historicalVotes,
+          band.spotifyMonthlyListeners,
+          previousListeners,
+          genreAvgGrowth
+        )
+
+        return { band, ...result }
+      })
+      .sort((a, b) => b.confidenceScore - a.confidenceScore)
+  }, [bands])
 
   return (
     <div className="space-y-6">
@@ -58,63 +82,54 @@ export function AIScoutView({ bands }: AIScoutViewProps) {
         </p>
       </div>
 
-      {analysedBands.length === 0 ? (
+      {predictions.length === 0 ? (
         <EmptyAIScout />
       ) : (
         <Card className="p-6 glassmorphism">
           <div className="space-y-6">
-            {analysedBands.map((band, idx) => {
-              const confidence = deriveConfidenceScore(band, idx)
-              const isPredictedBreakthrough = confidence > 65
-
-              const voteVelocity = (seededRandom(idx * 3) * 8 + 0.5).toFixed(1)
-              const streamGrowth = Math.floor(seededRandom(idx * 3 + 1) * 50 + 5)
-              const genreMomentum = (seededRandom(idx * 3 + 2) * 1.5 + 0.5).toFixed(1)
-
-              return (
-                <div key={band.id} className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-display text-xl font-semibold">{band.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {band.genre} • {band.tier}
-                      </p>
-                    </div>
-                    {isPredictedBreakthrough && (
-                      <Badge variant="default" className="bg-accent text-accent-foreground gap-1 flex-shrink-0">
-                        <span className="w-2 h-2 bg-accent-foreground rounded-full animate-glow-pulse" />
-                        Breakthrough Likely
-                      </Badge>
-                    )}
-                  </div>
-
+            {predictions.map(({ band, confidenceScore, predictedBreakthrough, factors }, idx) => (
+              <div key={band.id} className="space-y-3">
+                <div className="flex items-start justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-muted-foreground">Confidence Score</span>
-                      <span className="text-sm font-mono font-bold text-accent">{confidence}%</span>
-                    </div>
-                    <Progress value={confidence} className="h-2" />
+                    <h3 className="font-display text-xl font-semibold">{band.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {band.genre} • {band.tier}
+                    </p>
                   </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-3 bg-secondary/50 rounded">
-                      <p className="text-xs text-muted-foreground mb-1">Vote Velocity</p>
-                      <p className="font-mono font-bold text-primary">+{voteVelocity}</p>
-                    </div>
-                    <div className="text-center p-3 bg-secondary/50 rounded">
-                      <p className="text-xs text-muted-foreground mb-1">Stream Growth</p>
-                      <p className="font-mono font-bold text-accent">+{streamGrowth}%</p>
-                    </div>
-                    <div className="text-center p-3 bg-secondary/50 rounded">
-                      <p className="text-xs text-muted-foreground mb-1">Genre Momentum</p>
-                      <p className="font-mono font-bold text-destructive">{genreMomentum}x</p>
-                    </div>
-                  </div>
-
-                  {idx < analysedBands.length - 1 && <Separator />}
+                  {predictedBreakthrough && (
+                    <Badge variant="default" className="bg-accent text-accent-foreground gap-1 flex-shrink-0">
+                      <span className="w-2 h-2 bg-accent-foreground rounded-full animate-glow-pulse" />
+                      Breakthrough Likely
+                    </Badge>
+                  )}
                 </div>
-              )
-            })}
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-muted-foreground">Confidence Score</span>
+                    <span className="text-sm font-mono font-bold text-accent">{confidenceScore}%</span>
+                  </div>
+                  <Progress value={confidenceScore} className="h-2" />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 bg-secondary/50 rounded">
+                    <p className="text-xs text-muted-foreground mb-1">Vote Velocity</p>
+                    <p className="font-mono font-bold text-primary">+{factors.voteVelocity}</p>
+                  </div>
+                  <div className="text-center p-3 bg-secondary/50 rounded">
+                    <p className="text-xs text-muted-foreground mb-1">Stream Growth</p>
+                    <p className="font-mono font-bold text-accent">+{factors.streamGrowth}%</p>
+                  </div>
+                  <div className="text-center p-3 bg-secondary/50 rounded">
+                    <p className="text-xs text-muted-foreground mb-1">Genre Momentum</p>
+                    <p className="font-mono font-bold text-destructive">{factors.genreMomentum}x</p>
+                  </div>
+                </div>
+
+                {idx < predictions.length - 1 && <Separator />}
+              </div>
+            ))}
           </div>
         </Card>
       )}

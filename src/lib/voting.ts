@@ -71,7 +71,7 @@ export function calculateSchulzeWinner(ballots: DJBallot[], candidateIds: string
   if (n === 1) return candidateIds
 
   // d[i][j] = how many ballots rank i above j
-  const d: number[][] = Array.from({ length: n }, () => Array(n).fill(0))
+  const d: number[][] = Array.from({ length: n }, () => Array<number>(n).fill(0))
 
   for (const ballot of ballots) {
     for (let i = 0; i < ballot.rankings.length; i++) {
@@ -86,7 +86,7 @@ export function calculateSchulzeWinner(ballots: DJBallot[], candidateIds: string
   }
 
   // p[i][j] = strength of the strongest path from i to j (Floyd-Warshall variant)
-  const p: number[][] = Array.from({ length: n }, () => Array(n).fill(0))
+  const p: number[][] = Array.from({ length: n }, () => Array<number>(n).fill(0))
 
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
@@ -160,80 +160,15 @@ export function calculateCliqueCoefficient(
  * @param _allBandVotes - Historical vote map used for clique detection (reserved for future use).
  * @returns Votes with adjusted weights.
  */
-export function applyCliqueWeighting(votes: BandVote[], _allBandVotes: Map<string, string[]>): BandVote[] {
-  return votes.map(vote => ({ ...vote, weight: vote.weight }))
+export function applyCliqueWeighting(votes: BandVote[], allBandVotes: Map<string, string[]>): BandVote[] {
+  return votes.map(vote => ({
+    ...vote,
+    weight: calculateCliqueCoefficient(vote.votedBandId, vote.votedBandId, allBandVotes) * vote.weight,
+  }))
 }
 
-/** Factors included in an AI breakthrough prediction. */
-interface AIPredictionFactors {
-  voteVelocity: number
-  streamGrowth: number
-  genreMomentum: number
-}
-
-/** Result of the AI breakthrough prediction algorithm. */
-interface AIPredictionResult {
-  confidenceScore: number
-  predictedBreakthrough: boolean
-  factors: AIPredictionFactors
-}
-
-/**
- * Generates a machine-learning-style breakthrough prediction for a band.
- *
- * Combines three signals:
- * - Vote Velocity (40%): rate of fan vote increase over the past 30 days.
- * - Stream Growth (40%): percentage growth in Spotify monthly listeners.
- * - Genre Momentum (20%): band's growth vs. genre-average growth.
- *
- * Bands with a confidence score above 65% are predicted to tier-up within 3 months.
- *
- * @param _bandId - Band identifier (reserved for real Spotify/API integration).
- * @param historicalVotes - Time-series of vote counts for velocity calculation.
- * @param currentListeners - Current Spotify monthly listener count.
- * @param previousListeners - Listener count from the previous period (must be > 0).
- * @param genreAvgGrowth - Average growth percentage across the band's genre.
- * @returns Confidence score (0-95), breakthrough flag, and factor breakdown.
- */
-export function generateAIPrediction(
-  _bandId: string,
-  historicalVotes: { timestamp: number; votes: number }[],
-  currentListeners: number,
-  previousListeners: number,
-  genreAvgGrowth: number
-): AIPredictionResult {
-  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
-  const recentVotes = historicalVotes.filter(v => v.timestamp > thirtyDaysAgo)
-
-  const voteVelocity =
-    recentVotes.length > 1
-      ? (recentVotes[recentVotes.length - 1].votes - recentVotes[0].votes) / recentVotes.length
-      : 0
-
-  const streamGrowth =
-    previousListeners > 0
-      ? ((currentListeners - previousListeners) / previousListeners) * 100
-      : 0
-
-  const genreMomentum = genreAvgGrowth > 0 ? streamGrowth / genreAvgGrowth : 1
-
-  const voteScore = Math.min(voteVelocity / 10, 1) * 0.4
-  const streamScore = Math.min(streamGrowth / 50, 1) * 0.4
-  const genreScore = Math.min(genreMomentum, 1) * 0.2
-
-  const rawScore = (voteScore + streamScore + genreScore) * 100
-  const confidenceScore = Math.min(Math.round(rawScore), 95)
-
-  return {
-    confidenceScore,
-    predictedBreakthrough: confidenceScore > 65,
-    factors: {
-      voteVelocity: Math.round(voteVelocity * 10) / 10,
-      streamGrowth: Math.round(streamGrowth * 10) / 10,
-      genreMomentum: Math.round(genreMomentum * 100) / 100,
-    },
-  }
-}
+export { generateAIPrediction } from './aiPrediction'
+export type { AIPredictionFactors, AIPredictionResult } from './aiPrediction'
 
 /**
  * Derives the competition tier for a band from its Spotify monthly listener count.
@@ -310,17 +245,4 @@ export function calculateSubmissionCost(band: Band, selectedCategories: string[]
   return { totalCost, breakdown }
 }
 
-/**
- * Simulates fetching Spotify monthly listener data for a band.
- * In production this calls the Spotify Web API via the backend.
- * @param _bandId - Band identifier (reserved for real API integration).
- * @returns A promise resolving to a mock listener count.
- */
-export function simulateSpotifyListenersFetch(_bandId: string): Promise<number> {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const mockListeners = Math.floor(Math.random() * 1_000_000) + 1_000
-      resolve(mockListeners)
-    }, 500)
-  })
-}
+export { simulateSpotifyListenersFetch } from './spotifyApi'

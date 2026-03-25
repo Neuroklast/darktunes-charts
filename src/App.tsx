@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useKV } from '@github/spark/hooks'
 import {
   ChartLineUp,
@@ -20,8 +20,10 @@ import { CategoriesView } from '@/features/categories/CategoriesView'
 import { FanVoteView } from '@/features/fan-vote/FanVoteView'
 import { ARDashboardView } from '@/features/ar/ARDashboardView'
 import { AIScoutView } from '@/features/ai-scout/AIScoutView'
-import type { Band, Track, FanVote, CategoryGroup } from '@/lib/types'
+import { ErrorBoundary, ErrorFallbackCard } from '@/components/ErrorBoundary'
+import type { Band, Track, FanVote, CategoryGroup, TransparencyLogEntry } from '@/lib/types'
 import { calculateQuadraticCost, validateFanVotes } from '@/lib/voting'
+import { createTransparencyLogEntry } from '@/lib/votingAudit'
 import { SEED_BANDS, SEED_TRACKS } from '@/lib/seedData'
 import { toast } from 'sonner'
 
@@ -51,6 +53,7 @@ function App() {
   const [bands, setBands] = useKV<Band[]>('bands', [])
   const [tracks, setTracks] = useKV<Track[]>('tracks', [])
   const [fanVotes, setFanVotes] = useKV<Record<string, FanVote>>('fanVotes', {})
+  const [, setTransparencyLog] = useKV<TransparencyLogEntry[]>('transparency-log', [])
   const [currentView, setCurrentView] = useState<View>('charts')
   const [selectedCategoryGroup, setSelectedCategoryGroup] = useState<CategoryGroup>('music')
   const [selectedCategory, setSelectedCategory] = useState<string>('track')
@@ -59,17 +62,16 @@ function App() {
   const safeTracks = tracks ?? []
   const safeFanVotes = fanVotes ?? {}
 
-  // Seed test data on first load if the KV store is empty
+  // Ref guard prevents double-seeding in React Strict Mode
+  const seededRef = useRef(false)
   useEffect(() => {
-    if (safeBands.length === 0) {
-      setBands([...SEED_BANDS])
-    }
-    if (safeTracks.length === 0) {
-      setTracks([...SEED_TRACKS])
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    if (seededRef.current) return
+    seededRef.current = true
+    if ((bands ?? []).length === 0) setBands([...SEED_BANDS])
+    if ((tracks ?? []).length === 0) setTracks([...SEED_TRACKS])
+  }, [bands, tracks, setBands, setTracks])
 
-  const handleVoteChange = (trackId: string, votes: number) => {
+  const handleVoteChange = useCallback((trackId: string, votes: number) => {
     setFanVotes(current => {
       const updated = { ...(current ?? {}) }
       if (votes === 0) {
@@ -83,20 +85,25 @@ function App() {
       }
       return updated
     })
-  }
+  }, [setFanVotes])
 
-  const handleSubmitVotes = () => {
+  const handleSubmitVotes = useCallback(() => {
     const validation = validateFanVotes(Object.values(safeFanVotes))
-    if (validation.valid) {
-      toast.success('Votes submitted successfully!', {
-        description: `${validation.totalCredits} credits spent`,
-      })
-    } else {
-      toast.error('Cannot submit votes', {
-        description: 'Total credits exceed 100',
-      })
+    if (!validation.valid) {
+      toast.error('Cannot submit votes', { description: 'Total credits exceed 100' })
+      return
     }
-  }
+    const newEntries = Object.values(safeFanVotes).map(vote =>
+      createTransparencyLogEntry(vote.trackId, 'current-user', 'fan', vote.votes, vote.creditsSpent, 1.0)
+    )
+    setTransparencyLog(current => [...(current ?? []), ...newEntries])
+    toast.success('Votes submitted successfully!', { description: `${validation.totalCredits} credits spent` })
+  }, [safeFanVotes, setTransparencyLog])
+
+  const handleResetVotes = useCallback(() => {
+    setFanVotes({})
+    toast.info('All votes reset')
+  }, [setFanVotes])
 
   const renderNavButton = ({ view, label, icon }: NavItem) => (
     <Button
@@ -112,51 +119,56 @@ function App() {
   )
 
   const renderView = () => {
-    switch (currentView) {
-      case 'charts':
-        return <ChartsView bands={safeBands} tracks={safeTracks} />
+    const view = (() => {
+      switch (currentView) {
+        case 'charts':
+          return <ChartsView bands={safeBands} tracks={safeTracks} fanVotes={safeFanVotes} />
 
-      case 'categories':
-        return (
-          <CategoriesView
-            bands={safeBands}
-            tracks={safeTracks}
-            selectedGroup={selectedCategoryGroup}
-            selectedCategory={selectedCategory}
-            onGroupChange={setSelectedCategoryGroup}
-            onCategoryChange={setSelectedCategory}
-          />
-        )
+        case 'categories':
+          return (
+            <CategoriesView
+              bands={safeBands}
+              tracks={safeTracks}
+              fanVotes={safeFanVotes}
+              selectedGroup={selectedCategoryGroup}
+              selectedCategory={selectedCategory}
+              onGroupChange={setSelectedCategoryGroup}
+              onCategoryChange={setSelectedCategory}
+            />
+          )
 
-      case 'fan-vote':
-        return (
-          <FanVoteView
-            bands={safeBands}
-            tracks={safeTracks}
-            fanVotes={safeFanVotes}
-            onVoteChange={handleVoteChange}
-            onSubmitVotes={handleSubmitVotes}
-          />
-        )
+        case 'fan-vote':
+          return (
+            <FanVoteView
+              bands={safeBands}
+              tracks={safeTracks}
+              fanVotes={safeFanVotes}
+              onVoteChange={handleVoteChange}
+              onSubmitVotes={handleSubmitVotes}
+              onResetVotes={handleResetVotes}
+            />
+          )
 
-      case 'ar':
-        return <ARDashboardView bands={safeBands} tracks={safeTracks} fanVotes={safeFanVotes} />
+        case 'ar':
+          return <ARDashboardView bands={safeBands} tracks={safeTracks} fanVotes={safeFanVotes} />
 
-      case 'ai':
-        return <AIScoutView bands={safeBands} />
+        case 'ai':
+          return <AIScoutView bands={safeBands} />
 
-      case 'transparency':
-        return <TransparencyLog userId="current-user" />
+        case 'transparency':
+          return <TransparencyLog />
 
-      case 'bot-detection':
-        return <BotDetectionPanel />
+        case 'bot-detection':
+          return <BotDetectionPanel />
 
-      case 'pricing':
-        return safeBands.length > 0 ? <CategoryPricing bandId={safeBands[0].id} /> : null
+        case 'pricing':
+          return safeBands.length > 0 ? <CategoryPricing bandId={safeBands[0].id} /> : null
 
-      default:
-        return null
-    }
+        default:
+          return null
+      }
+    })()
+    return <ErrorBoundary FallbackComponent={ErrorFallbackCard}>{view}</ErrorBoundary>
   }
 
   return (

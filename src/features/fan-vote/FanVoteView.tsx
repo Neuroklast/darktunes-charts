@@ -1,13 +1,18 @@
-import { Heart } from '@phosphor-icons/react'
+import { useState, useCallback, useMemo } from 'react'
+import { Heart, X } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { QuadraticVotingSlider } from '@/components/QuadraticVotingSlider'
-import type { Band, Track, FanVote } from '@/lib/types'
+import type { Band, Track, FanVote, Genre } from '@/lib/types'
 import { calculateQuadraticCost } from '@/lib/voting'
 
 const TOTAL_CREDITS = 100
+
+type GenreFilter = 'All' | Genre
 
 interface FanVoteViewProps {
   bands: Band[]
@@ -15,9 +20,19 @@ interface FanVoteViewProps {
   fanVotes: Record<string, FanVote>
   onVoteChange: (trackId: string, votes: number) => void
   onSubmitVotes: () => void
+  onResetVotes?: () => void
 }
 
-/** Empty state shown when there are no tracks available to vote on. */
+function getTierBadgeVariant(tier: string): 'destructive' | 'default' | 'secondary' | 'outline' {
+  switch (tier) {
+    case 'Macro':         return 'destructive'
+    case 'International': return 'destructive'
+    case 'Established':   return 'default'
+    case 'Emerging':      return 'secondary'
+    default:              return 'outline'
+  }
+}
+
 function EmptyVoteList() {
   return (
     <Card className="p-12 glassmorphism text-center">
@@ -31,19 +46,36 @@ function EmptyVoteList() {
 }
 
 /**
- * Renders the fan quadratic voting interface.
+ * Renders the fan quadratic voting interface with genre filtering and tier badges.
  *
  * Each fan receives 100 voice credits per month. Casting N votes for a track costs N²
  * credits, incentivising fans to distribute credits across multiple artists rather
  * than concentrating all support on one popular act.
  */
-export function FanVoteView({ bands, tracks, fanVotes, onVoteChange, onSubmitVotes }: FanVoteViewProps) {
-  const usedCredits = Object.values(fanVotes).reduce(
-    (sum, vote) => sum + calculateQuadraticCost(vote.votes),
-    0,
+export function FanVoteView({ bands, tracks, fanVotes, onVoteChange, onSubmitVotes, onResetVotes }: FanVoteViewProps) {
+  const [genreFilter, setGenreFilter] = useState<GenreFilter>('All')
+
+  const usedCredits = useMemo(
+    () => Object.values(fanVotes).reduce((sum, vote) => sum + calculateQuadraticCost(vote.votes), 0),
+    [fanVotes]
   )
   const availableCredits = TOTAL_CREDITS - usedCredits
   const votedTrackCount = Object.keys(fanVotes).length
+
+  const filteredTracks = useMemo(
+    () =>
+      genreFilter === 'All'
+        ? tracks
+        : tracks.filter(t => {
+            const band = bands.find(b => b.id === t.bandId)
+            return band?.genre === genreFilter
+          }),
+    [tracks, bands, genreFilter]
+  )
+
+  const handleGenreChange = useCallback((value: string) => {
+    setGenreFilter(value as GenreFilter)
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -66,16 +98,31 @@ export function FanVoteView({ bands, tracks, fanVotes, onVoteChange, onSubmitVot
         </Card>
       </div>
 
-      {tracks.length === 0 ? (
+      <Tabs value={genreFilter} onValueChange={handleGenreChange}>
+        <TabsList>
+          <TabsTrigger value="All">All</TabsTrigger>
+          <TabsTrigger value="Goth">Goth</TabsTrigger>
+          <TabsTrigger value="Metal">Metal</TabsTrigger>
+          <TabsTrigger value="Dark Electro">Dark Electro</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {filteredTracks.length === 0 ? (
         <EmptyVoteList />
       ) : (
         <div className="space-y-4">
-          {tracks.map(track => {
+          {filteredTracks.map(track => {
             const band = bands.find(b => b.id === track.bandId)
             if (!band) return null
 
             return (
               <Card key={track.id} className="p-6 glassmorphism">
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant={getTierBadgeVariant(band.tier)} className="text-xs">
+                    {band.tier}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">{band.genre}</Badge>
+                </div>
                 <QuadraticVotingSlider
                   trackId={track.id}
                   trackTitle={track.title}
@@ -99,14 +146,22 @@ export function FanVoteView({ bands, tracks, fanVotes, onVoteChange, onSubmitVot
               {votedTrackCount} {votedTrackCount === 1 ? 'track' : 'tracks'} selected
             </p>
           </div>
-          <Button
-            onClick={onSubmitVotes}
-            disabled={usedCredits === 0 || usedCredits > TOTAL_CREDITS}
-            className="gap-2"
-            size="lg"
-          >
-            Submit Votes
-          </Button>
+          <div className="flex gap-2">
+            {onResetVotes && votedTrackCount > 0 && (
+              <Button variant="outline" onClick={onResetVotes} className="gap-2">
+                <X className="w-4 h-4" />
+                Reset All
+              </Button>
+            )}
+            <Button
+              onClick={onSubmitVotes}
+              disabled={usedCredits === 0 || usedCredits > TOTAL_CREDITS}
+              className="gap-2"
+              size="lg"
+            >
+              Submit Votes
+            </Button>
+          </div>
         </div>
         <Separator className="my-4" />
         <div className="text-xs text-muted-foreground space-y-1">

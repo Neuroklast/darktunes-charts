@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import type { TransparencyLogEntry, BotDetectionAlert } from './types'
 
 /**
@@ -26,7 +27,7 @@ export function createTransparencyLogEntry(
 ): TransparencyLogEntry {
   const finalContribution = rawVotes * weight
   return {
-    id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    id: uuidv4(),
     timestamp: Date.now(),
     trackId,
     userId,
@@ -82,7 +83,7 @@ export function detectBotActivity(
   }
 
   return {
-    id: `alert-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    id: uuidv4(),
     timestamp: now,
     trackId,
     bandId,
