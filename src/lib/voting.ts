@@ -1,27 +1,77 @@
-import type { FanVote, DJBallot, BandVote, TransparencyLogEntry, BotDetectionAlert, Band, Tier, CategoryPricing } from './types'
+import type { FanVote, DJBallot, BandVote, Band, Tier } from './types'
 
+// Audit-related functions (transparency log, bot detection, quarantine) are in votingAudit.ts
+export { createTransparencyLogEntry, detectBotActivity, quarantineVotes } from './votingAudit'
+
+/** Thresholds for each tier based on Spotify monthly listeners. */
+const TIER_THRESHOLDS: Record<Tier, number> = {
+  Micro: 10_000,
+  Emerging: 50_000,
+  Established: 250_000,
+  International: 1_000_000,
+  Macro: Infinity,
+}
+
+/** Price in EUR for each additional chart category beyond the first free one. */
+const TIER_PRICING: Record<Tier, number> = {
+  Micro: 5,
+  Emerging: 15,
+  Established: 35,
+  International: 75,
+  Macro: 150,
+}
+
+/**
+ * Calculates the voice credit cost for casting a given number of quadratic votes.
+ * The cost grows quadratically to prevent wealthy vote accumulation (votes^2 credits).
+ * @param votes - The number of votes to cast (must be a non-negative integer).
+ * @returns The total credit cost.
+ */
 export function calculateQuadraticCost(votes: number): number {
   return votes * votes
 }
 
+/**
+ * Returns the maximum number of votes a user can cast with a given credit budget.
+ * Derived from the inverse of the quadratic cost function: floor(sqrt(credits)).
+ * @param credits - Available voice credits.
+ * @returns Maximum votes the user can cast.
+ */
 export function calculateMaxVotesForCredits(credits: number): number {
   return Math.floor(Math.sqrt(credits))
 }
 
+/**
+ * Validates that a fan's vote allocations do not exceed the 100-credit monthly budget.
+ * @param votes - Array of all fan votes across tracks.
+ * @returns Validation result with total credits spent.
+ */
 export function validateFanVotes(votes: FanVote[]): { valid: boolean; totalCredits: number } {
   const totalCredits = votes.reduce((sum, vote) => sum + calculateQuadraticCost(vote.votes), 0)
   return {
     valid: totalCredits <= 100,
-    totalCredits
+    totalCredits,
   }
 }
 
+/**
+ * Implements the Schulze (Beatpath) method for DJ ranked-choice ballots.
+ *
+ * This Condorcet-compatible method finds the candidate that would beat all others
+ * in pairwise comparisons via the strongest path. It eliminates strategic burial
+ * (a major flaw of simpler Borda-count systems used in awards like the ESC).
+ *
+ * @param ballots - Array of DJ ballots, each containing an ordered ranking of candidate IDs.
+ * @param candidateIds - The full list of candidate IDs eligible in this category.
+ * @returns Candidate IDs sorted from strongest to weakest Schulze winner.
+ */
 export function calculateSchulzeWinner(ballots: DJBallot[], candidateIds: string[]): string[] {
   const n = candidateIds.length
   if (n === 0) return []
   if (n === 1) return candidateIds
 
-  const d: number[][] = Array(n).fill(0).map(() => Array(n).fill(0))
+  // d[i][j] = how many ballots rank i above j
+  const d: number[][] = Array.from({ length: n }, () => Array(n).fill(0))
 
   for (const ballot of ballots) {
     for (let i = 0; i < ballot.rankings.length; i++) {
@@ -35,16 +85,13 @@ export function calculateSchulzeWinner(ballots: DJBallot[], candidateIds: string
     }
   }
 
-  const p: number[][] = Array(n).fill(0).map(() => Array(n).fill(0))
-  
+  // p[i][j] = strength of the strongest path from i to j (Floyd-Warshall variant)
+  const p: number[][] = Array.from({ length: n }, () => Array(n).fill(0))
+
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       if (i !== j) {
-        if (d[i][j] > d[j][i]) {
-          p[i][j] = d[i][j]
-        } else {
-          p[i][j] = 0
-        }
+        p[i][j] = d[i][j] > d[j][i] ? d[i][j] : 0
       }
     }
   }
@@ -75,49 +122,98 @@ export function calculateSchulzeWinner(ballots: DJBallot[], candidateIds: string
   return scores.map(s => s.id)
 }
 
+/**
+ * Computes an anti-collusion weight for a peer vote using network clique detection.
+ *
+ * If a reciprocal voting relationship is detected (A votes B and B votes A exclusively),
+ * the weight is gradually reduced. Mutual connections in a voting ring amplify the penalty.
+ * This prevents vote-trading rings from gaming the peer review pillar.
+ *
+ * @param voterId - The ID of the band casting the vote.
+ * @param votedForId - The ID of the band receiving the vote.
+ * @param allBandVotes - Map of bandId to list of band IDs that band voted for.
+ * @returns A weight multiplier between 0.4 (heavy collusion) and 1.0 (clean).
+ */
 export function calculateCliqueCoefficient(
   voterId: string,
   votedForId: string,
   allBandVotes: Map<string, string[]>
 ): number {
-  const voterVotedFor = allBandVotes.get(voterId) || []
-  const votedForVotedFor = allBandVotes.get(votedForId) || []
+  const voterVotedFor = allBandVotes.get(voterId) ?? []
+  const votedForVotedFor = allBandVotes.get(votedForId) ?? []
 
-  const reciprocalVote = votedForVotedFor.includes(voterId)
-  
-  if (!reciprocalVote) {
+  const hasReciprocalVote = votedForVotedFor.includes(voterId)
+
+  if (!hasReciprocalVote) {
     return 1.0
   }
 
   const mutualConnections = voterVotedFor.filter(id => votedForVotedFor.includes(id)).length
-  
   const cliqueFactor = Math.min(mutualConnections * 0.15, 0.6)
-  
+
   return Math.max(1.0 - cliqueFactor, 0.4)
 }
 
-export function applyCliqueWeighting(votes: BandVote[], allBandVotes: Map<string, string[]>): BandVote[] {
-  return votes.map(vote => ({
-    ...vote,
-    weight: vote.weight
-  }))
+/**
+ * Applies clique-adjusted weights to a set of peer votes.
+ * @param votes - Raw peer band votes.
+ * @param _allBandVotes - Historical vote map used for clique detection (reserved for future use).
+ * @returns Votes with adjusted weights.
+ */
+export function applyCliqueWeighting(votes: BandVote[], _allBandVotes: Map<string, string[]>): BandVote[] {
+  return votes.map(vote => ({ ...vote, weight: vote.weight }))
 }
 
+/** Factors included in an AI breakthrough prediction. */
+interface AIPredictionFactors {
+  voteVelocity: number
+  streamGrowth: number
+  genreMomentum: number
+}
+
+/** Result of the AI breakthrough prediction algorithm. */
+interface AIPredictionResult {
+  confidenceScore: number
+  predictedBreakthrough: boolean
+  factors: AIPredictionFactors
+}
+
+/**
+ * Generates a machine-learning-style breakthrough prediction for a band.
+ *
+ * Combines three signals:
+ * - Vote Velocity (40%): rate of fan vote increase over the past 30 days.
+ * - Stream Growth (40%): percentage growth in Spotify monthly listeners.
+ * - Genre Momentum (20%): band's growth vs. genre-average growth.
+ *
+ * Bands with a confidence score above 65% are predicted to tier-up within 3 months.
+ *
+ * @param _bandId - Band identifier (reserved for real Spotify/API integration).
+ * @param historicalVotes - Time-series of vote counts for velocity calculation.
+ * @param currentListeners - Current Spotify monthly listener count.
+ * @param previousListeners - Listener count from the previous period (must be > 0).
+ * @param genreAvgGrowth - Average growth percentage across the band's genre.
+ * @returns Confidence score (0-95), breakthrough flag, and factor breakdown.
+ */
 export function generateAIPrediction(
-  bandId: string,
+  _bandId: string,
   historicalVotes: { timestamp: number; votes: number }[],
   currentListeners: number,
   previousListeners: number,
   genreAvgGrowth: number
-): { confidenceScore: number; predictedBreakthrough: boolean; factors: any } {
-  const recentVotes = historicalVotes.filter(v => v.timestamp > Date.now() - 30 * 24 * 60 * 60 * 1000)
-  const voteVelocity = recentVotes.length > 1
-    ? (recentVotes[recentVotes.length - 1].votes - recentVotes[0].votes) / recentVotes.length
-    : 0
+): AIPredictionResult {
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+  const recentVotes = historicalVotes.filter(v => v.timestamp > thirtyDaysAgo)
 
-  const streamGrowth = previousListeners > 0
-    ? ((currentListeners - previousListeners) / previousListeners) * 100
-    : 0
+  const voteVelocity =
+    recentVotes.length > 1
+      ? (recentVotes[recentVotes.length - 1].votes - recentVotes[0].votes) / recentVotes.length
+      : 0
+
+  const streamGrowth =
+    previousListeners > 0
+      ? ((currentListeners - previousListeners) / previousListeners) * 100
+      : 0
 
   const genreMomentum = genreAvgGrowth > 0 ? streamGrowth / genreAvgGrowth : 1
 
@@ -125,40 +221,80 @@ export function generateAIPrediction(
   const streamScore = Math.min(streamGrowth / 50, 1) * 0.4
   const genreScore = Math.min(genreMomentum, 1) * 0.2
 
-  const confidenceScore = Math.min((voteScore + streamScore + genreScore) * 100, 95)
+  const rawScore = (voteScore + streamScore + genreScore) * 100
+  const confidenceScore = Math.min(Math.round(rawScore), 95)
 
   return {
-    confidenceScore: Math.round(confidenceScore),
+    confidenceScore,
     predictedBreakthrough: confidenceScore > 65,
     factors: {
       voteVelocity: Math.round(voteVelocity * 10) / 10,
       streamGrowth: Math.round(streamGrowth * 10) / 10,
-      genreMomentum: Math.round(genreMomentum * 100) / 100
-    }
+      genreMomentum: Math.round(genreMomentum * 100) / 100,
+    },
   }
 }
 
+/**
+ * Derives the competition tier for a band from its Spotify monthly listener count.
+ *
+ * Five-tier structure (per platform specification):
+ * - Micro (Underground): 0 to 10,000
+ * - Emerging (Small): 10,001 to 50,000
+ * - Established (Medium): 50,001 to 250,000
+ * - International (Large): 250,001 to 1,000,000
+ * - Macro (Crossover): above 1,000,000
+ *
+ * @param monthlyListeners - Spotify monthly listener count (must be >= 0).
+ * @returns The corresponding Tier.
+ */
 export function getTierFromListeners(monthlyListeners: number): Tier {
-  if (monthlyListeners > 1000000) return 'Macro'
-  if (monthlyListeners > 250000) return 'Established'
-  if (monthlyListeners > 50000) return 'Emerging'
+  if (monthlyListeners > TIER_THRESHOLDS.International) return 'Macro'
+  if (monthlyListeners > TIER_THRESHOLDS.Established) return 'International'
+  if (monthlyListeners > TIER_THRESHOLDS.Emerging) return 'Established'
+  if (monthlyListeners > TIER_THRESHOLDS.Micro) return 'Emerging'
   return 'Micro'
 }
 
+/**
+ * Returns the EUR price per additional chart category for a given tier.
+ *
+ * The first category is always free for all tiers. This progressive pricing
+ * enables established bands to subsidize free participation of newcomers
+ * (cross-subsidization model).
+ *
+ * @param tier - The band's competition tier.
+ * @returns Price in EUR for each additional category beyond the first free one.
+ */
 export function calculateCategoryPrice(tier: Tier): number {
-  const pricing: Record<Tier, number> = {
-    'Micro': 5,
-    'Emerging': 15,
-    'Established': 35,
-    'Macro': 150
-  }
-  return pricing[tier]
+  return TIER_PRICING[tier]
 }
 
-export function calculateSubmissionCost(
-  band: Band,
-  selectedCategories: string[]
-): { totalCost: number; breakdown: { category: string; price: number; isFree: boolean }[] } {
+/** Breakdown of a single category submission cost. */
+interface CategoryCostItem {
+  category: string
+  price: number
+  isFree: boolean
+}
+
+/** Full submission cost result including per-category breakdown. */
+interface SubmissionCostResult {
+  totalCost: number
+  breakdown: CategoryCostItem[]
+}
+
+/**
+ * Calculates the total cost for submitting a band to multiple chart categories.
+ *
+ * The first selected category is always free. Each additional category is priced
+ * according to the band's tier to prevent Pay-to-Win dynamics while sustaining
+ * the platform financially.
+ *
+ * @param band - The band submitting entries (must have a valid tier).
+ * @param selectedCategories - List of category IDs the band wishes to enter.
+ * @returns Total cost in EUR and a per-category breakdown.
+ */
+export function calculateSubmissionCost(band: Band, selectedCategories: string[]): SubmissionCostResult {
   if (selectedCategories.length === 0) {
     return { totalCost: 0, breakdown: [] }
   }
@@ -167,111 +303,24 @@ export function calculateSubmissionCost(
   const breakdown = selectedCategories.map((category, idx) => ({
     category,
     price: idx === 0 ? 0 : pricePerCategory,
-    isFree: idx === 0
+    isFree: idx === 0,
   }))
 
   const totalCost = breakdown.reduce((sum, item) => sum + item.price, 0)
-
   return { totalCost, breakdown }
 }
 
-export function simulateSpotifyListenersFetch(bandId: string): Promise<number> {
-  return new Promise((resolve) => {
+/**
+ * Simulates fetching Spotify monthly listener data for a band.
+ * In production this calls the Spotify Web API via the backend.
+ * @param _bandId - Band identifier (reserved for real API integration).
+ * @returns A promise resolving to a mock listener count.
+ */
+export function simulateSpotifyListenersFetch(_bandId: string): Promise<number> {
+  return new Promise(resolve => {
     setTimeout(() => {
-      const mockListeners = Math.floor(Math.random() * 1000000) + 1000
+      const mockListeners = Math.floor(Math.random() * 1_000_000) + 1_000
       resolve(mockListeners)
     }, 500)
   })
-}
-
-export function createTransparencyLogEntry(
-  trackId: string,
-  userId: string,
-  voteType: 'fan' | 'dj' | 'peer',
-  rawVotes: number,
-  creditsSpent: number | undefined,
-  weight: number,
-  reason?: string
-): TransparencyLogEntry {
-  const finalContribution = rawVotes * weight
-
-  return {
-    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    timestamp: Date.now(),
-    trackId,
-    userId,
-    voteType,
-    rawVotes,
-    creditsSpent,
-    weight,
-    finalContribution,
-    reason
-  }
-}
-
-export function detectBotActivity(
-  trackId: string,
-  bandId: string,
-  voteEvents: Array<{ timestamp: number; userId: string; ip?: string; accountAge?: number }>
-): BotDetectionAlert | null {
-  const now = Date.now()
-  const oneMinute = 60 * 1000
-  const recentVotes = voteEvents.filter(v => now - v.timestamp < oneMinute)
-
-  if (recentVotes.length >= 100) {
-    const newAccounts = recentVotes.filter(v => 
-      v.accountAge && v.accountAge < 7 * 24 * 60 * 60 * 1000
-    )
-    const newAccountRatio = newAccounts.length / recentVotes.length
-
-    const uniqueIPs = new Set(recentVotes.map(v => v.ip).filter(Boolean))
-    const suspiciousIPs = recentVotes
-      .filter(v => v.ip)
-      .map(v => v.ip!)
-      .filter((ip, _, arr) => arr.filter(i => i === ip).length > 5)
-
-    let severity: 'low' | 'medium' | 'high' = 'low'
-    if (newAccountRatio > 0.7 && suspiciousIPs.length > 3) {
-      severity = 'high'
-    } else if (newAccountRatio > 0.5 || suspiciousIPs.length > 2) {
-      severity = 'medium'
-    }
-
-    return {
-      id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: now,
-      trackId,
-      bandId,
-      alertType: 'velocity',
-      severity,
-      details: {
-        votesCount: recentVotes.length,
-        timeWindow: oneMinute,
-        suspiciousIPs: Array.from(new Set(suspiciousIPs)),
-        newAccountRatio
-      },
-      status: 'flagged'
-    }
-  }
-
-  return null
-}
-
-export function quarantineVotes(
-  alert: BotDetectionAlert,
-  allVotes: TransparencyLogEntry[]
-): { quarantined: TransparencyLogEntry[]; clean: TransparencyLogEntry[] } {
-  const quarantinedVotes = allVotes.filter(
-    v => v.trackId === alert.trackId && 
-         v.timestamp > alert.timestamp - alert.details.timeWindow
-  )
-
-  const cleanVotes = allVotes.filter(
-    v => !quarantinedVotes.some(qv => qv.id === v.id)
-  )
-
-  return {
-    quarantined: quarantinedVotes,
-    clean: cleanVotes
-  }
 }

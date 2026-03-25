@@ -82,27 +82,21 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
 
   const getTierRange = (tier: Tier) => {
     switch (tier) {
-      case 'Micro':
-        return '0 - 50,000'
-      case 'Emerging':
-        return '50,001 - 250,000'
-      case 'Established':
-        return '250,001 - 1,000,000'
-      case 'Macro':
-        return '> 1,000,000'
+      case 'Micro':         return '0 – 10,000'
+      case 'Emerging':      return '10,001 – 50,000'
+      case 'Established':   return '50,001 – 250,000'
+      case 'International': return '250,001 – 1,000,000'
+      case 'Macro':         return '> 1,000,000'
     }
   }
 
   const getTierColor = (tier: Tier) => {
     switch (tier) {
-      case 'Micro':
-        return 'text-muted-foreground'
-      case 'Emerging':
-        return 'text-accent'
-      case 'Established':
-        return 'text-primary'
-      case 'Macro':
-        return 'text-destructive'
+      case 'Micro':         return 'text-muted-foreground'
+      case 'Emerging':      return 'text-accent'
+      case 'Established':   return 'text-primary'
+      case 'International': return 'text-destructive'
+      case 'Macro':         return 'text-destructive'
     }
   }
 
@@ -273,16 +267,20 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
         <h4 className="font-semibold mb-3 text-sm">Pricing Structure</h4>
         <div className="space-y-2 text-xs text-muted-foreground">
           <div className="flex justify-between">
-            <span>• Micro Tier (0-50k listeners)</span>
+            <span>• Micro Tier (0 – 10k listeners)</span>
             <span className="font-mono">€5 / additional category</span>
           </div>
           <div className="flex justify-between">
-            <span>• Emerging Tier (50k-250k)</span>
+            <span>• Emerging Tier (10k – 50k)</span>
             <span className="font-mono">€15 / additional category</span>
           </div>
           <div className="flex justify-between">
-            <span>• Established Tier (250k-1M)</span>
+            <span>• Established Tier (50k – 250k)</span>
             <span className="font-mono">€35 / additional category</span>
+          </div>
+          <div className="flex justify-between">
+            <span>• International Tier (250k – 1M)</span>
+            <span className="font-mono">€75 / additional category</span>
           </div>
           <div className="flex justify-between">
             <span>• Macro Tier (&gt;1M listeners)</span>

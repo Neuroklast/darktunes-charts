@@ -1,5 +1,6 @@
 import type { AllCategory, CategoryGroup, Tier } from './types'
 
+/** Metadata describing a single chart category and its voting weight configuration. */
 export interface CategoryMetadata {
   id: AllCategory
   group: CategoryGroup
@@ -171,28 +172,62 @@ export const CATEGORY_GROUPS: Record<CategoryGroup, { name: string; description:
   }
 }
 
+/**
+ * Returns the metadata for a single chart category.
+ * @param categoryId - The unique identifier of the category.
+ * @returns Category metadata including name, weights, and any tier restrictions.
+ */
 export function getCategoryMetadata(categoryId: AllCategory): CategoryMetadata {
   return CATEGORY_DEFINITIONS[categoryId]
 }
 
+/**
+ * Returns all category metadata objects belonging to a given group.
+ * @param group - The category group (music | visuals | community | newcomer).
+ * @returns Array of category metadata in group definition order.
+ */
 export function getCategoriesByGroup(group: CategoryGroup): CategoryMetadata[] {
   return CATEGORY_GROUPS[group].categories.map(id => CATEGORY_DEFINITIONS[id])
 }
 
+/**
+ * Determines whether a band is eligible to compete in a specific category.
+ *
+ * Enforces tier restrictions (e.g., Underground Anthem allows only Micro/Emerging)
+ * and absolute listener caps (e.g., maxListeners = 10,000 for underground categories).
+ *
+ * @param category - The chart category being checked.
+ * @param tier - The band's current tier classification.
+ * @param monthlyListeners - The band's Spotify monthly listener count.
+ * @returns `true` if the band meets all eligibility requirements.
+ */
 export function canBandCompeteInCategory(category: AllCategory, tier: Tier, monthlyListeners: number): boolean {
   const meta = CATEGORY_DEFINITIONS[category]
-  
+
   if (meta.tierRestriction && !meta.tierRestriction.includes(tier)) {
     return false
   }
-  
+
   if (meta.maxListeners && monthlyListeners > meta.maxListeners) {
     return false
   }
-  
+
   return true
 }
 
+/**
+ * Calculates the weighted composite score for a track in a given category.
+ *
+ * Normalises raw vote counts from all three pillars (Fan, DJ, Peer) and applies
+ * category-specific weights to derive a final score on a 0–100 scale.
+ * The weights for each category are defined in CATEGORY_DEFINITIONS.
+ *
+ * @param categoryId - The category for which to calculate the score.
+ * @param fanVotes - Raw fan quadratic vote count (normalised against 100 credits).
+ * @param djScore - DJ Schulze-method score (normalised 0–100).
+ * @param peerVotes - Peer review clique-adjusted score (normalised 0–100).
+ * @returns Composite score in the range 0–100.
+ */
 export function calculateCategoryScore(
   categoryId: AllCategory,
   fanVotes: number,
@@ -200,14 +235,14 @@ export function calculateCategoryScore(
   peerVotes: number
 ): number {
   const meta = CATEGORY_DEFINITIONS[categoryId]
-  
-  const normalizedFan = fanVotes / 100
-  const normalizedDJ = djScore / 100
+
+  const normalizedFan  = fanVotes  / 100
+  const normalizedDJ   = djScore   / 100
   const normalizedPeer = peerVotes / 100
-  
+
   return (
-    normalizedFan * meta.fanWeight +
-    normalizedDJ * meta.djWeight +
+    normalizedFan  * meta.fanWeight +
+    normalizedDJ   * meta.djWeight +
     normalizedPeer * meta.peerWeight
   ) * 100
 }
