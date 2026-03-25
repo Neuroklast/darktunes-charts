@@ -18,10 +18,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   const store = getStore()
   const url = new URL(req.url ?? '/', 'http://localhost')
-  const bandId = url.pathname.split('/').pop()
+  const bandId = url.searchParams.get('bandId')
 
   if (!bandId) {
-    sendError(res, 400, 'Missing bandId')
+    sendError(res, 400, 'Missing bandId query parameter')
     return
   }
 
