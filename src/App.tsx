@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useKV } from '@github/spark/hooks'
-import { ChartLineUp, Heart, Disc, UsersThree, ChartBar, Robot, UploadSimple } from '@phosphor-icons/react'
+import { ChartLineUp, Heart, Disc, UsersThree, ChartBar, Robot, UploadSimple, Eye, Shield, CurrencyEur } from '@phosphor-icons/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { QuadraticVotingSlider } from '@/components/QuadraticVotingSlider'
+import { TransparencyLog } from '@/components/TransparencyLog'
+import { BotDetectionPanel } from '@/components/BotDetectionPanel'
+import { CategoryPricing } from '@/components/CategoryPricing'
 import { calculateQuadraticCost, validateFanVotes } from '@/lib/voting'
 import type { Band, Track, Genre, FanVote } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -17,7 +20,7 @@ function App() {
   const [bands] = useKV<Band[]>('bands', [])
   const [tracks] = useKV<Track[]>('tracks', [])
   const [fanVotes, setFanVotes] = useKV<Record<string, FanVote>>('fanVotes', {})
-  const [currentView, setCurrentView] = useState<'charts' | 'fan-vote' | 'dj-vote' | 'peer-vote' | 'ar' | 'ai'>('charts')
+  const [currentView, setCurrentView] = useState<'charts' | 'fan-vote' | 'dj-vote' | 'peer-vote' | 'ar' | 'ai' | 'transparency' | 'bot-detection' | 'pricing'>('charts')
   const [selectedGenre, setSelectedGenre] = useState<Genre>('Goth')
 
   const safeBands = bands || []
@@ -129,6 +132,34 @@ function App() {
             >
               <Robot className="w-4 h-4" />
               <span className="hidden sm:inline">Scout</span>
+            </Button>
+            <Separator orientation="vertical" className="h-6" />
+            <Button
+              variant={currentView === 'transparency' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('transparency')}
+              className="gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              <span className="hidden sm:inline">Log</span>
+            </Button>
+            <Button
+              variant={currentView === 'bot-detection' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('bot-detection')}
+              className="gap-2"
+            >
+              <Shield className="w-4 h-4" />
+              <span className="hidden sm:inline">Security</span>
+            </Button>
+            <Button
+              variant={currentView === 'pricing' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('pricing')}
+              className="gap-2"
+            >
+              <CurrencyEur className="w-4 h-4" />
+              <span className="hidden sm:inline">Pricing</span>
             </Button>
           </div>
         </div>
@@ -460,6 +491,18 @@ function App() {
               </div>
             </Card>
           </div>
+        )}
+
+        {currentView === 'transparency' && (
+          <TransparencyLog userId="current-user" />
+        )}
+
+        {currentView === 'bot-detection' && (
+          <BotDetectionPanel />
+        )}
+
+        {currentView === 'pricing' && safeBands.length > 0 && (
+          <CategoryPricing bandId={safeBands[0].id} />
         )}
       </main>
     </div>

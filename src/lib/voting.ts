@@ -1,4 +1,4 @@
-import type { FanVote, DJBallot, BandVote } from './types'
+import type { FanVote, DJBallot, BandVote, TransparencyLogEntry, BotDetectionAlert, Band, Tier, CategoryPricing } from './types'
 
 export function calculateQuadraticCost(votes: number): number {
   return votes * votes
@@ -135,5 +135,143 @@ export function generateAIPrediction(
       streamGrowth: Math.round(streamGrowth * 10) / 10,
       genreMomentum: Math.round(genreMomentum * 100) / 100
     }
+  }
+}
+
+export function getTierFromListeners(monthlyListeners: number): Tier {
+  if (monthlyListeners > 1000000) return 'Macro'
+  if (monthlyListeners > 250000) return 'Established'
+  if (monthlyListeners > 50000) return 'Emerging'
+  return 'Micro'
+}
+
+export function calculateCategoryPrice(tier: Tier): number {
+  const pricing: Record<Tier, number> = {
+    'Micro': 5,
+    'Emerging': 15,
+    'Established': 35,
+    'Macro': 150
+  }
+  return pricing[tier]
+}
+
+export function calculateSubmissionCost(
+  band: Band,
+  selectedCategories: string[]
+): { totalCost: number; breakdown: { category: string; price: number; isFree: boolean }[] } {
+  if (selectedCategories.length === 0) {
+    return { totalCost: 0, breakdown: [] }
+  }
+
+  const pricePerCategory = calculateCategoryPrice(band.tier)
+  const breakdown = selectedCategories.map((category, idx) => ({
+    category,
+    price: idx === 0 ? 0 : pricePerCategory,
+    isFree: idx === 0
+  }))
+
+  const totalCost = breakdown.reduce((sum, item) => sum + item.price, 0)
+
+  return { totalCost, breakdown }
+}
+
+export function simulateSpotifyListenersFetch(bandId: string): Promise<number> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const mockListeners = Math.floor(Math.random() * 1000000) + 1000
+      resolve(mockListeners)
+    }, 500)
+  })
+}
+
+export function createTransparencyLogEntry(
+  trackId: string,
+  userId: string,
+  voteType: 'fan' | 'dj' | 'peer',
+  rawVotes: number,
+  creditsSpent: number | undefined,
+  weight: number,
+  reason?: string
+): TransparencyLogEntry {
+  const finalContribution = rawVotes * weight
+
+  return {
+    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    timestamp: Date.now(),
+    trackId,
+    userId,
+    voteType,
+    rawVotes,
+    creditsSpent,
+    weight,
+    finalContribution,
+    reason
+  }
+}
+
+export function detectBotActivity(
+  trackId: string,
+  bandId: string,
+  voteEvents: Array<{ timestamp: number; userId: string; ip?: string; accountAge?: number }>
+): BotDetectionAlert | null {
+  const now = Date.now()
+  const oneMinute = 60 * 1000
+  const recentVotes = voteEvents.filter(v => now - v.timestamp < oneMinute)
+
+  if (recentVotes.length >= 100) {
+    const newAccounts = recentVotes.filter(v => 
+      v.accountAge && v.accountAge < 7 * 24 * 60 * 60 * 1000
+    )
+    const newAccountRatio = newAccounts.length / recentVotes.length
+
+    const uniqueIPs = new Set(recentVotes.map(v => v.ip).filter(Boolean))
+    const suspiciousIPs = recentVotes
+      .filter(v => v.ip)
+      .map(v => v.ip!)
+      .filter((ip, _, arr) => arr.filter(i => i === ip).length > 5)
+
+    let severity: 'low' | 'medium' | 'high' = 'low'
+    if (newAccountRatio > 0.7 && suspiciousIPs.length > 3) {
+      severity = 'high'
+    } else if (newAccountRatio > 0.5 || suspiciousIPs.length > 2) {
+      severity = 'medium'
+    }
+
+    return {
+      id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: now,
+      trackId,
+      bandId,
+      alertType: 'velocity',
+      severity,
+      details: {
+        votesCount: recentVotes.length,
+        timeWindow: oneMinute,
+        suspiciousIPs: Array.from(new Set(suspiciousIPs)),
+        newAccountRatio
+      },
+      status: 'flagged'
+    }
+  }
+
+  return null
+}
+
+export function quarantineVotes(
+  alert: BotDetectionAlert,
+  allVotes: TransparencyLogEntry[]
+): { quarantined: TransparencyLogEntry[]; clean: TransparencyLogEntry[] } {
+  const quarantinedVotes = allVotes.filter(
+    v => v.trackId === alert.trackId && 
+         v.timestamp > alert.timestamp - alert.details.timeWindow
+  )
+
+  const cleanVotes = allVotes.filter(
+    v => !quarantinedVotes.some(qv => qv.id === v.id)
+  )
+
+  return {
+    quarantined: quarantinedVotes,
+    clean: cleanVotes
   }
 }

@@ -77,3 +77,50 @@ export interface AIPrediction {
     streamGrowth: number
   }
 }
+
+export interface TransparencyLogEntry {
+  id: string
+  timestamp: number
+  trackId: string
+  userId: string
+  voteType: 'fan' | 'dj' | 'peer'
+  rawVotes: number
+  creditsSpent?: number
+  weight: number
+  finalContribution: number
+  reason?: string
+}
+
+export interface BotDetectionAlert {
+  id: string
+  timestamp: number
+  trackId: string
+  bandId: string
+  alertType: 'velocity' | 'new_accounts' | 'ip_cluster' | 'pattern'
+  severity: 'low' | 'medium' | 'high'
+  details: {
+    votesCount: number
+    timeWindow: number
+    suspiciousIPs?: string[]
+    newAccountRatio?: number
+  }
+  status: 'flagged' | 'reviewing' | 'cleared' | 'confirmed_fraud'
+  reviewedBy?: string
+  reviewedAt?: number
+}
+
+export interface CategoryPricing {
+  tier: Tier
+  monthlyListeners: number
+  pricePerCategory: number
+}
+
+export interface BandSubmission {
+  bandId: string
+  period: string
+  categories: Genre[]
+  freeCategory: Genre
+  paidCategories: Genre[]
+  totalCost: number
+  submittedAt: number
+}
