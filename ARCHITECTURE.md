@@ -53,12 +53,69 @@
 
 ---
 
-## ADR-005: KV Store for Client-Side State Persistence
+## ADR-005: localStorage-backed useKV Shim for Client-Side State
+
+**Status:** Superseded by ADR-006 (backend-connected deployment). Retained for offline / demo mode.
+
+**Context:** The platform previously used `@github/spark`'s `useKV` hook for all persistent state. The GitHub Spark dependency has been removed as part of the production-readiness migration.
+
+**Decision:** Implement a drop-in `useKV(key, defaultValue)` shim in `src/lib/kv-shim.ts` backed by `localStorage`. The hook interface is identical to the former Spark hook so all call sites required only a single import path change. KV keys are namespaced with a `kv:` prefix internally.
+
+**Consequences:** State is per-device (localStorage). For multi-device sync and shared state, consumers must migrate to API-backed hooks (see ADR-006). The shim removes the Spark platform dependency entirely, enabling Vercel deployment.
+
+---
+
+## ADR-006: Vercel Serverless Functions as Backend API
 
 **Status:** Accepted
 
-**Context:** The platform needs persistent state across page refreshes without a backend in the MVP phase.
+**Context:** The platform requires a production-grade, stateless backend deployable on Vercel without managing servers. All business logic (voting algorithms, tier calculation, bot detection) must be available via HTTP API.
 
-**Decision:** Use `@github/spark`'s `useKV` hook for all persistent state (bands, tracks, fanVotes, transparency-log). KV keys follow a flat namespace convention (e.g., `'bands'`, `'fanVotes'`, `'transparency-log'`).
+**Decision:** Implement Vercel Serverless Functions in the `api/` directory using plain Node.js `IncomingMessage`/`ServerResponse` handlers (no Express dependency). Each handler is a single TypeScript file that Vercel compiles via its `nodejs22.x` runtime. A strict service-layer architecture separates concerns:
 
-**Consequences:** Zero-backend MVP. State is per-user and not shared across sessions. Production deployment will replace `useKV` with API calls to a real backend while keeping the same hook interface via a compatibility shim.
+```
+api/
+├── _lib/               # Shared backend utilities (not exposed as routes)
+│   ├── store.ts        # In-memory data store seeded with canonical band data
+│   ├── data-processor.ts  # Chart computation, track filtering, normalisation
+│   ├── csv-parser.ts   # Streaming CSV parser (readline, no full-file buffering)
+│   ├── validators.ts   # Zod schemas + EAN-13/date/amount validators
+│   ├── error-handler.ts   # sendJson / sendError / readBody helpers
+│   └── cors.ts         # CORS header management
+├── votes/
+│   ├── fan.ts          # POST /api/votes/fan  – quadratic vote submission
+│   ├── dj.ts           # POST /api/votes/dj   – DJ ballot + Schulze result
+│   └── peer.ts         # POST /api/votes/peer – clique-weighted peer vote
+├── bands.ts            # GET /api/bands, POST /api/bands
+├── tracks.ts           # GET /api/tracks, POST /api/tracks
+├── charts.ts           # GET /api/charts?limit=N
+├── transparency.ts     # GET/POST /api/transparency
+├── bot-detection.ts    # GET /api/bot-detection, PUT (review alert)
+├── categories.ts       # GET /api/categories
+├── ai-prediction.ts    # GET /api/ai-prediction?bandId=…
+└── spotify.ts          # GET /api/spotify?bandId=… (mock Spotify listener data)
+```
+
+**Business Logic Reuse:** All voting algorithms (`calculateQuadraticCost`, `calculateSchulzeWinner`, `calculateCliqueCoefficient`, `generateAIPrediction`) are imported from `src/lib/` so the frontend and backend share a single source of truth.
+
+**Data Persistence:** The in-memory store (`api/_lib/store.ts`) is seeded with the canonical 76-band dataset from `src/lib/seedData.ts`. Each warm Vercel instance retains state between requests; cold starts reinitialise from seed data. For multi-instance production use, replace the store module with a Vercel KV (Redis) adapter.
+
+**Consequences:** Zero external database dependency for MVP. Complete REST API with JSON responses. Fan vote validation enforces the 100-credit budget server-side. Bot detection alerts integrate with the transparency log. All routes are CORS-enabled and return `Cache-Control: no-store` for API responses.
+
+---
+
+## ADR-007: Vercel Deployment Configuration
+
+**Status:** Accepted
+
+**Context:** The project must deploy as a single Vercel project that serves both the Vite-built SPA and the serverless API functions.
+
+**Decision:** Configure `vercel.json` at the repository root with:
+- `buildCommand: npm run build` — runs `tsc -b --noCheck && vite build` producing `dist/`
+- `outputDirectory: dist` — Vite output served as static assets
+- `functions."api/**/*.ts": { runtime: "nodejs22.x" }` — TypeScript API routes compiled by Vercel
+- URL rewrites: `/api/:path*` → serverless functions; `(.*)` → `index.html` (SPA fallback)
+- Security headers on all routes: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`
+- `vercel-deploy.sh` provides a one-step deploy script with pre-flight checks (node, npm, typecheck, tests, build)
+
+**Consequences:** Single `vercel deploy` command deploys both frontend and backend. No separate API server required. Environment variables (`SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `EXCHANGE_RATE_API_KEY`) must be configured in the Vercel project settings before live Spotify/exchange-rate integration.
