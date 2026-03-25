@@ -10,6 +10,7 @@ import { calculateSchulzeMethod, BallotRanking, getPairwiseComparison } from '@/
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { VotingHelpButton, SchulzeMethodInfo } from '@/features/voting/VotingMethodInfo'
 
 interface DJVoteViewProps {
   bands: Band[]
@@ -22,6 +23,7 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
     tracks.slice(0, 8).map(t => t.id)
   )
   const [showCalculation, setShowCalculation] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
   const handleMoveUp = useCallback((index: number) => {
     if (index === 0) return
@@ -77,12 +79,17 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-3xl font-display font-bold tracking-tight">DJ Ranked Voting</h2>
-          <p className="text-muted-foreground mt-2">
-            Rank tracks by preference. Results calculated using the Schulze method for Condorcet-compliant consensus.
+          <p className="text-muted-foreground mt-1 text-sm">
+            Rangfolge-Abstimmung per Schulze-Methode — manipulationsresistentes Condorcet-Verfahren.
           </p>
+          <VotingHelpButton
+            onClick={() => setShowHelp(true)}
+            label="Wie funktioniert die Schulze-Methode?"
+            className="mt-1"
+          />
         </div>
         <Badge variant="secondary" className="font-mono text-xs">
-          {(djBallots ?? []).length} ballots submitted
+          {(djBallots ?? []).length} Ballots
         </Badge>
       </div>
 
@@ -91,10 +98,10 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <ArrowsDownUp className="w-5 h-5 text-primary" weight="duotone" />
-              <h3 className="text-xl font-display font-semibold">Your Rankings</h3>
+              <h3 className="text-xl font-display font-semibold">Deine Rangfolge</h3>
             </div>
             <Button variant="ghost" size="sm" onClick={handleReset}>
-              Reset
+              Zurücksetzen
             </Button>
           </div>
 
@@ -108,7 +115,7 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
               return (
                 <div
                   key={trackId}
-                  className="flex items-center gap-2 p-3 rounded-lg bg-card border border-border/50 hover:border-accent/50 transition-colors"
+                  className="flex items-center gap-2 p-3 rounded-lg bg-card border border-border/50 hover:border-accent/50 transition-colors duration-200"
                 >
                   <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary/20 text-primary font-display font-bold shrink-0">
                     {index + 1}
@@ -149,7 +156,7 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
           <div className="flex gap-2">
             <Button onClick={handleSubmit} className="flex-1 gap-2">
               <CheckCircle className="w-4 h-4" weight="duotone" />
-              Submit Ballot
+              Ballot einreichen
             </Button>
             <Button
               variant="outline"
@@ -159,18 +166,25 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
               <GridFour className="w-4 h-4" />
             </Button>
           </div>
+
+          <div className="mt-3">
+            <VotingHelpButton
+              onClick={() => setShowHelp(true)}
+              label="Wie wird aus Ballots ein Ranking?"
+            />
+          </div>
         </Card>
 
         <Card className="p-6 glassmorphism">
           <div className="flex items-center gap-2 mb-4">
             <MathOperations className="w-5 h-5 text-accent" weight="duotone" />
-            <h3 className="text-xl font-display font-semibold">Schulze Method Results</h3>
+            <h3 className="text-xl font-display font-semibold">Schulze-Ergebnis</h3>
           </div>
 
           {schulzeResult ? (
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground mb-4">
-                Condorcet winner determined through strongest path analysis
+                Condorcet-Gewinner bestimmt durch stärkste-Pfad-Analyse (Beatpath)
               </div>
 
               {schulzeResult.rankings.slice(0, 10).map((trackId, index) => {
@@ -204,7 +218,7 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <GridFour className="w-12 h-12 text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground">
-                No ballots submitted yet. Submit your first ballot to see results.
+                Noch keine Ballots eingereicht. Reiche deinen ersten Ballot ein, um Ergebnisse zu sehen.
               </p>
             </div>
           )}
@@ -388,6 +402,9 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
           </Tabs>
         </Card>
       )}
+
+      {/* Schulze method transparency dialog */}
+      <SchulzeMethodInfo open={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   )
 }

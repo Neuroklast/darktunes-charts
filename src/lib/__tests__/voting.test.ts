@@ -148,7 +148,7 @@ describe('calculateSubmissionCost', () => {
   })
 
   it('charges for additional categories', () => {
-    const result = calculateSubmissionCost(mockBand, ['track', 'album', 'shadow-cinema'])
+    const result = calculateSubmissionCost(mockBand, ['track', 'album', 'best-merch'])
     expect(result.totalCost).toBe(10) // 0 + 5 + 5
     expect(result.breakdown[0].isFree).toBe(true)
     expect(result.breakdown[1].price).toBe(5)

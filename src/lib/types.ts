@@ -3,7 +3,16 @@ export type Genre = 'Goth' | 'Metal' | 'Dark Electro'
 /** Five-tier classification based on Spotify monthly listeners as defined in the platform spec. */
 export type Tier = 'Micro' | 'Emerging' | 'Established' | 'International' | 'Macro'
 
-export type UserRole = 'fan' | 'dj' | 'band' | 'ar'
+/**
+ * Platform user roles with distinct permissions.
+ * - fan: Public voter with 100 Voice Credits/month (Quadratic Voting)
+ * - band: Registered artist; peer-review voter; free 1 category/month
+ * - dj: Verified scene DJ; ranked-choice Schulze ballot voter
+ * - editor: Editorial staff; can write spotlights and manage nominations
+ * - admin: Full platform administration and KYC verification
+ * - ar: A&R professional with access to B2B scouting dashboard
+ */
+export type UserRole = 'fan' | 'dj' | 'band' | 'editor' | 'admin' | 'ar'
 
 export type CategoryGroup = 'music' | 'visuals' | 'community' | 'newcomer'
 
@@ -15,9 +24,9 @@ export type MusicCategory =
   | 'synthesis-steel'
 
 export type VisualCategory =
-  | 'grim-packaging'
-  | 'merch-month'
-  | 'shadow-cinema'
+  | 'best-cover-art'
+  | 'best-merch'
+  | 'best-music-video'
 
 export type CommunityCategory =
   | 'chronicler-night'
@@ -37,8 +46,12 @@ export interface Band {
   spotifyMonthlyListeners: number
   tier: Tier
   logoUrl?: string
+  coverArtUrl?: string
   spotifyUrl?: string
   bandcampUrl?: string
+  spotifyArtistId?: string
+  country?: string
+  formedYear?: number
 }
 
 export interface Track {
@@ -47,6 +60,10 @@ export interface Track {
   title: string
   submittedAt: number
   category: Genre
+  spotifyTrackId?: string
+  itunesTrackId?: string
+  odesliUrl?: string
+  coverArtUrl?: string
   spotifyEmbedUrl?: string
   bandcampEmbedUrl?: string
   primaryEmbed?: 'spotify' | 'bandcamp'
@@ -68,6 +85,24 @@ export interface BandVote {
   weight: number
 }
 
+/**
+ * Authenticated platform user.
+ * The `bandId` field is only populated for band accounts;
+ * `isDJVerified` is set to true only after manual KYC approval by an admin.
+ */
+export interface AuthUser {
+  id: string
+  role: UserRole
+  name: string
+  email: string
+  credits: number
+  bandId?: string
+  isDJVerified?: boolean
+  avatarUrl?: string
+  joinedAt: number
+}
+
+/** @deprecated Use AuthUser instead. Legacy alias kept for backward compatibility. */
 export interface User {
   id: string
   role: UserRole
@@ -150,4 +185,33 @@ export interface BandSubmission {
   paidCategories: Genre[]
   totalCost: number
   submittedAt: number
+}
+
+/** Result from Odesli / song.link lookup for a track. */
+export interface OdesliResult {
+  pageUrl: string
+  entityUniqueId: string
+  linksByPlatform: Record<string, { url: string; nativeAppUriMobile?: string }>
+  entitiesByUniqueId: Record<string, {
+    id: string
+    title?: string
+    artistName?: string
+    thumbnailUrl?: string
+    apiProvider: string
+    platforms: string[]
+  }>
+}
+
+/** Result from iTunes Search API for a track. */
+export interface ItunesTrack {
+  trackId: number
+  trackName: string
+  artistName: string
+  collectionName: string
+  artworkUrl100: string
+  artworkUrl600?: string
+  previewUrl?: string
+  trackViewUrl: string
+  primaryGenreName: string
+  releaseDate: string
 }
