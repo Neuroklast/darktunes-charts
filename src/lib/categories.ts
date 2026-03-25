@@ -65,31 +65,31 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     djWeight: 0.4,
     peerWeight: 0.3
   },
-  'grim-packaging': {
-    id: 'grim-packaging',
+  'best-cover-art': {
+    id: 'best-cover-art',
     group: 'visuals',
-    name: 'Grim Packaging',
-    description: 'Best physical design (vinyl color, boxset, digipak)',
+    name: 'Best Cover Art',
+    description: 'Best physical design (vinyl color, boxset, digipak, limited edition packaging)',
     icon: 'Package',
     fanWeight: 0.7,
     djWeight: 0.15,
     peerWeight: 0.15
   },
-  'merch-month': {
-    id: 'merch-month',
+  'best-merch': {
+    id: 'best-merch',
     group: 'visuals',
-    name: 'Merch of the Month',
-    description: 'Best t-shirt or accessory design',
+    name: 'Best Merch',
+    description: 'Best merchandise design — apparel, accessories, and collector items',
     icon: 'TShirt',
     fanWeight: 0.7,
     djWeight: 0.15,
     peerWeight: 0.15
   },
-  'shadow-cinema': {
-    id: 'shadow-cinema',
+  'best-music-video': {
+    id: 'best-music-video',
     group: 'visuals',
-    name: 'Shadow Cinema',
-    description: 'Best music video or visualizer',
+    name: 'Best Music Video',
+    description: 'Best music video, official visualizer, or short film',
     icon: 'FilmSlate',
     fanWeight: 0.5,
     djWeight: 0.25,
@@ -156,9 +156,9 @@ export const CATEGORY_GROUPS: Record<CategoryGroup, { name: string; description:
     categories: ['track', 'album', 'voice-of-void', 'riff-architect', 'synthesis-steel']
   },
   visuals: {
-    name: 'Visuals & Haptics',
-    description: 'Physical media and aesthetic design',
-    categories: ['grim-packaging', 'merch-month', 'shadow-cinema']
+    name: 'Visuals & Aesthetics',
+    description: 'Physical media, merchandise, and audiovisual excellence',
+    categories: ['best-cover-art', 'best-merch', 'best-music-video']
   },
   community: {
     name: 'Community & Spirit',

@@ -129,3 +129,57 @@ h1, h2, h3 {
 .animate-glow-pulse {
   animation: glow-pulse 2s ease-in-out infinite;
 }
+
+/* Professional modal entry animation */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-in {
+  animation: modal-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Subtle fade-in for cards on first paint */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger helper — add as inline style: animation-delay: calc(var(--delay, 0) * 50ms) */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Focus ring override for dark theme */
+*:focus-visible {
+  outline: 2px solid oklch(0.75 0.15 200 / 0.8);
+  outline-offset: 2px;
+}

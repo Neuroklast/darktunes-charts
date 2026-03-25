@@ -48,7 +48,7 @@ describe('calculateCategoryScore', () => {
 
   it('respects different weights per category', () => {
     const trackScore = calculateCategoryScore('track', 100, 0, 0)
-    const grimpkgScore = calculateCategoryScore('grim-packaging', 100, 0, 0)
-    expect(grimpkgScore).toBeGreaterThan(trackScore)
+    const coverArtScore = calculateCategoryScore('best-cover-art', 100, 0, 0)
+    expect(coverArtScore).toBeGreaterThan(trackScore)
   })
 })
