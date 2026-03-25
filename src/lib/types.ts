@@ -1,6 +1,7 @@
 export type Genre = 'Goth' | 'Metal' | 'Dark Electro'
 
-export type Tier = 'Micro' | 'Emerging' | 'Established' | 'Macro'
+/** Five-tier classification based on Spotify monthly listeners as defined in the platform spec. */
+export type Tier = 'Micro' | 'Emerging' | 'Established' | 'International' | 'Macro'
 
 export type UserRole = 'fan' | 'dj' | 'band' | 'ar'
 
@@ -62,6 +63,7 @@ export interface DJBallot {
 }
 
 export interface BandVote {
+  voterId: string       // ID of the band casting this peer vote
   votedBandId: string
   weight: number
 }
