@@ -57,11 +57,11 @@
 
 **Status:** Superseded by ADR-006 (backend-connected deployment). Retained for offline / demo mode.
 
-**Context:** The platform previously used `@github/spark`'s `useKV` hook for all persistent state. The GitHub Spark dependency has been removed as part of the production-readiness migration.
+**Context:** The platform previously depended on an external hosting platform's proprietary `useKV` hook for all persistent state. As part of the production-readiness migration to Vercel, all platform-specific dependencies have been fully removed.
 
-**Decision:** Implement a drop-in `useKV(key, defaultValue)` shim in `src/lib/kv-shim.ts` backed by `localStorage`. The hook interface is identical to the former Spark hook so all call sites required only a single import path change. KV keys are namespaced with a `kv:` prefix internally.
+**Decision:** Implement a drop-in `useKV(key, defaultValue)` shim in `src/lib/kv-shim.ts` backed by `localStorage`. The hook interface mirrors React's `useState` so all call sites required only a single import path change. KV keys are namespaced with a `kv:` prefix internally.
 
-**Consequences:** State is per-device (localStorage). For multi-device sync and shared state, consumers must migrate to API-backed hooks (see ADR-006). The shim removes the Spark platform dependency entirely, enabling Vercel deployment.
+**Consequences:** State is per-device (localStorage). For multi-device sync and shared state, consumers must migrate to API-backed hooks (see ADR-006). The shim removes all proprietary platform dependencies, enabling pure Vercel deployment.
 
 ---
 

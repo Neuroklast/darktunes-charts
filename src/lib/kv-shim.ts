@@ -27,11 +27,11 @@ function writeToStorage<T>(key: string, value: T): void {
 }
 
 /**
- * Drop-in replacement for @github/spark's `useKV`.
+ * Persistent key-value state hook backed by localStorage.
  *
  * Provides persistent key-value state backed by localStorage.
- * The interface is identical to the Spark hook so all call sites can
- * switch to this shim by changing a single import path.
+ * The interface mirrors React's `useState` so all call sites can use it
+ * as a drop-in replacement.
  *
  * @param key - Storage key (namespaced with "kv:" prefix internally).
  * @param defaultValue - Value to use when no stored value exists.
