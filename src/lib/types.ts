@@ -63,6 +63,7 @@ export interface DJBallot {
 }
 
 export interface BandVote {
+  voterId: string       // ID of the band casting this peer vote
   votedBandId: string
   weight: number
 }

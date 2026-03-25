@@ -156,14 +156,16 @@ export function calculateCliqueCoefficient(
 
 /**
  * Applies clique-adjusted weights to a set of peer votes.
- * @param votes - Raw peer band votes.
- * @param _allBandVotes - Historical vote map used for clique detection (reserved for future use).
+ * Uses `vote.voterId` (the casting band) and `vote.votedBandId` (the receiving band)
+ * to compute the clique coefficient, reducing weight for reciprocal vote rings.
+ * @param votes - Raw peer band votes (each must include `voterId`).
+ * @param allBandVotes - Historical vote map used for clique detection.
  * @returns Votes with adjusted weights.
  */
 export function applyCliqueWeighting(votes: BandVote[], allBandVotes: Map<string, string[]>): BandVote[] {
   return votes.map(vote => ({
     ...vote,
-    weight: calculateCliqueCoefficient(vote.votedBandId, vote.votedBandId, allBandVotes) * vote.weight,
+    weight: calculateCliqueCoefficient(vote.voterId, vote.votedBandId, allBandVotes) * vote.weight,
   }))
 }
 

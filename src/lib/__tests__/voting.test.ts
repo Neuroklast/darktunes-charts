@@ -180,11 +180,21 @@ describe('generateAIPrediction', () => {
 })
 
 describe('applyCliqueWeighting', () => {
-  it('applies clique coefficient to votes', () => {
-    const votes: BandVote[] = [{ votedBandId: 'a', weight: 1.0 }]
+  it('applies full weight when no clique detected', () => {
+    const votes: BandVote[] = [{ voterId: 'voter-x', votedBandId: 'band-a', weight: 1.0 }]
     const allBandVotes = new Map<string, string[]>()
     const result = applyCliqueWeighting(votes, allBandVotes)
     expect(result[0].weight).toBe(1.0)
-    expect(result).toHaveLength(1)
+  })
+
+  it('reduces weight for reciprocal vote ring', () => {
+    const votes: BandVote[] = [{ voterId: 'band-a', votedBandId: 'band-b', weight: 1.0 }]
+    const allBandVotes = new Map([
+      ['band-a', ['band-b', 'band-c', 'band-d']],
+      ['band-b', ['band-a', 'band-c', 'band-d']],
+    ])
+    const result = applyCliqueWeighting(votes, allBandVotes)
+    expect(result[0].weight).toBeLessThan(1.0)
+    expect(result[0].weight).toBeGreaterThanOrEqual(0.4)
   })
 })
