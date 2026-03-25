@@ -18,6 +18,7 @@ import { CategoryPricing } from '@/components/CategoryPricing'
 import { ChartsView } from '@/features/charts/ChartsView'
 import { CategoriesView } from '@/features/categories/CategoriesView'
 import { FanVoteView } from '@/features/fan-vote/FanVoteView'
+import { DJVoteView } from '@/features/dj-voting/DJVoteView'
 import { ARDashboardView } from '@/features/ar/ARDashboardView'
 import { AIScoutView } from '@/features/ai-scout/AIScoutView'
 import { ErrorBoundary, ErrorFallbackCard } from '@/components/ErrorBoundary'
@@ -27,7 +28,7 @@ import { createTransparencyLogEntry } from '@/lib/votingAudit'
 import { SEED_BANDS, SEED_TRACKS } from '@/lib/seedData'
 import { toast } from 'sonner'
 
-type View = 'charts' | 'categories' | 'fan-vote' | 'ar' | 'ai' | 'transparency' | 'bot-detection' | 'pricing'
+type View = 'charts' | 'categories' | 'fan-vote' | 'dj-vote' | 'ar' | 'ai' | 'transparency' | 'bot-detection' | 'pricing'
 
 /** Top-level navigation item descriptor. */
 interface NavItem {
@@ -39,7 +40,8 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
   { view: 'charts',      label: 'Charts',    icon: <ChartLineUp className="w-4 h-4" /> },
   { view: 'categories',  label: 'Categories', icon: <List className="w-4 h-4" /> },
-  { view: 'fan-vote',    label: 'Vote',       icon: <Heart className="w-4 h-4" /> },
+  { view: 'fan-vote',    label: 'Fan Vote',   icon: <Heart className="w-4 h-4" /> },
+  { view: 'dj-vote',     label: 'DJ Vote',    icon: <Disc className="w-4 h-4" /> },
   { view: 'ar',          label: 'A&R',        icon: <ChartBar className="w-4 h-4" /> },
   { view: 'ai',          label: 'AI Scout',   icon: <Robot className="w-4 h-4" /> },
 ]
@@ -148,6 +150,9 @@ function App() {
               onResetVotes={handleResetVotes}
             />
           )
+
+        case 'dj-vote':
+          return <DJVoteView bands={safeBands} tracks={safeTracks} />
 
         case 'ar':
           return <ARDashboardView bands={safeBands} tracks={safeTracks} fanVotes={safeFanVotes} />

@@ -3,8 +3,8 @@
 A democratic music charting platform for the dark music scene (Goth, Metal, Dark Electro) that breaks the pay-to-win model through quadratic voting, peer review, and transparent algorithms.
 
 **Experience Qualities:**
-1. **Empowering** - Fans and artists feel their voice genuinely matters through quadratic voting mechanics that prevent vote manipulation
-2. **Trustworthy** - Complete transparency through public voting logs, Schulze method calculations, and anti-bot verification builds community confidence
+1. **Empowering** - Fans and artists feel their voice genuinely matters through quadratic voting mechanics that prevent vote manipulation, while DJs provide expert curation through ranked choice voting
+2. **Trustworthy** - Complete transparency through public voting logs, Schulze method calculations with full matrix displays, and anti-bot verification builds community confidence
 3. **Discovery-Focused** - A&R dashboard and AI scout surface emerging talent before mainstream breakthrough, creating value for labels and fans alike
 
 **Complexity Level:** Complex Application (advanced functionality with multiple views)
@@ -20,11 +20,11 @@ This platform requires sophisticated voting algorithms (quadratic voting, Schulz
 - **Success criteria:** Each category displays appropriate nominees with tier restrictions applied (e.g., Underground Anthem shows only <10k listener bands)
 
 ### 2. Three-Pillar Voting System
-- **Functionality:** Fan Voting (quadratic), DJ Choice (ranked), Bands Choice (peer review) with category-specific weighting
+- **Functionality:** Fan Voting (quadratic), DJ Choice (ranked with Schulze method), Bands Choice (peer review) with category-specific weighting
 - **Purpose:** Balances popularity with technical merit and industry expertise
 - **Trigger:** User selects voting mode based on their role (fan, verified DJ, band member)
 - **Progression:** Authenticate Role → Allocate Credits/Ranks → Preview Impact → Submit → Receive Confirmation
-- **Success criteria:** Vote weights correctly applied (e.g., Grim Packaging = 70% fan, Riff Architect = 60% peer review)
+- **Success criteria:** Vote weights correctly applied (e.g., Grim Packaging = 70% fan, Riff Architect = 60% peer review), DJ votes calculated using Schulze method for Condorcet-compliant consensus
 
 ### 3. Quadratic Voting with Voice Credits
 - **Functionality:** 100 voice credits per user per month, cost increases quadratically (1 vote = 1 credit, 2 votes = 4 credits, 10 votes = 100 credits)
@@ -55,11 +55,11 @@ This platform requires sophisticated voting algorithms (quadratic voting, Schulz
 - **Success criteria:** Confidence score above 70% correlates with tier-up within 3 months
 
 ### 7. Transparency & Anti-Bot System
-- **Functionality:** Public voting logs, bot detection panel, Schulze method calculation display
+- **Functionality:** Public voting logs, bot detection panel, Schulze method calculation display with pairwise matrices and strongest path analysis
 - **Purpose:** Build trust through radical transparency and prevent manipulation
-- **Trigger:** User clicks "Transparency Log" or system detects suspicious activity
-- **Progression:** View Vote History → Inspect Patterns → Flag Anomalies → Admin Review → Potential Account Suspension
-- **Success criteria:** All votes traceable, bot patterns detected with >90% accuracy
+- **Trigger:** User clicks "Transparency Log" or system detects suspicious activity, DJ voters can view detailed Schulze calculations
+- **Progression:** View Vote History → Inspect Patterns → Flag Anomalies → Admin Review → Potential Account Suspension / View Schulze Matrices → Analyze Pairwise Comparisons → Verify Condorcet Winner
+- **Success criteria:** All votes traceable, bot patterns detected with >90% accuracy, DJ voting results display complete Schulze method calculations including pairwise preference matrix, strongest path matrix, and head-to-head comparisons
 
 ### 8. Regional Event & DJ Integration
 - **Functionality:** Voting categories for DJs, Events (DE/AT/CH), Szene-Medien (blogs/podcasts)
