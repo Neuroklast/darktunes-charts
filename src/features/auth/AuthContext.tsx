@@ -14,6 +14,9 @@ const SIMULATED_NETWORK_DELAY_MS = 600
 /** Minimum password length enforced at registration. */
 const MIN_PASSWORD_LENGTH = 8
 
+/** localStorage key used to persist the authenticated user session. */
+const STORAGE_KEY = 'darktunes-auth-user'
+
 /** Credentials accepted by the login form. */
 export interface LoginCredentials {
   email: string
