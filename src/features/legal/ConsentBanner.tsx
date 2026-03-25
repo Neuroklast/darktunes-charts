@@ -15,8 +15,8 @@ const CONSENT_VERSION = '1.0'
 /**
  * DSGVO/GDPR consent banner shown on first visit.
  *
- * The platform stores anonymous voting data in browser localStorage via the
- * Spark KV store. Under DSGVO Art. 6 Abs. 1 lit. a explicit consent is required
+ * The platform stores anonymous voting data in browser localStorage.
+ * Under DSGVO Art. 6 Abs. 1 lit. a explicit consent is required
  * before any session data is written. The banner gates all interactive features
  * until the user actively accepts or declines.
  *
