@@ -4,6 +4,31 @@ export type Tier = 'Micro' | 'Emerging' | 'Established' | 'Macro'
 
 export type UserRole = 'fan' | 'dj' | 'band' | 'ar'
 
+export type CategoryGroup = 'music' | 'visuals' | 'community' | 'newcomer'
+
+export type MusicCategory = 
+  | 'track'
+  | 'album'
+  | 'voice-of-void'
+  | 'riff-architect'
+  | 'synthesis-steel'
+
+export type VisualCategory =
+  | 'grim-packaging'
+  | 'merch-month'
+  | 'shadow-cinema'
+
+export type CommunityCategory =
+  | 'chronicler-night'
+  | 'dark-integrity'
+  | 'lyricist-shadows'
+
+export type NewcomerCategory =
+  | 'underground-anthem'
+  | 'dark-concept'
+
+export type AllCategory = MusicCategory | VisualCategory | CommunityCategory | NewcomerCategory
+
 export interface Band {
   id: string
   name: string
