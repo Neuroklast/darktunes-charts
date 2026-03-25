@@ -21,7 +21,7 @@ export function computeChartEntries(
 
   const bandMap = new Map(bands.map((b) => [b.id, b]))
 
-  const entries: ChartEntry[] = tracks
+  const entries: (ChartEntry & { compositeScore: number })[] = tracks
     .map((track, idx) => {
       const band = bandMap.get(track.bandId)
       if (!band) return null
@@ -45,9 +45,9 @@ export function computeChartEntries(
         compositeScore,
       } as ChartEntry & { compositeScore: number }
     })
-    .filter(Boolean) as (ChartEntry & { compositeScore: number })[]
+    .filter((e): e is ChartEntry & { compositeScore: number } => e !== null)
 
-  entries.sort((a, b) => (b as any).compositeScore - (a as any).compositeScore)
+  entries.sort((a, b) => b.compositeScore - a.compositeScore)
 
   const ranked = entries.map((entry, idx) => ({ ...entry, overallRank: idx + 1 }))
 

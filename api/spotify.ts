@@ -24,7 +24,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
 
   const band = store.bands.find((b) => b.id === bandId)
-  const listeners = band?.spotifyMonthlyListeners ?? Math.floor(Math.random() * 1_000_000) + 1_000
+  if (!band) {
+    sendError(res, 404, `Band ${bandId} not found`)
+    return
+  }
+  const listeners = band.spotifyMonthlyListeners
   const tier = getTierFromListeners(listeners)
 
   sendJson(res, { bandId, monthlyListeners: listeners, tier })

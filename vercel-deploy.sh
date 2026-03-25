@@ -23,7 +23,7 @@ echo "📦 Installing dependencies..."
 npm ci
 
 echo "🔍 Type-checking..."
-npx tsc -b --noCheck
+npx tsc --noEmit
 
 echo "🧪 Running tests..."
 npm test
