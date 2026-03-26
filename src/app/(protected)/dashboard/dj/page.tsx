@@ -2,8 +2,12 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { DJFeedbackForm } from '@/presentation/components/molecules/DJFeedbackForm'
 
 export const metadata = { title: 'DJ Dashboard · DarkTunes' }
+
+// Example band for demonstration; in production loaded via Prisma
+const EXAMPLE_BAND = { id: 'band-example-001', name: 'Nightwish' }
 
 export default function DJDashboardPage() {
   return (
@@ -37,6 +41,15 @@ export default function DJDashboardPage() {
             <Link href="/vote/dj">Ballot einreichen</Link>
           </Button>
         </div>
+
+        {/* DJ Feedback System — Spec §9.2 */}
+        <Card className="p-6 glassmorphism mb-6">
+          <h2 className="text-lg font-semibold mb-4">Feedback an Bands</h2>
+          <DJFeedbackForm
+            bandId={EXAMPLE_BAND.id}
+            bandName={EXAMPLE_BAND.name}
+          />
+        </Card>
 
         <Card className="p-8 glassmorphism text-center">
           <p className="text-muted-foreground">

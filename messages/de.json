@@ -9,7 +9,8 @@
     "profile": "Profil",
     "admin": "Admin",
     "login": "Anmelden",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "switchLanguage": "Sprache wechseln"
   },
   "home": {
     "title": "DarkTunes Charts",
@@ -24,15 +25,49 @@
     "fanCharts": "Fan Charts",
     "djCharts": "DJ Charts",
     "bandPeer": "Band Peer",
-    "combined": "Combined (33/33/33)"
+    "combined": "Combined (33/33/33)",
+    "combinedHelp": {
+      "title": "Wie werden Combined Charts berechnet?",
+      "description": "Die Combined Charts aggregieren drei unabhängige Voting-Systeme mit gleichen Gewichten (je 33,3 %):\n\n• Fan-Score: Quadratic Voting – 100 Credits pro Monat\n• DJ-Score: Schulze-Methode – Ranked-Choice Ballots\n• Peer-Score: Band-Peer-Review – Anti-Kollusions-Algorithmus\n\nJeder Score wird vor der Kombination Min-Max-normalisiert, sodass keine Gruppe dominieren kann."
+    },
+    "tierHelp": {
+      "title": "Das Tier-System erklärt",
+      "description": "Tiers basieren auf monatlichen Spotify-Streamzahlen:\n\n• MAJOR: > 1.000.000 Streams/Monat\n• INDIE: 100.000 – 1.000.000 Streams/Monat\n• MICRO: 10.000 – 100.000 Streams/Monat\n• UNDERGROUND: < 10.000 Streams/Monat\n\nDas Tier-System verhindert, dass Major-Labels kleinere Bands verdrängen. Voting-Pools sind nach Tiers getrennt."
+    }
   },
   "voting": {
+    "draft": {
+      "save": "Entwurf speichern",
+      "load": "Entwurf laden",
+      "saved": "Entwurf gespeichert",
+      "loaded": "Entwurf geladen",
+      "discarded": "Entwurf gelöscht"
+    },
+    "confirm": {
+      "title": "Vote einreichen",
+      "description": "Bist du sicher? Deine Stimme kann danach nicht mehr geändert werden.",
+      "confirm": "Ja, einreichen",
+      "cancel": "Abbrechen"
+    },
+    "mandateConfirm": {
+      "title": "Vollmacht erteilen",
+      "description": "Möchtest du dem Label wirklich die Verwaltung deines Profils erlauben?",
+      "confirm": "Vollmacht erteilen",
+      "cancel": "Abbrechen"
+    },
+    "trackSubmitConfirm": {
+      "title": "Track einreichen",
+      "description": "Der Track wird für die gewählte Kategorie eingereicht. Fortfahren?",
+      "confirm": "Track einreichen",
+      "cancel": "Abbrechen"
+    },
     "fanVote": {
       "title": "Fan Vote",
       "description": "Quadratic Voting — 100 Voice Credits pro Monat",
       "creditsAvailable": "Credits verfügbar",
       "creditsSpent": "Credits verbraucht",
-      "helpText": "Je mehr Stimmen du auf EINEN Track konzentrierst, desto teurer wird es (Kosten = Stimmen²).",
+      "helpTitle": "Warum steigen die Kosten?",
+      "helpText": "Quadratic Voting lässt dich Intensität ausdrücken, ohne Minderheiten zu überwältigen.\n\nDie Kosten für n Stimmen auf denselben Track betragen n² Credits:\n• 1 Stimme = 1 Credit\n• 2 Stimmen = 4 Credits\n• 3 Stimmen = 9 Credits\n• 5 Stimmen = 25 Credits\n\nDu kannst deine 100 Credits breiter streuen oder intensiv auf einen Track setzen — aber extremes Bündeln wird teuer.",
       "submitVotes": "Votes einreichen",
       "resetVotes": "Zurücksetzen",
       "confirmSubmit": "Bist du sicher, dass du diese Votes einreichen möchtest?",
@@ -43,12 +78,14 @@
       "description": "Schulze-Methode — Ranked-Choice Voting",
       "dragToRank": "Ziehe Tracks in deine bevorzugte Reihenfolge",
       "submitBallot": "Ballot einreichen",
-      "helpText": "Der Beatpath-Algorithmus findet den Condorcet-Sieger — strategisches Burial ist unmöglich."
+      "helpTitle": "Warum Drag & Drop statt Punkte?",
+      "helpText": "Die Schulze-Methode (Beatpath) findet den Condorcet-Sieger: den Track, der in Paarvergleichen gegen alle anderen gewinnt.\n\nDurch Ranglisten statt Punkten ist strategisches Burial unmöglich:\n• Du kannst einen Favoriten nicht durch taktisches Niedrigvoten eines Konkurrenten schaden.\n• Der Algorithmus bewertet alle Paarvergleiche und findet den stärksten Pfad.\n\nEinfach gesagt: Deine ehrliche Reihenfolge ist immer die beste Strategie."
     },
     "peerVote": {
       "title": "Band Peer Review",
       "description": "Anti-Kollusions-Algorithmus mit Mahalanobis-Distanz",
-      "helpText": "Voting-Ringe werden durch Cliquen-Erkennung abgewertet."
+      "helpTitle": "Wie erkennt das System Voting-Zirkel?",
+      "helpText": "Drei Sicherheitsschichten schützen vor koordinierter Manipulation:\n\n1. Cliquen-Erkennung: Gegenseitige Votes (A→B und B→A) werden abgewertet.\n2. Mahalanobis-Distanz: Outlier-Voter werden identifiziert und weniger gewichtet.\n3. Triadic Census: Geschlossene Dreiecke (A→B→C→A) erhalten einen Penalty von 0,7× pro Dreieck.\n\nMehr intellektuelle Diversität beim Voten (verschiedene Genres, Regionen) erhöht das Gewicht deiner Stimme um bis zu 15 %."
     }
   },
   "dashboard": {
@@ -56,26 +93,41 @@
       "title": "Fan Dashboard",
       "voiceCredits": "Voice Credits",
       "voteHistory": "Vote-Historie",
-      "discoveryRate": "Entdeckerquote"
+      "discoveryRate": "Entdeckerquote",
+      "earlyDiscoverer": {
+        "badge": "🔮 Früher Entdecker",
+        "description": "Du hast {count} von {total} Top-Tracks entdeckt, bevor sie bekannt wurden",
+        "percent": "{percent}% Entdeckungsrate"
+      }
     },
     "dj": {
       "title": "DJ Dashboard",
       "rankingScore": "DJ Ranking Score",
       "submittedBallots": "Eingereichte Ballots",
-      "predictiveAccuracy": "Vorhersage-Genauigkeit"
+      "predictiveAccuracy": "Vorhersage-Genauigkeit",
+      "feedback": {
+        "title": "Feedback an Bands",
+        "placeholder": "z. B. Bassmischung für Clubanlagen verbessern …",
+        "submit": "Feedback senden",
+        "success": "Feedback erfolgreich gesendet",
+        "error": "Fehler beim Senden"
+      }
     },
     "band": {
       "title": "Band Dashboard",
       "tier": "Tier",
       "chartPosition": "Chart-Platz",
       "superListeners": "Super Listener",
-      "djFeedback": "DJ Feedback"
+      "djFeedback": "DJ Feedback",
+      "feedbackEmpty": "Noch kein DJ-Feedback vorhanden."
     },
     "label": {
       "title": "Label Dashboard",
       "mandatedBands": "Mandatierte Bands",
       "undergroundFinder": "Underground Finder",
-      "djBeatpathTrends": "DJ Beatpath Trends"
+      "djBeatpathTrends": "DJ Beatpath Trends",
+      "exportCsv": "Daten exportieren (CSV)",
+      "exportLoading": "Export wird erstellt …"
     }
   },
   "algorithms": {

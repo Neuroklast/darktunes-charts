@@ -2,8 +2,15 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 
 export const metadata = { title: 'DJ Vote · DarkTunes' }
+
+const DJ_VOTE_HELP = {
+  title: 'Warum Drag & Drop statt Punkte?',
+  description:
+    'Die Schulze-Methode (Beatpath) findet den Condorcet-Sieger: den Track, der in Paarvergleichen gegen alle anderen gewinnt.\n\nDurch Ranglisten statt Punkten ist strategisches Burial unmöglich:\n• Du kannst einen Favoriten nicht durch taktisches Niedrigvoten eines Konkurrenten schaden.\n• Der Algorithmus bewertet alle Paarvergleiche und findet den stärksten Pfad.\n\nEinfach gesagt: Deine ehrliche Reihenfolge ist immer die beste Strategie.',
+}
 
 export default function DJVotePage() {
   return (
@@ -11,7 +18,14 @@ export default function DJVotePage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">DJ Ballot</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">DJ Ballot</h1>
+              <HelpButton
+                title={DJ_VOTE_HELP.title}
+                description={DJ_VOTE_HELP.description}
+                ariaLabel="Hilfe zur Schulze-Methode"
+              />
+            </div>
             <p className="text-muted-foreground">Schulze-Methode — Ranked-Choice Voting</p>
           </div>
           <Badge variant="secondary">DJ Verifiziert erforderlich</Badge>
