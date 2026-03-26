@@ -41,7 +41,8 @@ export const OUTLIER_WEIGHT_FLOOR = 0.3
 /** Minimum absolute pivot value below which a matrix is considered singular. */
 const SINGULARITY_EPSILON = 1e-12
 
-
+/**
+ * Encodes voting vectors into a numeric matrix.
  *
  * @param vectors - One entry per voter.
  * @param allBandIds - Ordered list of all band IDs (defines column indices).

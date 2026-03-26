@@ -43,7 +43,8 @@ export interface DJRankingResult {
 /** Neutral score returned when there are fewer than 2 shared tracks for comparison. */
 const NEUTRAL_KENDALL_TAU_SCORE = 0.5
 
-
+/**
+ * Computes the normalised Kendall tau rank correlation.
  *
  * Kendall's tau counts concordant pairs (same relative order) minus discordant
  * pairs, divided by the total number of pairs. Result is in [-1, 1].
