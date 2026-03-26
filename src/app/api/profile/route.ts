@@ -1,13 +1,62 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { CreateProfileSchema } from '@/domain/auth/profile'
+import { prisma } from '@/lib/prisma'
+import {
+  CreateProfileSchema,
+  prismaRoleToUserRole,
+  userRoleToPrismaRole,
+  type PrismaUserRole,
+} from '@/domain/auth/profile'
 import type { UserProfile } from '@/domain/auth/profile'
+
+// ─── Shape helpers ────────────────────────────────────────────────────────────
+
+type DbUser = {
+  id: string
+  role: PrismaUserRole
+  name: string
+  email: string
+  credits: number
+  avatarUrl: string | null
+  isDJVerified: boolean
+  createdAt: Date
+  band: { id: string } | null
+}
+
+function mapDbUserToProfile(dbUser: DbUser): UserProfile {
+  return {
+    id: dbUser.id,
+    role: prismaRoleToUserRole(dbUser.role),
+    name: dbUser.name,
+    email: dbUser.email,
+    credits: dbUser.credits,
+    avatarUrl: dbUser.avatarUrl,
+    bandId: dbUser.band?.id ?? null,
+    isDJVerified: dbUser.isDJVerified,
+    createdAt: dbUser.createdAt.toISOString(),
+  }
+}
+
+const USER_SELECT = {
+  id: true,
+  role: true,
+  name: true,
+  email: true,
+  credits: true,
+  avatarUrl: true,
+  isDJVerified: true,
+  createdAt: true,
+  band: { select: { id: true } },
+} as const
+
+/** Default genre assigned to a new band profile when none is selected during onboarding. */
+const DEFAULT_BAND_GENRE = 'GOTH' as const
 
 /**
  * GET /api/profile
  *
- * Returns the current user's platform profile.
- * Returns { profile: null } when no profile row exists yet (new OAuth user).
+ * Returns the current user's platform profile from the database.
+ * Returns `{ profile: null }` when no profile row exists yet (new OAuth user).
  *
  * Auth: requires a valid Supabase session cookie.
  */
@@ -19,18 +68,24 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // TODO: replace stub with real Prisma query when DB is connected:
-  // const profile = await prisma.user.findUnique({
-  //   where: { id: user.id },
-  //   select: { id: true, role: true, name: true, email: true, credits: true,
-  //             avatarUrl: true, band: { select: { id: true } }, isDJVerified: true, createdAt: true },
-  // })
-  // if (!profile) return NextResponse.json({ profile: null })
-  // return NextResponse.json({ profile: mapPrismaProfileToUserProfile(profile) })
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: USER_SELECT,
+    })
 
-  // Stub: return null so OAuth users are directed to /onboarding
-  return NextResponse.json({ profile: null satisfies UserProfile | null })
+    if (!dbUser) {
+      return NextResponse.json({ profile: null })
+    }
+
+    return NextResponse.json({ profile: mapDbUserToProfile(dbUser) })
+  } catch (err) {
+    console.error('[GET /api/profile] Database error:', err)
+    return NextResponse.json({ error: 'Interner Serverfehler' }, { status: 500 })
+  }
 }
+
+// ─── POST /api/profile ────────────────────────────────────────────────────────
 
 /**
  * POST /api/profile
@@ -38,7 +93,10 @@ export async function GET(): Promise<NextResponse> {
  * Creates or updates the current user's platform profile.
  * Called from:
  *   - The onboarding page (new OAuth users choosing their role)
- *   - The email/password registration callback (role already in user_metadata)
+ *   - The email/password registration flow (role pre-set in user_metadata)
+ *
+ * When role is "band" and a bandName is provided, the band record is also
+ * created / updated in the same request.
  *
  * Auth: requires a valid Supabase session cookie.
  */
@@ -62,35 +120,47 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const { name, role, bandName } = parsed.data
   const email = user.email ?? ''
-  const avatarUrl = (user.user_metadata as Record<string, unknown>)['avatar_url']
-  const avatar = typeof avatarUrl === 'string' ? avatarUrl : null
+  const rawAvatarUrl = (user.user_metadata as Record<string, unknown>)['avatar_url']
+  const avatarUrl = typeof rawAvatarUrl === 'string' ? rawAvatarUrl : null
+  const prismaRole = userRoleToPrismaRole(role)
 
-  // TODO: replace stubs with real Prisma upsert when DB is connected:
-  // const profile = await prisma.user.upsert({
-  //   where: { id: user.id },
-  //   create: { id: user.id, email, name, role: role.toUpperCase() as Role,
-  //             avatarUrl: avatar, credits: 100 },
-  //   update: { name, role: role.toUpperCase() as Role, avatarUrl: avatar },
-  // })
-  // if (role === 'band' && bandName) {
-  //   await prisma.band.upsert({
-  //     where: { ownerId: user.id },
-  //     create: { ownerId: user.id, name: bandName, genre: 'GOTH', tier: 'MICRO' },
-  //     update: { name: bandName },
-  //   })
-  // }
+  try {
+    // Upsert the user profile row
+    const dbUser = await prisma.user.upsert({
+      where: { id: user.id },
+      create: {
+        id: user.id,
+        email,
+        name,
+        role: prismaRole,
+        avatarUrl,
+        credits: 100,
+      },
+      update: {
+        name,
+        role: prismaRole,
+        avatarUrl,
+      },
+      select: USER_SELECT,
+    })
 
-  const stubProfile: UserProfile = {
-    id: user.id,
-    role,
-    name,
-    email,
-    credits: 100,
-    avatarUrl: avatar,
-    bandId: role === 'band' && bandName ? `band-${user.id}` : null,
-    isDJVerified: false,
-    createdAt: new Date().toISOString(),
+    // If the user chose "band" and supplied a name, also upsert the band record
+    if (role === 'band' && bandName) {
+      await prisma.band.upsert({
+        where: { ownerId: user.id },
+        create: {
+          ownerId: user.id,
+          name: bandName,
+          genre: DEFAULT_BAND_GENRE,
+          tier: 'MICRO',
+        },
+        update: { name: bandName },
+      })
+    }
+
+    return NextResponse.json({ profile: mapDbUserToProfile(dbUser) }, { status: 201 })
+  } catch (err) {
+    console.error('[POST /api/profile] Database error:', err)
+    return NextResponse.json({ error: 'Interner Serverfehler' }, { status: 500 })
   }
-
-  return NextResponse.json({ profile: stubProfile }, { status: 201 })
 }

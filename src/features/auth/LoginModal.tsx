@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   SignIn,
   UserPlus,
+  MusicNote,
 } from '@phosphor-icons/react'
 import { useAuth, type RegisterPayload } from './AuthContext'
 import type { UserRole } from '@/lib/types'
@@ -71,6 +72,9 @@ const ROLE_OPTIONS: RoleOption[] = [
   },
 ]
 
+/** Spotify brand green — extracted to avoid colour drift across touch-points. */
+const SPOTIFY_GREEN = '#1DB954'
+
 /**
  * Login / Registration modal with role selection.
  *
@@ -81,7 +85,7 @@ const ROLE_OPTIONS: RoleOption[] = [
  * - Admins are not publicly registerable
  */
 export function LoginModal({ open, onClose }: LoginModalProps) {
-  const { login, register, isLoading } = useAuth()
+  const { login, register, loginWithOAuth, isLoading } = useAuth()
   const [tab, setTab] = useState<ModalTab>('login')
 
   // Login state
@@ -97,10 +101,22 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
   const [regBandName, setRegBandName] = useState('')
   const [regError, setRegError] = useState('')
 
+  const [oauthError, setOAuthError] = useState('')
+
   const resetErrors = useCallback(() => {
     setLoginError('')
     setRegError('')
+    setOAuthError('')
   }, [])
+
+  const handleOAuthLogin = useCallback(async (provider: 'spotify' | 'google' | 'github') => {
+    resetErrors()
+    const error = await loginWithOAuth(provider)
+    if (error) {
+      setOAuthError(error)
+    }
+    // On success the browser redirects — no need to close the modal
+  }, [loginWithOAuth, resetErrors])
 
   const handleLogin = useCallback(async () => {
     resetErrors()
@@ -215,11 +231,33 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
           />
         )}
 
-        {/* Demo hint */}
-        <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Demo-Zugänge (Passwort: demo1234)</p>
-          <p>admin@darktunes.com · dj@darktunes.com · band@darktunes.com</p>
-          <p>editor@darktunes.com · fan@darktunes.com</p>
+        {/* OAuth divider — shown on both tabs */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <Separator />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-3 text-xs text-muted-foreground uppercase tracking-widest">
+              oder weiter mit
+            </span>
+          </div>
+        </div>
+
+        {/* Spotify OAuth button */}
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            className="w-full gap-2 border-[#1DB954]/40 hover:border-[#1DB954] hover:bg-[#1DB954]/10 transition-colors"
+            onClick={() => void handleOAuthLogin('spotify')}
+            disabled={isLoading}
+            type="button"
+          >
+            <MusicNote className="w-4 h-4" style={{ color: SPOTIFY_GREEN }} weight="fill" />
+            Mit Spotify anmelden
+          </Button>
+          {oauthError && (
+            <p className="text-sm text-destructive text-center">{oauthError}</p>
+          )}
         </div>
       </DialogContent>
     </Dialog>

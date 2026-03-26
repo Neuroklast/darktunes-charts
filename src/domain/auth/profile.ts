@@ -12,6 +12,12 @@
 import { z } from 'zod'
 import type { UserRole } from '@/lib/types'
 
+/**
+ * Prisma `UserRole` enum values as a string union.
+ * Mirrors the enum defined in prisma/schema.prisma without requiring generated types.
+ */
+export type PrismaUserRole = 'FAN' | 'DJ' | 'BAND' | 'EDITOR' | 'ADMIN' | 'AR' | 'LABEL'
+
 // ─── Allowed roles for self-registration ─────────────────────────────────────
 
 /** Roles a user can choose during onboarding or email signup. */
@@ -72,9 +78,12 @@ export function dashboardPathForRole(role: UserRole): string {
     editor: '/dashboard/fan',   // editors use fan dashboard + editorial tools
     admin:  '/admin',
     ar:     '/dashboard/label',
-    label:  '/dashboard/label',
   }
-  return ROLE_DASHBOARD[role] ?? '/'
+  const path = ROLE_DASHBOARD[role]
+  if (!path) {
+    console.warn(`[dashboardPathForRole] Unknown role: "${String(role)}" — falling back to /`)
+  }
+  return path ?? '/'
 }
 
 /**
@@ -134,4 +143,28 @@ export function getRoleOptions(): Array<{
       requiresKyc: false,
     },
   ]
+}
+
+// ─── Prisma ↔ domain role converters ─────────────────────────────────────────
+
+/**
+ * Maps the domain `UserRole` (lowercase string) to the Prisma `UserRole` enum
+ * (UPPERCASE). Used when writing to the database.
+ *
+ * @param role - Domain role (e.g. 'fan', 'band')
+ * @returns    - Prisma enum value (e.g. 'FAN', 'BAND')
+ */
+export function userRoleToPrismaRole(role: UserRole): PrismaUserRole {
+  return role.toUpperCase() as PrismaUserRole
+}
+
+/**
+ * Maps the Prisma `UserRole` enum (UPPERCASE) back to the domain `UserRole`
+ * (lowercase string). Used when reading profiles from the database.
+ *
+ * @param prismaRole - Prisma enum value (e.g. 'FAN', 'BAND')
+ * @returns          - Domain role (e.g. 'fan', 'band')
+ */
+export function prismaRoleToUserRole(prismaRole: PrismaUserRole): UserRole {
+  return prismaRole.toLowerCase() as UserRole
 }

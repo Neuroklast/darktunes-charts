@@ -68,8 +68,7 @@ describe('dashboardPathForRole', () => {
     expect(dashboardPathForRole('admin')).toBe('/admin')
   })
 
-  it('returns /dashboard/label for label and ar roles', () => {
-    expect(dashboardPathForRole('label')).toBe('/dashboard/label')
+  it('returns /dashboard/label for ar role', () => {
     expect(dashboardPathForRole('ar')).toBe('/dashboard/label')
   })
 

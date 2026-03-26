@@ -7,6 +7,7 @@ import { LocaleSwitcher } from '@/presentation/components/atoms/LocaleSwitcher'
 import { DarkTunesLogo } from '@/presentation/components/atoms/DarkTunesLogo'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/features/auth/AuthContext'
 import {
   BarChart2,
   LayoutGrid,
@@ -15,6 +16,8 @@ import {
   TrendingUp,
   ScrollText,
   Shield,
+  LogOut,
+  UserCircle,
 } from 'lucide-react'
 
 interface NavLink {
@@ -38,10 +41,14 @@ const NAV_LINKS: NavLink[] = [
  * Glassmorphism header with the DarkTunes brand mark, full navigation,
  * locale switcher and auth action. Matches the "High-End-Software" aesthetic:
  * obsidian surface, hairline borders, Oswald display font.
+ *
+ * Session-aware: shows the user's name + a logout button when authenticated,
+ * and a login link when not authenticated.
  */
 export function NavigationBar() {
   const pathname = usePathname()
   const t = useTranslations('navigation')
+  const { user, isAuthenticated, logout } = useAuth()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/[0.06] glassmorphism">
@@ -92,7 +99,7 @@ export function NavigationBar() {
           })}
         </div>
 
-        {/* ── Right: Security icon + Locale + Login ── */}
+        {/* ── Right: Security icon + Locale + Auth ── */}
         <div className="flex items-center gap-2 ml-auto shrink-0">
           <Link
             href="/how-it-works"
@@ -103,13 +110,39 @@ export function NavigationBar() {
             Security
           </Link>
           <LocaleSwitcher />
-          <Button
-            asChild
-            size="sm"
-            className="h-7 px-4 text-[11px] uppercase tracking-widest border border-white/15 bg-transparent text-white hover:bg-white/8 rounded-sm font-medium"
-          >
-            <Link href="/login">{t('login')}</Link>
-          </Button>
+
+          {isAuthenticated && user ? (
+            /* ── Authenticated: user name + logout ── */
+            <div className="flex items-center gap-2">
+              <Link
+                href="/profile"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-wide text-white/70 hover:text-white transition-colors rounded-sm hover:bg-white/5"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                <UserCircle size={13} />
+                {user.name}
+              </Link>
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="flex items-center gap-1.5 h-7 px-3 text-[11px] uppercase tracking-widest border border-white/15 bg-transparent text-white/60 hover:text-white hover:border-white/30 rounded-sm font-medium transition-colors"
+                style={{ fontFamily: 'var(--font-body)' }}
+                aria-label="Abmelden"
+              >
+                <LogOut size={12} />
+                <span className="hidden sm:inline">Abmelden</span>
+              </button>
+            </div>
+          ) : (
+            /* ── Unauthenticated: login button ── */
+            <Button
+              asChild
+              size="sm"
+              className="h-7 px-4 text-[11px] uppercase tracking-widest border border-white/15 bg-transparent text-white hover:bg-white/8 rounded-sm font-medium"
+            >
+              <Link href="/login">{t('login')}</Link>
+            </Button>
+          )}
         </div>
 
       </nav>

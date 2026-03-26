@@ -2,6 +2,7 @@ import { getLocale, getMessages } from 'next-intl/server'
 import { NextIntlClientProvider } from 'next-intl'
 import { ThemeProvider } from 'next-themes'
 import { NavigationBar } from '@/presentation/components/organisms/NavigationBar'
+import { AuthProvider } from '@/features/auth/AuthContext'
 
 export default async function LocaleLayout({
   children,
@@ -19,8 +20,10 @@ export default async function LocaleLayout({
         enableSystem={false}
         disableTransitionOnChange
       >
-        <NavigationBar />
-        {children}
+        <AuthProvider>
+          <NavigationBar />
+          {children}
+        </AuthProvider>
       </ThemeProvider>
     </NextIntlClientProvider>
   )
