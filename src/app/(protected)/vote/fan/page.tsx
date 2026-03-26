@@ -2,8 +2,15 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 
 export const metadata = { title: 'Fan Vote · DarkTunes' }
+
+const FAN_VOTE_HELP = {
+  title: 'Warum steigen die Kosten?',
+  description:
+    'Quadratic Voting lässt dich Intensität ausdrücken, ohne Minderheiten zu überwältigen.\n\nDie Kosten für n Stimmen auf denselben Track betragen n² Credits:\n• 1 Stimme = 1 Credit\n• 2 Stimmen = 4 Credits\n• 3 Stimmen = 9 Credits\n• 5 Stimmen = 25 Credits\n\nDu kannst deine 100 Credits breiter streuen oder intensiv auf einen Track setzen — aber extremes Bündeln wird teuer.',
+}
 
 export default function FanVotePage() {
   return (
@@ -11,7 +18,14 @@ export default function FanVotePage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Fan Vote</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">Fan Vote</h1>
+              <HelpButton
+                title={FAN_VOTE_HELP.title}
+                description={FAN_VOTE_HELP.description}
+                ariaLabel="Hilfe zu Quadratic Voting"
+              />
+            </div>
             <p className="text-muted-foreground">Quadratic Voting — 100 Voice Credits pro Monat</p>
           </div>
           <Badge variant="outline">100 Credits verfügbar</Badge>

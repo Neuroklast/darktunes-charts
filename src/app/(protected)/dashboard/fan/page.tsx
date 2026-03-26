@@ -1,8 +1,23 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { EarlyDiscovererBadge } from '@/presentation/components/molecules/EarlyDiscovererBadge'
+import { computeEarlyDiscoverer } from '@/domain/gamification/earlyDiscoverer'
 
 export const metadata = { title: 'Fan Dashboard · DarkTunes' }
+
+// Example data — in production this would be fetched from Prisma
+const EXAMPLE_EARLY_DISCOVERER = computeEarlyDiscoverer(
+  [
+    { trackId: 't1', votedAt: new Date('2025-01-01') },
+    { trackId: 't2', votedAt: new Date('2025-01-03') },
+    { trackId: 't3', votedAt: new Date('2025-01-05') },
+  ],
+  Array.from({ length: 10 }, (_, i) => ({
+    trackId: `t${i + 1}`,
+    firstEnteredTop10At: new Date('2025-01-10'),
+  }))
+)
 
 export default function FanDashboardPage() {
   return (
@@ -27,9 +42,14 @@ export default function FanDashboardPage() {
           </Card>
           <Card className="p-6 glassmorphism">
             <p className="text-sm text-muted-foreground mb-1">Entdeckerquote</p>
-            <p className="text-3xl font-bold">—</p>
+            <p className="text-3xl font-bold">{EXAMPLE_EARLY_DISCOVERER.discoveryPercent}%</p>
             <p className="text-xs text-muted-foreground mt-1">Frühe Votes auf Top-10 Tracks</p>
           </Card>
+        </div>
+
+        {/* Early Discoverer Badge */}
+        <div className="mb-6">
+          <EarlyDiscovererBadge result={EXAMPLE_EARLY_DISCOVERER} />
         </div>
 
         <Card className="p-8 glassmorphism text-center">

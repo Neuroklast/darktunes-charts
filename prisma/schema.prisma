@@ -29,6 +29,7 @@ model User {
   botDetectionReviews  BotDetectionAlert[] @relation("Reviewer")
   eventIntents         EventIntent[]
   labelMandatesAsLabel LabelBandMandate[] @relation("LabelMandate")
+  djFeedbackGiven      DJFeedback[]       @relation("DJFeedbackGiver")
 
   @@map("users")
 }
@@ -77,6 +78,7 @@ model Band {
   labelMandates        LabelBandMandate[]   @relation("BandMandate")
   awards               Award[]
   spotlights           Spotlight[]
+  djFeedbackReceived   DJFeedback[]         @relation("BandFeedback")
 
   @@map("bands")
 }
@@ -119,6 +121,7 @@ model Track {
   streamingLinks   TrackStreamingLink[]
   transparencyLogs TransparencyLogEntry[]
   botAlerts        BotDetectionAlert[]
+  djFeedback       DJFeedback[]
 
   @@map("tracks")
 }
@@ -417,4 +420,19 @@ model DJRankingScore {
   computedAt         DateTime @default(now())
 
   @@map("dj_ranking_scores")
+}
+
+model DJFeedback {
+  id        String   @id @default(uuid())
+  djId      String
+  bandId    String
+  trackId   String?
+  message   String
+  createdAt DateTime @default(now())
+
+  dj    User  @relation("DJFeedbackGiver", fields: [djId], references: [id])
+  band  Band  @relation("BandFeedback", fields: [bandId], references: [id])
+  track Track? @relation(fields: [trackId], references: [id])
+
+  @@map("dj_feedback")
 }

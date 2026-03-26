@@ -9,7 +9,8 @@
     "profile": "Profile",
     "admin": "Admin",
     "login": "Log in",
-    "logout": "Log out"
+    "logout": "Log out",
+    "switchLanguage": "Switch language"
   },
   "home": {
     "title": "DarkTunes Charts",
@@ -24,15 +25,49 @@
     "fanCharts": "Fan Charts",
     "djCharts": "DJ Charts",
     "bandPeer": "Band Peer",
-    "combined": "Combined (33/33/33)"
+    "combined": "Combined (33/33/33)",
+    "combinedHelp": {
+      "title": "How are Combined Charts calculated?",
+      "description": "The Combined Charts aggregate three independent voting systems with equal weights (33.3% each):\n\n• Fan Score: Quadratic Voting – 100 credits per month\n• DJ Score: Schulze Method – Ranked-Choice Ballots\n• Peer Score: Band Peer Review – Anti-collusion algorithm\n\nEach score is Min-Max normalised before combination, ensuring no group can dominate."
+    },
+    "tierHelp": {
+      "title": "The Tier System explained",
+      "description": "Tiers are based on monthly Spotify stream counts:\n\n• MAJOR: > 1,000,000 streams/month\n• INDIE: 100,000 – 1,000,000 streams/month\n• MICRO: 10,000 – 100,000 streams/month\n• UNDERGROUND: < 10,000 streams/month\n\nThe tier system prevents major labels from crowding out smaller bands. Voting pools are separated by tier."
+    }
   },
   "voting": {
+    "draft": {
+      "save": "Save draft",
+      "load": "Load draft",
+      "saved": "Draft saved",
+      "loaded": "Draft loaded",
+      "discarded": "Draft discarded"
+    },
+    "confirm": {
+      "title": "Submit vote",
+      "description": "Are you sure? Your vote cannot be changed afterwards.",
+      "confirm": "Yes, submit",
+      "cancel": "Cancel"
+    },
+    "mandateConfirm": {
+      "title": "Grant mandate",
+      "description": "Do you really want to allow the label to manage your profile?",
+      "confirm": "Grant mandate",
+      "cancel": "Cancel"
+    },
+    "trackSubmitConfirm": {
+      "title": "Submit track",
+      "description": "The track will be submitted for the selected category. Proceed?",
+      "confirm": "Submit track",
+      "cancel": "Cancel"
+    },
     "fanVote": {
       "title": "Fan Vote",
       "description": "Quadratic Voting — 100 Voice Credits per month",
       "creditsAvailable": "Credits available",
       "creditsSpent": "Credits spent",
-      "helpText": "The more votes you concentrate on ONE track, the more expensive it becomes (cost = votes²).",
+      "helpTitle": "Why do costs increase?",
+      "helpText": "Quadratic Voting lets you express intensity without overwhelming minorities.\n\nThe cost of n votes on the same track is n² credits:\n• 1 vote = 1 credit\n• 2 votes = 4 credits\n• 3 votes = 9 credits\n• 5 votes = 25 credits\n\nYou can spread your 100 credits broadly or bet intensely on one track — but extreme concentration gets expensive.",
       "submitVotes": "Submit votes",
       "resetVotes": "Reset",
       "confirmSubmit": "Are you sure you want to submit these votes?",
@@ -43,12 +78,14 @@
       "description": "Schulze Method — Ranked-Choice Voting",
       "dragToRank": "Drag tracks into your preferred order",
       "submitBallot": "Submit ballot",
-      "helpText": "The Beatpath algorithm finds the Condorcet winner — strategic burial is mathematically impossible."
+      "helpTitle": "Why drag & drop instead of points?",
+      "helpText": "The Schulze Method (Beatpath) finds the Condorcet winner: the track that wins all pairwise comparisons.\n\nRankings instead of points make strategic burial impossible:\n• You cannot harm a competitor by tactically rating a rival low.\n• The algorithm evaluates all pairwise comparisons and finds the strongest path.\n\nSimply put: your honest order is always the best strategy."
     },
     "peerVote": {
       "title": "Band Peer Review",
       "description": "Anti-collusion algorithm with Mahalanobis distance",
-      "helpText": "Voting rings are penalised by clique detection."
+      "helpTitle": "How does the system detect voting rings?",
+      "helpText": "Three security layers protect against coordinated manipulation:\n\n1. Clique detection: Reciprocal votes (A→B and B→A) are downweighted.\n2. Mahalanobis distance: Outlier voters are identified and weighted less.\n3. Triadic Census: Closed triangles (A→B→C→A) receive a 0.7× penalty per triangle.\n\nMore intellectual diversity when voting (different genres, regions) increases the weight of your vote by up to 15%."
     }
   },
   "dashboard": {
@@ -56,26 +93,41 @@
       "title": "Fan Dashboard",
       "voiceCredits": "Voice Credits",
       "voteHistory": "Vote History",
-      "discoveryRate": "Discovery Rate"
+      "discoveryRate": "Discovery Rate",
+      "earlyDiscoverer": {
+        "badge": "🔮 Early Discoverer",
+        "description": "You discovered {count} of {total} top tracks before they became famous",
+        "percent": "{percent}% discovery rate"
+      }
     },
     "dj": {
       "title": "DJ Dashboard",
       "rankingScore": "DJ Ranking Score",
       "submittedBallots": "Submitted Ballots",
-      "predictiveAccuracy": "Predictive Accuracy"
+      "predictiveAccuracy": "Predictive Accuracy",
+      "feedback": {
+        "title": "Feedback to Bands",
+        "placeholder": "e.g. Improve bass mix for club systems …",
+        "submit": "Send feedback",
+        "success": "Feedback sent successfully",
+        "error": "Error sending feedback"
+      }
     },
     "band": {
       "title": "Band Dashboard",
       "tier": "Tier",
       "chartPosition": "Chart Position",
       "superListeners": "Super Listeners",
-      "djFeedback": "DJ Feedback"
+      "djFeedback": "DJ Feedback",
+      "feedbackEmpty": "No DJ feedback yet."
     },
     "label": {
       "title": "Label Dashboard",
       "mandatedBands": "Mandated Bands",
       "undergroundFinder": "Underground Finder",
-      "djBeatpathTrends": "DJ Beatpath Trends"
+      "djBeatpathTrends": "DJ Beatpath Trends",
+      "exportCsv": "Export data (CSV)",
+      "exportLoading": "Creating export …"
     }
   },
   "algorithms": {
@@ -87,12 +139,12 @@
     "schulze": {
       "title": "Schulze Method (Beatpath)",
       "badge": "DJ Voting",
-      "summary": "DJs submit a ranked list. The Condorcet winner wins."
+      "summary": "DJs submit a ranking. The Condorcet winner wins."
     },
     "peer": {
       "title": "Peer Voting (Anti-Collusion)",
       "badge": "Band Voting",
-      "summary": "Bands rate each other, voting rings are penalised."
+      "summary": "Bands rate each other; voting rings are downweighted."
     }
   },
   "errors": {
