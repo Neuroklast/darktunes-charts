@@ -125,7 +125,10 @@ export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
               </div>
 
               <button
-                onClick={() => console.log('nominate', s.spotifyTrackId)}
+                onClick={() => {
+                  // TODO: replace with real nomination API call (e.g. POST /api/nominations)
+                  console.info('[ScoutingPanel] nominate stub:', s.spotifyTrackId)
+                }}
                 className="self-start text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/10 text-white/70 hover:text-white transition-colors"
               >
                 Nominieren

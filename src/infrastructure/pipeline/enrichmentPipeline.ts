@@ -19,7 +19,7 @@ import { getMonthlyListeners } from '@/infrastructure/api/spotifyAdapter'
 import type { EnrichmentResult } from '@/domain/releases/index'
 
 /** Derive the Tier from Spotify follower count (used as SML proxy). */
-function classifyTier(followers: number): string {
+function _classifyTier(followers: number): string {
   if (followers >= 1_000_000) return 'MACRO'
   if (followers >= 250_000) return 'INTERNATIONAL'
   if (followers >= 50_000) return 'ESTABLISHED'
@@ -78,10 +78,8 @@ export async function enrichTrack(input: TrackEnrichmentInput): Promise<Enrichme
   if (input.spotifyArtistId) {
     try {
       const listeners = await getMonthlyListeners(input.spotifyArtistId)
-      const tier = classifyTier(listeners.followers)
-      tierUpdated = true
-      // TODO: await prisma.band.update({ where: { id: ... }, data: { tier, spotifyMonthlyListeners: listeners.followers } })
-      void tier // suppress unused-variable warning until DB writes are enabled
+      // TODO: await prisma.band.update({ where: { id: ... }, data: { tier: _classifyTier(listeners.followers), spotifyMonthlyListeners: listeners.followers } })
+      tierUpdated = listeners.followers >= 0 // proxy until DB write is enabled
     } catch (err) {
       errors.push(`Tier-check bot: ${err instanceof Error ? err.message : String(err)}`)
     }

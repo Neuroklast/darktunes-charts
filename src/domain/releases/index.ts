@@ -25,7 +25,12 @@ export const TrackSubmissionSchema = z.object({
   genre: z.enum(GENRE_VALUES),
   /**
    * Optional ISRC — if provided, used as the canonical deduplication key.
-   * Format: CC-XXX-YY-NNNNN (12 characters, no hyphens in storage).
+   * Format: 12 characters — CC XXX YY NNNNN (no hyphens stored)
+   *   CC     = ISO 3166-1 alpha-2 country code (registrant country)
+   *   XXX    = 3-char alphanumeric registrant code (assigned by IFPI)
+   *   YY     = 2-digit year of reference
+   *   NNNNN  = 5-digit designation code (sequential within registrant/year)
+   * Example: DEA712345678 → DE (Germany) + A71 (registrant) + 23 (2023) + 45678
    */
   isrc: z.string().regex(/^[A-Z]{2}[A-Z0-9]{3}\d{7}$/, 'Invalid ISRC format').optional(),
   /** Spotify track URL or ID — triggers the Odesli + Tier-Check bots. */
