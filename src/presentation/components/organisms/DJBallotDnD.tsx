@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useId } from 'react'
+import Image from 'next/image'
 import {
   DndContext,
   closestCenter,
@@ -78,9 +79,11 @@ function SortableTrackItem({ track, position }: SortableTrackItemProps) {
 
       {/* Album art */}
       {track.albumArtUrl ? (
-        <img
+        <Image
           src={track.albumArtUrl}
           alt={`Album-Cover für ${track.title}`}
+          width={40}
+          height={40}
           className="w-10 h-10 rounded object-cover shrink-0"
         />
       ) : (
