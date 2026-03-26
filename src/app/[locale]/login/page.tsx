@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -139,9 +140,9 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <a href="/signup" className="underline underline-offset-4 hover:text-primary">
+            <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
               Sign up
-            </a>
+            </Link>
           </p>
         </CardContent>
       </Card>

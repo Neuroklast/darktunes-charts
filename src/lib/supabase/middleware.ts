@@ -5,14 +5,14 @@ import { NextResponse, type NextRequest } from 'next/server'
  * Refreshes the Supabase session in middleware.
  * This ensures the session cookie stays fresh on every request.
  */
-export async function updateSession(request: NextRequest) {
+export async function updateSession(request: NextRequest, response: NextResponse) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !anonKey) {
-    throw new Error('Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
-  }
 
-  let supabaseResponse = NextResponse.next({ request })
+  if (!url || !anonKey) {
+    console.error('Missing Supabase environment variables')
+    return response
+  }
 
   const supabase = createServerClient(url, anonKey, {
     cookies: {
@@ -21,9 +21,8 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-        supabaseResponse = NextResponse.next({ request })
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          response.cookies.set(name, value, options)
         )
       },
     },
@@ -34,5 +33,5 @@ export async function updateSession(request: NextRequest) {
   // issues with users being randomly logged out.
   await supabase.auth.getUser()
 
-  return supabaseResponse
+  return response
 }
