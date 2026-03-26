@@ -17,11 +17,11 @@ const LOGIN_PATH = '/login'
 const intlMiddleware = createMiddleware({
   locales,
   defaultLocale,
-  // 'never' prevents next-intl from redirecting to locale-prefixed URLs (e.g.
-  // /en/charts) which would 404 because the App Router has no [locale] segment.
-  // Locale is still detected from the NEXT_LOCALE cookie set by LocaleSwitcher
-  // and from the Accept-Language header, but the URL always stays un-prefixed.
-  localePrefix: 'never',
+  // 'as-needed' keeps the default locale (de) URL-prefix-free (e.g. /charts)
+  // while non-default locales get a prefix (e.g. /en/charts).  The App Router
+  // [locale] segment in src/app/[locale]/ handles the internal rewrite target
+  // that next-intl generates — without it, Next.js would return 404.
+  localePrefix: 'as-needed',
 })
 
 /**
@@ -29,6 +29,10 @@ const intlMiddleware = createMiddleware({
  * The Next.js route group `(protected)` maps to paths like `/dashboard/...`
  * and `/vote/...` — these do NOT literally contain "(protected)" in the URL,
  * so we check a fixed list of protected path prefixes instead.
+ *
+ * With `localePrefix: 'as-needed'`, non-default locales add a prefix
+ * (e.g. /en/dashboard). The locale prefix is stripped before matching so
+ * that both `/dashboard` and `/en/dashboard` are recognised as protected.
  */
 function isProtectedPath(pathname: string): boolean {
   const PROTECTED_PREFIXES = [
@@ -37,7 +41,14 @@ function isProtectedPath(pathname: string): boolean {
     '/profile',
     '/admin',
   ]
-  return PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
+  // Strip locale prefix if present (e.g. /en/dashboard → /dashboard)
+  const strippedPath = locales.reduce((p, loc) => {
+    const prefix = `/${loc}`
+    if (p.startsWith(prefix + '/')) return p.slice(prefix.length)
+    if (p === prefix) return '/'
+    return p
+  }, pathname)
+  return PROTECTED_PREFIXES.some(prefix => strippedPath.startsWith(prefix))
 }
 
 /**
