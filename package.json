@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "prepare": "husky",
+    "validate": "prisma validate && tsc --noEmit && eslint ."
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -100,11 +102,17 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "husky": "^9.1.7",
     "jsdom": "^29.0.1",
+    "lint-staged": "^16.4.0",
     "tailwindcss": "^4.1.11",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.38.0",
     "vite": "^7.2.6",
     "vitest": "^4.1.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": ["eslint --fix", "tsc --noEmit --skipLibCheck"],
+    "*.{js,mjs,cjs}": "eslint --fix"
   }
 }
