@@ -7,7 +7,6 @@ import { PrismaPg } from '@prisma/adapter-pg'
  * See: https://pris.ly/d/config-datasource
  */
 export default defineConfig({
-  earlyAccess: true,
   schema: './prisma/schema.prisma',
   migrate: {
     async adapter() {
