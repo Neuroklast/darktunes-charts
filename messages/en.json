@@ -1,0 +1,105 @@
+{
+  "navigation": {
+    "charts": "Charts",
+    "categories": "Categories",
+    "howItWorks": "How it works",
+    "transparency": "Transparency",
+    "vote": "Vote",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "admin": "Admin",
+    "login": "Log in",
+    "logout": "Log out"
+  },
+  "home": {
+    "title": "DarkTunes Charts",
+    "subtitle": "The fairest dark music charts in the world",
+    "description": "Powered by mathematically proven voting algorithms that eliminate strategic manipulation.",
+    "viewCharts": "View Charts",
+    "howItWorks": "How does it work?"
+  },
+  "charts": {
+    "title": "Charts",
+    "description": "Aggregated results from fan voting, DJ ballots, and peer reviews",
+    "fanCharts": "Fan Charts",
+    "djCharts": "DJ Charts",
+    "bandPeer": "Band Peer",
+    "combined": "Combined (33/33/33)"
+  },
+  "voting": {
+    "fanVote": {
+      "title": "Fan Vote",
+      "description": "Quadratic Voting — 100 Voice Credits per month",
+      "creditsAvailable": "Credits available",
+      "creditsSpent": "Credits spent",
+      "helpText": "The more votes you concentrate on ONE track, the more expensive it becomes (cost = votes²).",
+      "submitVotes": "Submit votes",
+      "resetVotes": "Reset",
+      "confirmSubmit": "Are you sure you want to submit these votes?",
+      "confirmReset": "Reset all votes?"
+    },
+    "djVote": {
+      "title": "DJ Ballot",
+      "description": "Schulze Method — Ranked-Choice Voting",
+      "dragToRank": "Drag tracks into your preferred order",
+      "submitBallot": "Submit ballot",
+      "helpText": "The Beatpath algorithm finds the Condorcet winner — strategic burial is mathematically impossible."
+    },
+    "peerVote": {
+      "title": "Band Peer Review",
+      "description": "Anti-collusion algorithm with Mahalanobis distance",
+      "helpText": "Voting rings are penalised by clique detection."
+    }
+  },
+  "dashboard": {
+    "fan": {
+      "title": "Fan Dashboard",
+      "voiceCredits": "Voice Credits",
+      "voteHistory": "Vote History",
+      "discoveryRate": "Discovery Rate"
+    },
+    "dj": {
+      "title": "DJ Dashboard",
+      "rankingScore": "DJ Ranking Score",
+      "submittedBallots": "Submitted Ballots",
+      "predictiveAccuracy": "Predictive Accuracy"
+    },
+    "band": {
+      "title": "Band Dashboard",
+      "tier": "Tier",
+      "chartPosition": "Chart Position",
+      "superListeners": "Super Listeners",
+      "djFeedback": "DJ Feedback"
+    },
+    "label": {
+      "title": "Label Dashboard",
+      "mandatedBands": "Mandated Bands",
+      "undergroundFinder": "Underground Finder",
+      "djBeatpathTrends": "DJ Beatpath Trends"
+    }
+  },
+  "algorithms": {
+    "qv": {
+      "title": "Quadratic Voting (QV)",
+      "badge": "Fan Voting",
+      "summary": "The more votes you concentrate on ONE track, the more expensive it becomes."
+    },
+    "schulze": {
+      "title": "Schulze Method (Beatpath)",
+      "badge": "DJ Voting",
+      "summary": "DJs submit a ranked list. The Condorcet winner wins."
+    },
+    "peer": {
+      "title": "Peer Voting (Anti-Collusion)",
+      "badge": "Band Voting",
+      "summary": "Bands rate each other, voting rings are penalised."
+    }
+  },
+  "errors": {
+    "unauthorized": "Not logged in",
+    "forbidden": "Access denied",
+    "budgetExceeded": "Credit budget exceeded",
+    "invalidInput": "Invalid input",
+    "networkError": "Network error"
+  }
+}

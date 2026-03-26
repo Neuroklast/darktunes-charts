@@ -1,11 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/random-band",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/schulze-compute",
+      "schedule": "0 * * * *"
+    }
   ],
   "headers": [
     {

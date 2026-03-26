@@ -1,0 +1,420 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  name            String
+  role            UserRole  @default(FAN)
+  avatarUrl       String?
+  credits         Int       @default(100)
+  isDJVerified    Boolean   @default(false)
+  kycDocumentUrl  String?
+  kycStatus       KYCStatus @default(PENDING)
+  kycReviewedBy   String?
+  kycReviewedAt   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  band                 Band?              @relation("BandOwner")
+  fanVotes             FanVote[]
+  djBallots            DJBallot[]
+  bandVotesGiven       BandVote[]         @relation("VoterBand")
+  transparencyLogs     TransparencyLogEntry[]
+  botDetectionReviews  BotDetectionAlert[] @relation("Reviewer")
+  eventIntents         EventIntent[]
+  labelMandatesAsLabel LabelBandMandate[] @relation("LabelMandate")
+
+  @@map("users")
+}
+
+enum UserRole {
+  FAN
+  DJ
+  BAND
+  EDITOR
+  ADMIN
+  AR
+  LABEL
+}
+
+enum KYCStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model Band {
+  id                    String   @id @default(uuid())
+  name                  String
+  genre                 Genre
+  spotifyMonthlyListeners Int    @default(0)
+  tier                  Tier     @default(MICRO)
+  logoUrl               String?
+  coverArtUrl           String?
+  spotifyUrl            String?
+  bandcampUrl           String?
+  spotifyArtistId       String?
+  country               String?
+  formedYear            Int?
+  bio                   String?
+  isVerified            Boolean  @default(false)
+  ownerId               String   @unique
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  owner                User                 @relation("BandOwner", fields: [ownerId], references: [id])
+  tracks               Track[]
+  bandVotesReceived    BandVote[]           @relation("VotedBand")
+  submissions          BandSubmission[]
+  aiPredictions        AIPrediction[]
+  labelMandates        LabelBandMandate[]   @relation("BandMandate")
+  awards               Award[]
+  spotlights           Spotlight[]
+
+  @@map("bands")
+}
+
+enum Genre {
+  GOTH
+  METAL
+  DARK_ELECTRO
+  POST_PUNK
+  INDUSTRIAL
+  DARKWAVE
+  EBM
+  SYMPHONIC_METAL
+  AGGROTECH
+  NEOFOLK
+}
+
+enum Tier {
+  MICRO
+  EMERGING
+  ESTABLISHED
+  INTERNATIONAL
+  MACRO
+}
+
+model Track {
+  id              String   @id @default(uuid())
+  bandId          String
+  title           String
+  isrc            String?  @unique
+  genre           Genre
+  spotifyTrackId  String?
+  itunesTrackId   String?
+  coverArtUrl     String?
+  submittedAt     DateTime @default(now())
+
+  band             Band                  @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  fanVotes         FanVote[]
+  djBallotEntries  DJBallotEntry[]
+  streamingLinks   TrackStreamingLink[]
+  transparencyLogs TransparencyLogEntry[]
+  botAlerts        BotDetectionAlert[]
+
+  @@map("tracks")
+}
+
+model TrackStreamingLink {
+  id        String   @id @default(uuid())
+  trackId   String
+  platform  String
+  url       String
+  nativeUri String?
+  fetchedAt DateTime @default(now())
+
+  track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([trackId, platform])
+  @@map("track_streaming_links")
+}
+
+model FanVote {
+  id           String   @id @default(uuid())
+  userId       String
+  trackId      String
+  periodId     String
+  votes        Int
+  creditsSpent Int
+  weight       Float    @default(1.0)
+  createdAt    DateTime @default(now())
+
+  user   User         @relation(fields: [userId], references: [id])
+  track  Track        @relation(fields: [trackId], references: [id])
+  period VotingPeriod @relation(fields: [periodId], references: [id])
+
+  @@unique([userId, trackId, periodId])
+  @@map("fan_votes")
+}
+
+model DJBallot {
+  id        String   @id @default(uuid())
+  userId    String
+  periodId  String
+  genre     Genre
+  createdAt DateTime @default(now())
+
+  user    User            @relation(fields: [userId], references: [id])
+  period  VotingPeriod    @relation(fields: [periodId], references: [id])
+  entries DJBallotEntry[]
+
+  @@unique([userId, periodId, genre])
+  @@map("dj_ballots")
+}
+
+model DJBallotEntry {
+  id       String @id @default(uuid())
+  ballotId String
+  trackId  String
+  rank     Int
+
+  ballot DJBallot @relation(fields: [ballotId], references: [id], onDelete: Cascade)
+  track  Track    @relation(fields: [trackId], references: [id])
+
+  @@unique([ballotId, trackId])
+  @@map("dj_ballot_entries")
+}
+
+model BandVote {
+  id          String   @id @default(uuid())
+  voterId     String
+  votedBandId String
+  periodId    String
+  weight      Float    @default(1.0)
+  rawWeight   Float    @default(1.0)
+  cliqueCoeff Float    @default(1.0)
+  createdAt   DateTime @default(now())
+
+  voter     User         @relation("VoterBand", fields: [voterId], references: [id])
+  votedBand Band         @relation("VotedBand", fields: [votedBandId], references: [id])
+  period    VotingPeriod @relation(fields: [periodId], references: [id])
+
+  @@unique([voterId, votedBandId, periodId])
+  @@map("band_votes")
+}
+
+model VotingPeriod {
+  id        String   @id @default(uuid())
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  fanVotes       FanVote[]
+  djBallots      DJBallot[]
+  bandVotes      BandVote[]
+  chartSnapshots ChartSnapshot[]
+
+  @@map("voting_periods")
+}
+
+model ChartSnapshot {
+  id            String   @id @default(uuid())
+  periodId      String
+  trackId       String
+  genre         Genre
+  fanScore      Float    @default(0)
+  djScore       Float    @default(0)
+  peerScore     Float    @default(0)
+  combinedScore Float    @default(0)
+  fanRank       Int?
+  djRank        Int?
+  peerRank      Int?
+  combinedRank  Int?
+  computedAt    DateTime @default(now())
+
+  period VotingPeriod @relation(fields: [periodId], references: [id])
+
+  @@unique([periodId, trackId])
+  @@map("chart_snapshots")
+}
+
+model TransparencyLogEntry {
+  id                String   @id @default(uuid())
+  timestamp         DateTime @default(now())
+  trackId           String
+  userId            String
+  voteType          VoteType
+  rawVotes          Int
+  creditsSpent      Int?
+  weight            Float
+  finalContribution Float
+  reason            String?
+
+  track Track @relation(fields: [trackId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@map("transparency_log")
+}
+
+enum VoteType {
+  FAN
+  DJ
+  PEER
+}
+
+model BotDetectionAlert {
+  id              String      @id @default(uuid())
+  timestamp       DateTime    @default(now())
+  trackId         String
+  bandId          String
+  alertType       AlertType
+  severity        Severity
+  votesCount      Int
+  timeWindow      Int
+  suspiciousIPs   String[]
+  newAccountRatio Float?
+  status          AlertStatus @default(FLAGGED)
+  reviewedById    String?
+  reviewedAt      DateTime?
+
+  track      Track @relation(fields: [trackId], references: [id])
+  reviewedBy User? @relation("Reviewer", fields: [reviewedById], references: [id])
+
+  @@map("bot_detection_alerts")
+}
+
+enum AlertType {
+  VELOCITY
+  NEW_ACCOUNTS
+  IP_CLUSTER
+  PATTERN
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AlertStatus {
+  FLAGGED
+  REVIEWING
+  CLEARED
+  CONFIRMED_FRAUD
+}
+
+model BandSubmission {
+  id             String   @id @default(uuid())
+  bandId         String
+  periodId       String
+  freeCategory   Genre
+  paidCategories Genre[]
+  totalCost      Float    @default(0)
+  submittedAt    DateTime @default(now())
+
+  band Band @relation(fields: [bandId], references: [id])
+
+  @@unique([bandId, periodId])
+  @@map("band_submissions")
+}
+
+model AIPrediction {
+  id              String   @id @default(uuid())
+  bandId          String
+  confidenceScore Float
+  predictedTier   Tier
+  voteVelocity    Float
+  genreMomentum   Float
+  streamGrowth    Float
+  createdAt       DateTime @default(now())
+
+  band Band @relation(fields: [bandId], references: [id])
+
+  @@map("ai_predictions")
+}
+
+model LabelBandMandate {
+  id        String        @id @default(uuid())
+  labelId   String
+  bandId    String
+  status    MandateStatus @default(PENDING)
+  grantedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime      @default(now())
+
+  label User @relation("LabelMandate", fields: [labelId], references: [id])
+  band  Band @relation("BandMandate", fields: [bandId], references: [id])
+
+  @@unique([labelId, bandId])
+  @@map("label_band_mandates")
+}
+
+enum MandateStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  name        String
+  venue       String
+  city        String
+  country     String
+  date        DateTime
+  description String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+
+  intents EventIntent[]
+
+  @@map("events")
+}
+
+model EventIntent {
+  id      String @id @default(uuid())
+  eventId String
+  userId  String
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+  @@map("event_intents")
+}
+
+model Spotlight {
+  id     String   @id @default(uuid())
+  bandId String
+  date   DateTime @default(now())
+
+  band Band @relation(fields: [bandId], references: [id])
+
+  @@map("spotlights")
+}
+
+model Award {
+  id          String   @id @default(uuid())
+  bandId      String?
+  title       String
+  description String
+  awardType   String
+  month       Int
+  year        Int
+  isAutomatic Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  band Band? @relation(fields: [bandId], references: [id])
+
+  @@map("awards")
+}
+
+model DJRankingScore {
+  id                 String   @id @default(uuid())
+  userId             String
+  predictiveAccuracy Float    @default(0)
+  participationRate  Float    @default(0)
+  totalScore         Float    @default(0)
+  computedAt         DateTime @default(now())
+
+  @@map("dj_ranking_scores")
+}

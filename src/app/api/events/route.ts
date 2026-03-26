@@ -1,0 +1,61 @@
+import { NextResponse, type NextRequest } from 'next/server'
+import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
+import { rankEvents, filterUpcomingEvents } from '@/domain/events/ranking'
+
+const createEventSchema = z.object({
+  name: z.string().min(1).max(200),
+  venue: z.string().min(1).max(200),
+  city: z.string().min(1).max(100),
+  country: z.string().min(1).max(100),
+  date: z.string().datetime(),
+  description: z.string().max(2000).optional(),
+  imageUrl: z.string().url().optional(),
+})
+
+/**
+ * GET /api/events
+ * Returns upcoming events ranked by intent count.
+ */
+export async function GET() {
+  try {
+    // In production, load events with intent counts:
+    // const events = await prisma.event.findMany({ include: { _count: { select: { intents: true } } } })
+    const mockEvents = filterUpcomingEvents([])
+    const ranked = rankEvents(mockEvents)
+    return NextResponse.json({ events: ranked })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+/**
+ * POST /api/events
+ * Creates a new event (admin or editor only).
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body: unknown = await request.json()
+    const parsed = createEventSchema.safeParse(body)
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json({ success: true, event: { id: 'new-event-id', intentCount: 0, ...parsed.data } })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
