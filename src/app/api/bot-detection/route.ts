@@ -18,6 +18,12 @@ const analyzeFingerprintSchema = z.object({
   uniqueIpCount: z.number().int().min(1),
 })
 
+/** Discriminated union for POST body type discrimination. */
+const analyzeBodySchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('behavior'), data: analyzeFingerprintSchema }),
+  z.object({ type: z.literal('votes'), data: z.array(z.unknown()) }),
+])
+
 /**
  * GET /api/bot-detection
  * Returns bot detection alerts (admin only).
@@ -69,38 +75,31 @@ export async function PUT(request: NextRequest) {
  * POST /api/bot-detection
  * Analyses a batch of vote records or a user behaviour fingerprint.
  *
- * Body format A (pattern analysis):
- *   { votes: VoteRecord[] }
+ * Body format A (fingerprint analysis):
+ *   { type: "behavior", data: UserBehavior }
  *
- * Body format B (fingerprint analysis):
- *   { behavior: UserBehavior }
+ * Body format B (pattern analysis):
+ *   { type: "votes", data: VoteRecord[] }
  */
 export async function POST(request: NextRequest) {
   try {
     const body: unknown = await request.json()
+    const parsed = analyzeBodySchema.safeParse(body)
 
-    if (body && typeof body === 'object' && 'behavior' in body) {
-      const parsed = analyzeFingerprintSchema.safeParse((body as { behavior: unknown }).behavior)
-      if (!parsed.success) {
-        return NextResponse.json(
-          { error: 'Invalid behavior data', details: parsed.error.flatten() },
-          { status: 400 }
-        )
-      }
-      const result = calculateSuspicionScore(parsed.data as UserBehavior)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body — expected { type: "behavior"|"votes", data: ... }', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    if (parsed.data.type === 'behavior') {
+      const result = calculateSuspicionScore(parsed.data.data as UserBehavior)
       return NextResponse.json(result)
     }
 
-    if (body && typeof body === 'object' && 'votes' in body) {
-      const votes = (body as { votes: unknown }).votes
-      if (!Array.isArray(votes)) {
-        return NextResponse.json({ error: 'votes must be an array' }, { status: 400 })
-      }
-      const alerts = analyzeVotingPatterns(votes as VoteRecord[])
-      return NextResponse.json({ alerts })
-    }
-
-    return NextResponse.json({ error: 'Provide either votes or behavior in request body' }, { status: 400 })
+    const alerts = analyzeVotingPatterns(parsed.data.data as VoteRecord[])
+    return NextResponse.json({ alerts })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

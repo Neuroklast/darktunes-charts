@@ -37,8 +37,8 @@ const BURST_VOTE_THRESHOLD = 10
 const BURST_WINDOW_MS = 5 * 60 * 1000
 /** Minimum identical ballots to flag as suspicious. */
 const IDENTICAL_BALLOT_THRESHOLD = 3
-/** Account age threshold in hours; accounts younger than this are considered new. */
-const NEW_ACCOUNT_AGE_HOURS = 24
+/** Account age threshold in milliseconds — accounts younger than this are considered new. */
+const NEW_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000
 /** Minimum new-account votes to trigger a mass-voting alert. */
 const NEW_ACCOUNT_VOTE_THRESHOLD = 5
 /** Night-time voting anomaly window (UTC hours 02:00–04:00). */
@@ -121,11 +121,10 @@ function detectIdenticalBallots(votes: VoteRecord[]): BotDetectionAlert[] {
 function detectNewAccountMassVoting(votes: VoteRecord[]): BotDetectionAlert[] {
   const alerts: BotDetectionAlert[] = []
   const newAccountVotes = new Map<string, number>()
-  const thresholdMs = NEW_ACCOUNT_AGE_HOURS * 60 * 60 * 1000
 
   for (const vote of votes) {
     const accountAge = vote.timestamp - new Date(vote.accountCreatedAt).getTime()
-    if (accountAge < thresholdMs) {
+    if (accountAge < NEW_ACCOUNT_AGE_MS) {
       newAccountVotes.set(vote.voterId, (newAccountVotes.get(vote.voterId) ?? 0) + 1)
     }
   }

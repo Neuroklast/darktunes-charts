@@ -59,10 +59,10 @@ export function shannonEntropy(values: number[]): number {
   }
 
   const total = values.length
-  return (-[...counts.values()]
-    .map((count) => count / total)
-    .filter((p) => p > 0)
-    .reduce((sum, p) => sum + p * Math.log2(p), 0)) || 0
+  const probabilities = [...counts.values()].map((count) => count / total)
+  const entropyComponents = probabilities.filter((p) => p > 0).map((p) => p * Math.log2(p))
+  const rawEntropy = -entropyComponents.reduce((sum, e) => sum + e, 0)
+  return rawEntropy || 0 // Prevent -0 from JavaScript floating-point arithmetic
 }
 
 /**

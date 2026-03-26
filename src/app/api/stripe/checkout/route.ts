@@ -10,6 +10,12 @@ const checkoutSchema = z.object({
   totalCategories: z.number().int().min(2, 'Must have at least 2 categories for a paid checkout'),
 })
 
+/** Allowed origin domains for Stripe Checkout redirect URLs. */
+const ALLOWED_ORIGINS_ENV = process.env.STRIPE_ALLOWED_ORIGINS ?? ''
+const ALLOWED_ORIGINS = ALLOWED_ORIGINS_ENV
+  ? ALLOWED_ORIGINS_ENV.split(',').map((o) => o.trim())
+  : []
+
 /**
  * POST /api/stripe/checkout
  * Creates a Stripe Checkout session for additional chart category fees.
@@ -19,6 +25,17 @@ const checkoutSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
+    const origin = request.headers.get('origin')
+
+    if (!origin) {
+      return NextResponse.json({ error: 'Missing Origin header' }, { status: 400 })
+    }
+
+    // Validate origin against allowlist (in production set STRIPE_ALLOWED_ORIGINS env var)
+    if (ALLOWED_ORIGINS.length > 0 && !ALLOWED_ORIGINS.includes(origin)) {
+      return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 })
+    }
+
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -36,7 +53,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const origin = request.headers.get('origin') ?? 'https://darktunes.com'
     const { sessionId, sessionUrl } = await createCheckoutSession({
       bandId: parsed.data.bandId,
       tier: parsed.data.tier as Tier,

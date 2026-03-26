@@ -64,7 +64,7 @@ describe('analyzeVotingPatterns', () => {
   })
 
   it('detects new account mass voting', () => {
-    const recentAccountDate = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() // 1 hour ago
+    const recentAccountDate = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() // 1 hour ago (< 24h threshold)
     const votes: VoteRecord[] = Array.from({ length: 6 }, (_, i) =>
       makeVote({
         voterId: 'new-voter',

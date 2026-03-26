@@ -21,12 +21,8 @@ export interface Mandate {
 interface MandateManagerProps {
   /** The role of the viewing user — determines which UI is shown. */
   role: 'label' | 'band'
-  /** User ID of the current viewer. */
-  viewerId: string
   /** Current mandates (both pending and active). */
   mandates: Mandate[]
-  /** Called when a label requests a mandate from a band. */
-  onRequest: (bandId: string) => Promise<void>
   /** Called when a band accepts a pending mandate request. */
   onAccept: (mandateId: string) => Promise<void>
   /** Called when a mandate is rejected or revoked. */
