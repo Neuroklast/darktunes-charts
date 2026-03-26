@@ -88,48 +88,66 @@
 }
 
 /* =========================================================================
-   DarkTunes Design Tokens — Dark-first theme
+   DarkTunes Design Tokens — Liquid Obsidian System
+   Base: #0A0A0A · Surfaces: #141414 · Accent: Blood Red #D30000
    ========================================================================= */
 :root {
-  --background: oklch(0.10 0.005 270);
-  --foreground: oklch(0.95 0.01 270);
+  /* Core surfaces — true obsidian, no blue cast */
+  --background: #0A0A0A;
+  --foreground: #FFFFFF;
 
-  --card: oklch(0.15 0.01 270);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.15 0.01 270);
-  --popover-foreground: oklch(0.98 0 0);
+  --card: #141414;
+  --card-foreground: #FFFFFF;
+  --popover: #141414;
+  --popover-foreground: #FFFFFF;
 
-  --primary: oklch(0.35 0.15 300);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.20 0.02 270);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.18 0.01 270);
-  --muted-foreground: oklch(0.65 0.01 270);
-  --accent: oklch(0.75 0.15 200);
-  --accent-foreground: oklch(0.10 0.005 270);
-  --destructive: oklch(0.45 0.18 15);
-  --destructive-foreground: oklch(0.98 0 0);
+  /* Primary = Blood Red (Metal / Gothic energy) */
+  --primary: #D30000;
+  --primary-foreground: #FFFFFF;
 
-  --border: oklch(0.25 0.02 270);
-  --input: oklch(0.25 0.02 270);
-  --ring: oklch(0.75 0.15 200);
+  /* Secondary = Obsidian surface */
+  --secondary: #1C1C1C;
+  --secondary-foreground: #FFFFFF;
 
-  --radius: 0.625rem;
+  --muted: #1C1C1C;
+  --muted-foreground: #6B6B6B;
 
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* Accent = Electric Violet (chart bars / highlights) */
+  --accent: #7C3AED;
+  --accent-foreground: #FFFFFF;
 
-  --sidebar: oklch(0.15 0.01 270);
-  --sidebar-foreground: oklch(0.95 0.01 270);
-  --sidebar-primary: oklch(0.35 0.15 300);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.20 0.02 270);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.25 0.02 270);
-  --sidebar-ring: oklch(0.75 0.15 200);
+  --destructive: #D30000;
+  --destructive-foreground: #FFFFFF;
+
+  /* Borders: 0.5px hairlines — obsidian glass feel */
+  --border: rgba(255,255,255,0.08);
+  --input: rgba(255,255,255,0.08);
+  --ring: #7C3AED;
+
+  /* Sharp corners — industrial precision */
+  --radius: 0.25rem;
+
+  /* Brand accent palette */
+  --dt-red: #D30000;
+  --dt-violet: #7C3AED;
+  --dt-cyan: #00F0FF;
+  --dt-green: #00FF66;
+
+  /* Recharts / chart colours */
+  --chart-1: #D30000;
+  --chart-2: #7C3AED;
+  --chart-3: #00F0FF;
+  --chart-4: #00FF66;
+  --chart-5: #F59E0B;
+
+  --sidebar: #0F0F0F;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #D30000;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1C1C1C;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255,255,255,0.08);
+  --sidebar-ring: #7C3AED;
 
   --font-display: 'Oswald', sans-serif;
   --font-body: 'Inter', sans-serif;
@@ -211,7 +229,8 @@
 
   h1, h2, h3 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 }
 
@@ -220,6 +239,8 @@
    ========================================================================= */
 .font-display {
   font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .font-mono {
@@ -229,25 +250,33 @@
 
 .glassmorphism {
   backdrop-filter: blur(12px);
-  background: oklch(0.15 0.01 270 / 0.8);
-  border: 1px solid oklch(0.25 0.02 270 / 0.5);
+  background: rgba(20, 20, 20, 0.85);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
 }
 
 .glow-primary {
-  box-shadow: 0 0 20px oklch(0.35 0.15 300 / 0.4);
+  box-shadow: 0 0 20px rgba(211, 0, 0, 0.35);
 }
 
 .glow-accent {
-  box-shadow: 0 0 20px oklch(0.75 0.15 200 / 0.4);
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.35);
 }
 
 .gradient-mesh {
   background:
-    radial-gradient(at 0% 0%, oklch(0.20 0.08 300) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, oklch(0.18 0.06 200) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, oklch(0.16 0.05 15) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, oklch(0.15 0.04 270) 0px, transparent 50%),
-    oklch(0.10 0.005 270);
+    radial-gradient(at 0% 0%, rgba(211, 0, 0, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(124, 58, 237, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(124, 58, 237, 0.04) 0px, transparent 50%),
+    #0A0A0A;
+}
+
+/* Industrial card hover lift */
+.card-hover {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.15);
 }
 
 /* =========================================================================

@@ -436,3 +436,52 @@ model DJFeedback {
 
   @@map("dj_feedback")
 }
+
+// ─── Achievement & Index System ───────────────────────────────────────────────
+
+model AchievementDefinition {
+  id          String          @id @default(uuid())
+  slug        String          @unique
+  pillar      AchievementPillar
+  rarity      AchievementRarity @default(COMMON)
+  titleDe     String
+  titleEn     String
+  descDe      String
+  descEn      String
+  iconKey     String          @default("award")
+  requiresKyc Boolean         @default(false)
+  isAutomatic Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+
+  userAchievements UserAchievement[]
+
+  @@map("achievement_definitions")
+}
+
+model UserAchievement {
+  id              String   @id @default(uuid())
+  userId          String
+  achievementId   String
+  grantedAt       DateTime @default(now())
+  metadata        Json?
+
+  achievement AchievementDefinition @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@map("user_achievements")
+}
+
+enum AchievementPillar {
+  FAN
+  BAND
+  DJ
+  LABEL
+}
+
+enum AchievementRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
