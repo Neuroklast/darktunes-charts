@@ -40,6 +40,9 @@ const TOKEN_REFRESH_BUFFER_MS = 60_000
 /** Next.js ISR cache duration for Spotify artist data (24 hours). */
 const SPOTIFY_CACHE_DURATION_SECONDS = 86_400
 
+/** In-memory token cache for the Client Credentials grant. */
+let cachedToken: { token: string; expiresAt: number } | null = null
+
 
 
 /**

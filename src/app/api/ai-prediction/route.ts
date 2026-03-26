@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { generateAIPrediction } from '@/domain/voting/prediction'
-import type { Band } from '@/lib/types'
 
 /**
  * GET /api/ai-prediction?bandId=xxx
@@ -17,15 +16,13 @@ export async function GET(request: NextRequest) {
     // In production, load actual band data from database:
     // const band = await prisma.band.findUnique({ where: { id: bandId } })
 
-    const mockBand: Band = {
-      id: bandId,
-      name: 'Unknown Band',
-      genre: 'Goth',
-      spotifyMonthlyListeners: 0,
-      tier: 'Micro',
-    }
-
-    const prediction = generateAIPrediction(mockBand)
+    const prediction = generateAIPrediction(
+      bandId,
+      [],    // historicalVotes — none available without DB in mock path
+      0,     // currentListeners
+      0,     // previousListeners
+      1.0,   // genreAvgGrowth — at par
+    )
 
     return NextResponse.json({ prediction })
   } catch (error) {
