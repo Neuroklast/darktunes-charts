@@ -17,7 +17,11 @@ const LOGIN_PATH = '/login'
 const intlMiddleware = createMiddleware({
   locales,
   defaultLocale,
-  localePrefix: 'as-needed',
+  // 'never' prevents next-intl from redirecting to locale-prefixed URLs (e.g.
+  // /en/charts) which would 404 because the App Router has no [locale] segment.
+  // Locale is still detected from the NEXT_LOCALE cookie set by LocaleSwitcher
+  // and from the Accept-Language header, but the URL always stays un-prefixed.
+  localePrefix: 'never',
 })
 
 /**
