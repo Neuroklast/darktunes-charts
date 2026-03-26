@@ -14,7 +14,9 @@ import {
   BookOpen
 } from '@phosphor-icons/react'
 
-const ICON_MAP: Record<string, any> = {
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react'
+
+const ICON_MAP: Record<string, React.ComponentType<React.ComponentProps<PhosphorIcon>>> = {
   'Disc': Disc,
   'Vinyl': Disc,
   'Microphone': Microphone,

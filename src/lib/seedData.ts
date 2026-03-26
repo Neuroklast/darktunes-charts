@@ -152,7 +152,6 @@ function buildSeedBands(): Band[] {
  */
 function buildSeedTracks(bands: Band[]): Track[] {
   return bands.map((band, idx) => {
-    const artistData = RAW_ARTISTS[idx]
     const templates = TRACK_TITLE_TEMPLATES[band.genre]
     const title = templates[idx % templates.length]
     return {
