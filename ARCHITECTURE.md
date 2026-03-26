@@ -119,3 +119,43 @@ api/
 - `vercel-deploy.sh` provides a one-step deploy script with pre-flight checks (node, npm, typecheck, tests, build)
 
 **Consequences:** Single `vercel deploy` command deploys both frontend and backend. No separate API server required. Environment variables (`SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `EXCHANGE_RATE_API_KEY`) must be configured in the Vercel project settings before live Spotify/exchange-rate integration.
+
+---
+
+## ADR-008: Clean Architecture Domain Layer (`src/domain/`)
+
+**Status:** Accepted
+
+**Context:** All business logic (voting algorithms, tier classification, audit trail, AI prediction) was co-located with infrastructure adapters in `src/lib/`. This violates the Single Responsibility Principle and makes it impossible to test domain logic in isolation from external concerns (React, network, localStorage).
+
+**Decision:** Introduce a `src/domain/` layer following Clean Architecture / DDD principles:
+
+```
+src/domain/
+├── voting/
+│   ├── quadratic.ts   — Quadratic Voting cost function & budget validation
+│   ├── schulze.ts     — Schulze Beatpath Condorcet method (Floyd-Warshall)
+│   ├── peer.ts        — Anti-collusion clique coefficient (peer pillar)
+│   ├── tiers.ts       — Five-tier classification & progressive pricing
+│   ├── audit.ts       — Transparency log & bot detection
+│   ├── prediction.ts  — AI breakthrough prediction algorithm
+│   └── index.ts       — Barrel re-export
+└── categories/
+    └── index.ts       — Category definitions, eligibility logic, weight calculation
+```
+
+A companion `src/infrastructure/api/` layer wraps the iTunes and Odesli HTTP clients, isolating network I/O from domain logic. The existing `src/lib/` files become thin shims that re-export from the domain layer, preserving backward compatibility for all existing tests and consumers.
+
+**Consequences:** Domain functions are pure TypeScript — they can be tested without DOM, React, or network stubs. Future migration to a different runtime (Next.js, Deno, Bun) requires only infrastructure adapter changes. The `src/lib/` shim pattern prevents a big-bang migration while establishing the target architecture.
+
+---
+
+## ADR-009: `prefers-reduced-motion` CSS Support (WCAG 2.1 / DIN EN ISO 9241-110)
+
+**Status:** Accepted
+
+**Context:** The platform defines rich CSS micro-interactions (modal-in, fade-up, slide-in-right, glow-pulse). Users with vestibular disorders or motion sensitivity can set `prefers-reduced-motion: reduce` in their OS settings. Without an explicit media query override, these animations play regardless, violating WCAG 2.1 Success Criterion 2.3.3 (Animation from Interactions) and DIN EN ISO 9241-110 Fehlertoleranz (error tolerance) requirements.
+
+**Decision:** Add a `@media (prefers-reduced-motion: reduce)` block to `src/index.css` that collapses all animation/transition durations to 0.01ms and explicitly resets all named animation utility classes. Opacity transitions are preserved since they convey state (loading, modal open) without vestibular risk.
+
+**Consequences:** WCAG 2.1 SC 2.3.3 compliance. DIN EN ISO 9241-110 Fehlertoleranz satisfied. No JavaScript required — the CSS media query is handled natively by the browser. Framer Motion's `useReducedMotion` hook should be used for JavaScript-driven animations in future components.

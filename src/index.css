@@ -183,3 +183,29 @@ h1, h2, h3 {
   outline: 2px solid oklch(0.75 0.15 200 / 0.8);
   outline-offset: 2px;
 }
+
+/* =========================================================================
+   Accessibility: Reduced Motion (WCAG 2.1 SC 2.3.3, DIN EN ISO 9241-110)
+   Users who set "prefers-reduced-motion: reduce" in their OS have all
+   non-essential animations disabled. Opacity transitions are preserved
+   since they convey state (loading, focus) without causing vestibular harm.
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-modal-in,
+  .animate-fade-up,
+  .animate-slide-in-right,
+  .animate-glow-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
