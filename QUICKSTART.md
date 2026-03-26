@@ -74,6 +74,20 @@ vercel login
 
 Vollständige Anleitung: siehe [`docs/HANDBUCH_DE.md`](./docs/HANDBUCH_DE.md)
 
+### Erstes Admin-Konto einrichten
+
+> ⚠️ Admin-Konten können **nicht** über den öffentlichen Registrierungsprozess oder OAuth erstellt werden — das ist eine bewusste Sicherheitsentscheidung.
+
+Nach dem ersten Deployment das gewünschte Konto per OAuth einloggen lassen, dann in Supabase die Rolle manuell setzen:
+
+```sql
+UPDATE public.users
+SET role = 'ADMIN'
+WHERE email = 'deine@email.de';
+```
+
+Vollständige Schritt-für-Schritt-Anleitung: [`docs/ADMIN_BOOTSTRAP.md`](./docs/ADMIN_BOOTSTRAP.md)
+
 ---
 
 ## English
@@ -145,3 +159,17 @@ vercel login
 ```
 
 Full guide: see [`docs/MANUAL_EN.md`](./docs/MANUAL_EN.md)
+
+### Setting up the first Admin account
+
+> ⚠️ Admin accounts **cannot** be created via the public registration flow or OAuth — this is a deliberate security decision.
+
+After the first deployment, log in with the desired account via OAuth, then manually set the role in Supabase:
+
+```sql
+UPDATE public.users
+SET role = 'ADMIN'
+WHERE email = 'your@email.com';
+```
+
+Full step-by-step instructions: [`docs/ADMIN_BOOTSTRAP.md`](./docs/ADMIN_BOOTSTRAP.md)
