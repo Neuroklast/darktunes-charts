@@ -1,0 +1,105 @@
+{
+  "navigation": {
+    "charts": "Charts",
+    "categories": "Kategorien",
+    "howItWorks": "Wie funktioniert es?",
+    "transparency": "Transparenz",
+    "vote": "Abstimmen",
+    "dashboard": "Dashboard",
+    "profile": "Profil",
+    "admin": "Admin",
+    "login": "Anmelden",
+    "logout": "Abmelden"
+  },
+  "home": {
+    "title": "DarkTunes Charts",
+    "subtitle": "Die fairsten Dark-Musik Charts der Welt",
+    "description": "Powered by mathematisch bewiesenen Voting-Algorithmen, die strategische Manipulation ausschließen.",
+    "viewCharts": "Charts ansehen",
+    "howItWorks": "Wie funktioniert es?"
+  },
+  "charts": {
+    "title": "Charts",
+    "description": "Aggregierte Ergebnisse aus Fan-Voting, DJ-Ballots und Peer-Reviews",
+    "fanCharts": "Fan Charts",
+    "djCharts": "DJ Charts",
+    "bandPeer": "Band Peer",
+    "combined": "Combined (33/33/33)"
+  },
+  "voting": {
+    "fanVote": {
+      "title": "Fan Vote",
+      "description": "Quadratic Voting — 100 Voice Credits pro Monat",
+      "creditsAvailable": "Credits verfügbar",
+      "creditsSpent": "Credits verbraucht",
+      "helpText": "Je mehr Stimmen du auf EINEN Track konzentrierst, desto teurer wird es (Kosten = Stimmen²).",
+      "submitVotes": "Votes einreichen",
+      "resetVotes": "Zurücksetzen",
+      "confirmSubmit": "Bist du sicher, dass du diese Votes einreichen möchtest?",
+      "confirmReset": "Alle Votes zurücksetzen?"
+    },
+    "djVote": {
+      "title": "DJ Ballot",
+      "description": "Schulze-Methode — Ranked-Choice Voting",
+      "dragToRank": "Ziehe Tracks in deine bevorzugte Reihenfolge",
+      "submitBallot": "Ballot einreichen",
+      "helpText": "Der Beatpath-Algorithmus findet den Condorcet-Sieger — strategisches Burial ist unmöglich."
+    },
+    "peerVote": {
+      "title": "Band Peer Review",
+      "description": "Anti-Kollusions-Algorithmus mit Mahalanobis-Distanz",
+      "helpText": "Voting-Ringe werden durch Cliquen-Erkennung abgewertet."
+    }
+  },
+  "dashboard": {
+    "fan": {
+      "title": "Fan Dashboard",
+      "voiceCredits": "Voice Credits",
+      "voteHistory": "Vote-Historie",
+      "discoveryRate": "Entdeckerquote"
+    },
+    "dj": {
+      "title": "DJ Dashboard",
+      "rankingScore": "DJ Ranking Score",
+      "submittedBallots": "Eingereichte Ballots",
+      "predictiveAccuracy": "Vorhersage-Genauigkeit"
+    },
+    "band": {
+      "title": "Band Dashboard",
+      "tier": "Tier",
+      "chartPosition": "Chart-Platz",
+      "superListeners": "Super Listener",
+      "djFeedback": "DJ Feedback"
+    },
+    "label": {
+      "title": "Label Dashboard",
+      "mandatedBands": "Mandatierte Bands",
+      "undergroundFinder": "Underground Finder",
+      "djBeatpathTrends": "DJ Beatpath Trends"
+    }
+  },
+  "algorithms": {
+    "qv": {
+      "title": "Quadratic Voting (QV)",
+      "badge": "Fan Voting",
+      "summary": "Je mehr Stimmen du auf EINEN Track konzentrierst, desto teurer wird es."
+    },
+    "schulze": {
+      "title": "Schulze-Methode (Beatpath)",
+      "badge": "DJ Voting",
+      "summary": "DJs reichen eine Rangliste ein. Der Condorcet-Sieger gewinnt."
+    },
+    "peer": {
+      "title": "Peer Voting (Anti-Kollusion)",
+      "badge": "Band Voting",
+      "summary": "Bands bewerten sich gegenseitig, Voting-Ringe werden abgewertet."
+    }
+  },
+  "errors": {
+    "unauthorized": "Nicht angemeldet",
+    "forbidden": "Kein Zugriff",
+    "budgetExceeded": "Credit-Budget überschritten",
+    "invalidInput": "Ungültige Eingabe",
+    "networkError": "Netzwerkfehler"
+  }
+}
