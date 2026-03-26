@@ -6,6 +6,11 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **Documentation Suite**: Complete bilingual documentation set for all platform areas:
+  - `QUICKSTART.md` — Bilingual (DE/EN) quick start guide with installation, commands, demo accounts, and deployment steps
+  - `docs/HANDBUCH_DE.md` — Vollständiges Benutzerhandbuch (14 Kapitel, Deutsch)
+  - `docs/MANUAL_EN.md` — Complete user manual (14 chapters, English)
+  - `.env.example` — All environment variables documented with descriptions, registration links, and Vercel CLI setup instructions
 - **Domain Layer** (`src/domain/`): Clean Architecture domain layer introduced per ADR-008. All voting business logic (Quadratic Voting, Schulze Beatpath, clique detection, tier classification, audit trail, AI prediction) moved to `src/domain/voting/` sub-modules. Category definitions and eligibility logic moved to `src/domain/categories/`. Zero React/network dependencies in the domain layer.
 - **Infrastructure Layer** (`src/infrastructure/api/`): External API adapters for iTunes Search API and Odesli (song.link) API extracted to proper infrastructure layer, isolating network I/O from domain business logic.
 - **`prefers-reduced-motion` CSS** (`src/index.css`): WCAG 2.1 SC 2.3.3 compliance — all CSS animations and transitions are suppressed for users who have enabled the OS-level "Reduce Motion" accessibility setting. Satisfies DIN EN ISO 9241-110 Fehlertoleranz requirement (ADR-009).
@@ -13,10 +18,22 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - **ARCHITECTURE.md**: ADR-008 (domain layer) and ADR-009 (reduced motion) added.
 
 ### Changed
+- **`vercel-deploy.sh`**: Fully rewritten with colored terminal output, ASCII banner, automatic Vercel CLI installation if missing, Node.js version check, step-by-step progress display, post-deploy next-steps summary.
+- **`README.md`**: Complete rewrite — full repository structure, all environment variables, API reference, demo accounts, documentation table, and links to bilingual manuals.
 - `src/lib/voting.ts`, `src/lib/schulze.ts`, `src/lib/votingAudit.ts`, `src/lib/aiPrediction.ts`: Converted from implementations to backward-compatibility re-export shims pointing to the new domain layer. All existing imports and tests continue to work without changes.
 
 ### Vercel Migration (previous entries)
 - **Vercel Migration**: Removed all GitHub Spark platform dependencies; app now runs as a pure Vercel deployment
+- **vercel.json**: Added `functions` configuration (`api/**/*.ts: nodejs22.x`) for Vercel Serverless Functions (ADR-006, ADR-007)
+- **CHANGELOG.md**: Vercel migration entry documenting platform transition
+
+### Changed
+- **theme.css**: `#spark-app` → `#root` CSS selector fix so all CSS custom properties apply correctly on Vercel
+- **ErrorFallback.tsx**: Removed Spark-specific error text; replaced with neutral "A runtime error occurred" message
+- **ConsentBanner.tsx**: Removed "Spark KV store" reference from JSDoc comment
+- **kv-shim.ts**: Cleaned up JSDoc — removed Spark-specific references; hook is now described as a localStorage-backed `useState`-compatible hook
+- **ARCHITECTURE.md**: Updated ADR-005 to remove Spark references and clarify that all proprietary platform dependencies have been removed
+- **SECURITY.md**: Replaced generic GitHub security template with project-specific policy
 - **vercel.json**: Added `functions` configuration (`api/**/*.ts: nodejs22.x`) for Vercel Serverless Functions (ADR-006, ADR-007)
 - **CHANGELOG.md**: Vercel migration entry documenting platform transition
 

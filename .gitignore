@@ -24,7 +24,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment files — never commit real secrets
 .env
+.env.local
+.env.*.local
+
 **/agent-eval-report*
 packages
 pids
