@@ -1,25 +1,6 @@
 @import 'tailwindcss';
 @import "tw-animate-css";
 
-/*
-  ---break---
-*/
-@custom-variant dark (&:is(.dark *));
-
-/*
-  Tailwind CSS v4 compatibility: default border color was changed to `currentColor`.
-  These styles preserve the v3 behaviour across all pseudo-elements.
-*/
-@layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
-  }
-}
-
 /* =========================================================================
    Radix UI Color Palette Imports
    ========================================================================= */
@@ -86,6 +67,25 @@
 @import '@radix-ui/colors/slate-dark.css' layer(base);
 @import '@radix-ui/colors/slate-alpha.css' layer(base);
 @import '@radix-ui/colors/slate-dark-alpha.css' layer(base);
+
+/*
+  ---break---
+*/
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Tailwind CSS v4 compatibility: default border color was changed to `currentColor`.
+  These styles preserve the v3 behaviour across all pseudo-elements.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
 
 /* =========================================================================
    DarkTunes Design Tokens — Dark-first theme
