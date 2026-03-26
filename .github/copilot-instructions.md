@@ -17,17 +17,12 @@ Du handelst als Senior Software Architect für React, TypeScript und Node.js im 
 - Definiere saubere `interfaces` oder `types` für jedes Objekt.
 - Verlasse dich beim Einlesen externer Daten (z.B. CSV, APIs) niemals blind auf das Format. Validiere die Datenstrukturen an den Systemgrenzen (z.B. mit Zod).
 
-4. Finanz-Mathematik & Datenintegrität
-- Währungen dürfen niemals vermischt werden.
-- Gleitkomma-Ungenauigkeiten (Floating Point Errors) müssen vermieden werden. Beträge werden erst ganz am Ende für die UI formatiert (z.B. mit `Intl.NumberFormat`).
-- Behandle Ausgaben (Kosten, Abzüge) immer transparent und subtrahiere sie sauber, bevor Splits angewendet werden.
-
-5. Defensive Programming & Fehlerbehandlung
+4. Defensive Programming & Fehlerbehandlung
 - Schreibe Code, der nicht abstürzt. Nutze Try-Catch-Blöcke um asynchrone Operationen, API-Aufrufe und riskante Parsing-Vorgänge.
 - Keine stillen Fehler (Silent Failures). Wenn ein kritischer Datensatz fehlt, wirf einen expliziten Error oder zeige ein visuelles Fallback an, anstatt `undefined` in die UI zu rendern.
 - Gehe bei Regex-Musterabfragen immer davon aus, dass der String völlig unerwartete Sonderzeichen enthalten kann.
 
-6. Refactoring-Regel
+5. Refactoring-Regel
 - Wenn du beauftragt wirst, ein neues Feature in eine bereits zu große Datei einzubauen, refaktoriere die Datei proaktiv. Extrahiere Unterkomponenten in eigene Dateien, bevor du die neue Logik aufsetzt.
 
 
@@ -51,13 +46,13 @@ Erweiterte Architektur- und Dokumentationsrichtlinien
 
 Regel 1: TSDoc / JSDoc Pflicht für Geschäftslogik
 
-"Selbsterklärender Code" reicht für Finanzsoftware nicht aus. Jede exportierte Funktion im Ordner src/lib und jeder Custom Hook muss zwingend mit einem vollständigen TSDoc-Kommentar versehen werden.
+Jede exportierte Funktion im Ordner src/lib und jeder Custom Hook muss zwingend mit einem vollständigen TSDoc-Kommentar versehen werden.
 Dokumentiere nicht nur WAS die Funktion tut, sondern vor allem WARUM sie so geschrieben ist (Edge-Cases, Branchenstandards, Fallbacks).
 Beschreibe bei komplexen Parametern exakt, welches Format erwartet wird (z.B. Datumsformate).
 Regel 2: Strikte Modularisierung (Domain-Driven)
 
 Wenn du neue Funktionen vorschlägst, lege sie nicht blind im globalen components oder hooks Ordner ab.
-Kapsele zusammengehörige Logik in Feature-Ordnern (z.B. src/features/pdf-export, src/features/csv-parsing).
+Kapsele zusammengehörige Logik in Feature-Ordnern (z.B. src/features).
 Komponenten dürfen nur auf den globalen Zustand oder auf Dateien aus ihrer eigenen Domäne zugreifen. Querverweise zwischen isolierten Features sind verboten.
 Regel 3: Defensive UI Architektur (Error Boundaries)
 
@@ -68,3 +63,5 @@ Regel 4: Architektur-Dokumentation (ADR)
 
 Wenn du beauftragt wirst, eine signifikante architektonische Änderung vorzunehmen (z.B. Wechsel des State-Managements, Einführung eines neuen Parsers), generiere im Anschluss automatisch einen Eintrag für eine ARCHITECTURE.md Datei.
 Strukturiere diesen Eintrag nach dem Schema: Kontext, Entscheidung, Konsequenzen. "Erstelle für jede größere Änderung eine kurze Zusammenfassung im Stil eines 'Keep a Changelog' (Added, Changed, Fixed), damit ich die Historie in einer CHANGELOG.md pflegen kann."
+
+Regel 5: Wann immer du etwas entwickelt hast und es kommt zu Fehlern, schriebe dir eine markdown datei mit lessons learned, die du bneachtest bei der nächsten Iteration. Überprüfe auch die Lessons, ob sie korrekt waren oder falsch sind udn lsöche falsche lessons learned auch wieder. 
