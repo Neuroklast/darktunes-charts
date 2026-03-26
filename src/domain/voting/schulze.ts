@@ -158,7 +158,7 @@ export function calculateSchulzeWinner(ballots: DJBallot[], candidateIds: string
     }
   }
 
-  const scores = candidateIds.map((id, idx) => {
+  const candidateScores = candidateIds.map((id, idx) => {
     let score = 0
     for (let j = 0; j < n; j++) {
       if (idx !== j && p[idx][j] > p[j][idx]) {
@@ -168,8 +168,8 @@ export function calculateSchulzeWinner(ballots: DJBallot[], candidateIds: string
     return { id, score }
   })
 
-  scores.sort((a, b) => b.score - a.score)
-  return scores.map(s => s.id)
+  candidateScores.sort((a, b) => b.score - a.score)
+  return candidateScores.map(s => s.id)
 }
 
 /**

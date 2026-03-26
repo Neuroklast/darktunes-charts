@@ -44,7 +44,10 @@ export interface SubmissionCostResult {
  * Tier assignment uses exclusive lower bounds: a band at exactly 10,000 listeners
  * remains in Micro; they must exceed the threshold to advance.
  *
- * @param monthlyListeners - Spotify monthly listener count (must be >= 0).
+ * Negative listener counts are not valid (Spotify returns 0 as the minimum); callers
+ * must ensure `monthlyListeners >= 0`. Negative inputs would incorrectly return 'Micro'.
+ *
+ * @param monthlyListeners - Spotify monthly listener count (non-negative; caller-validated).
  * @returns The corresponding Tier label.
  */
 export function getTierFromListeners(monthlyListeners: number): Tier {

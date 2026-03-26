@@ -194,6 +194,8 @@ h1, h2, h3 {
   *,
   ::before,
   ::after {
+    /* 0.01ms (not 0ms): Safari ignores 0ms durations and plays the full animation.
+       0.01ms is imperceptibly fast while being recognized by all browsers. */
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
