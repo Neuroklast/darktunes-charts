@@ -6,8 +6,6 @@
 */
 @custom-variant dark (&:is(.dark *));
 
-@config '../../tailwind.config.js';
-
 /*
   Tailwind CSS v4 compatibility: default border color was changed to `currentColor`.
   These styles preserve the v3 behaviour across all pseudo-elements.
