@@ -70,11 +70,6 @@ export function computeEarlyDiscoverer(
     }
   }
 
-  // Build a lookup: trackId → firstEnteredTop10At for O(1) access
-  const chartEntryMap = new Map<string, Date>(
-    top10Chart.map(entry => [entry.trackId, entry.firstEnteredTop10At])
-  )
-
   // Group fan votes by track, keeping only the EARLIEST vote per track
   const earliestVotePerTrack = new Map<string, Date>()
   for (const vote of fanVotes) {

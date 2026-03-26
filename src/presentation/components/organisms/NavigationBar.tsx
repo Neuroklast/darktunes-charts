@@ -7,11 +7,6 @@ import { LocaleSwitcher } from '@/presentation/components/atoms/LocaleSwitcher'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-interface NavLink {
-  href: string
-  labelKey: keyof ReturnType<typeof useTranslations<'navigation'>>
-}
-
 const NAV_LINKS: { href: string; labelKey: string }[] = [
   { href: '/charts', labelKey: 'charts' },
   { href: '/categories', labelKey: 'categories' },

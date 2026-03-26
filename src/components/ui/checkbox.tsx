@@ -1,8 +1,8 @@
 "use client"
 
+import { Check as CheckIcon } from "lucide-react"
 import { ComponentProps } from "react"
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
-import CheckIcon from "lucide-react/dist/esm/icons/check"
 
 import { cn } from "@/lib/utils"
 

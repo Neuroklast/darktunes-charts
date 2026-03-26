@@ -1,8 +1,8 @@
 "use client"
 
+import { Minus as MinusIcon } from "lucide-react"
 import { ComponentProps, useContext } from "react"
 import { OTPInput, OTPInputContext } from "input-otp"
-import MinusIcon from "lucide-react/dist/esm/icons/minus"
 
 import { cn } from "@/lib/utils"
 

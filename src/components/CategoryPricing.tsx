@@ -38,7 +38,7 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
       toast.success('Spotify data updated', {
         description: `${listeners.toLocaleString()} monthly listeners`
       })
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to fetch Spotify data')
     } finally {
       setIsCalculating(false)

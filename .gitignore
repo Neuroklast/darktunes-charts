@@ -37,3 +37,11 @@ pids
 
 .spark-workbench-id
 tsconfig.tsbuildinfo
+
+# Next.js build output
+.next/
+next-env.d.ts
+
+# Playwright test results
+test-results/
+playwright-report/

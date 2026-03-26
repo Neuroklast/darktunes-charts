@@ -142,7 +142,7 @@ fi
 # Step 5: Production build
 # ---------------------------------------------------------------------------
 step "5/6  Building for production"
-if npm run build 2>&1 | grep -E "^(dist/|✓ built)"; then
+if npm run build 2>&1 | grep -E "^(\.next/|✓ Compiled|Route \(app\))"; then
   success "Production build complete"
 else
   BUILD_EXIT=${PIPESTATUS[0]}

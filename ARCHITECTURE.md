@@ -106,19 +106,20 @@ api/
 
 ## ADR-007: Vercel Deployment Configuration
 
-**Status:** Accepted
+**Status:** Superseded by Next.js App Router migration (see below for current config)
 
-**Context:** The project must deploy as a single Vercel project that serves both the Vite-built SPA and the serverless API functions.
+> **Note:** The original ADR-007 described a Vite-SPA deployment (`buildCommand: tsc -b --noCheck && vite build`, `outputDirectory: dist`, SPA fallback rewrites). That configuration has been superseded by the migration to Next.js 15 App Router. The section below documents the current, active deployment setup.
+
+**Context:** The project must deploy as a single Vercel project that serves both the Next.js App Router frontend and the serverless API route handlers defined under `src/app/api/`.
 
 **Decision:** Configure `vercel.json` at the repository root with:
-- `buildCommand: npm run build` — runs `tsc -b --noCheck && vite build` producing `dist/`
-- `outputDirectory: dist` — Vite output served as static assets
-- `functions."api/**/*.ts": { runtime: "nodejs22.x" }` — TypeScript API routes compiled by Vercel
-- URL rewrites: `/api/:path*` → serverless functions; `(.*)` → `index.html` (SPA fallback)
-- Security headers on all routes: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`
+- `"framework": "nextjs"` — Vercel auto-detects Next.js and runs `next build`; output goes to `.next/`
+- No custom `buildCommand` or `outputDirectory` — Next.js framework preset handles both
+- Cron jobs declared under `"crons"`: `/api/cron/random-band` (daily), `/api/cron/schulze-compute` (hourly), `/api/cron/tier-refresh` (weekly)
+- Security headers on all routes: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`; `Cache-Control: no-store` on all `/api/*` routes
 - `vercel-deploy.sh` provides a one-step deploy script with pre-flight checks (node, npm, typecheck, tests, build)
 
-**Consequences:** Single `vercel deploy` command deploys both frontend and backend. No separate API server required. Environment variables (`SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `EXCHANGE_RATE_API_KEY`) must be configured in the Vercel project settings before live Spotify/exchange-rate integration.
+**Consequences:** Single `vercel deploy` command deploys both frontend and backend via Next.js App Router API routes (`src/app/api/**`). No separate API server or SPA fallback rewrite is required — Next.js handles routing natively. Environment variables must be configured in the Vercel project settings (see `.env.example`).
 
 ---
 

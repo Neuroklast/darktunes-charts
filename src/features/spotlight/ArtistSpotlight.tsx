@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -72,9 +73,11 @@ export function ArtistSpotlight({ bands, tracks }: ArtistSpotlightProps) {
         {/* Cover Art / Hero */}
         <div className={`relative h-40 bg-gradient-to-br ${gradient} flex items-end p-5`}>
           {featured.coverArtUrl ? (
-            <img
+            <Image
               src={featured.coverArtUrl}
               alt={`${featured.name} cover art`}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-70 transition-opacity duration-500"
               loading="lazy"
             />

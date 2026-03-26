@@ -11,7 +11,6 @@ import {
   ImageSquare,
   HandHeart,
   Flame,
-  MusicNote,
 } from '@phosphor-icons/react'
 import type { Band, Track, FanVote } from '@/lib/types'
 import { seededRandom } from '@/lib/utils'
@@ -61,7 +60,7 @@ const SPECIAL_AWARDS: AwardDefinition[] = [
     subtitle: 'Bestes Merchandise-Design',
     icon: <TShirt className="w-5 h-5" weight="duotone" />,
     color: 'text-cyan-400',
-    pickWinner: (bands, tracks) => {
+    pickWinner: (bands, _tracks) => {
       const idx = Math.floor(seededRandom(2) * bands.length)
       const band = bands[idx]
       if (!band) return null

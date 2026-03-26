@@ -1,11 +1,16 @@
 import { defineConfig } from 'prisma/config'
 
 /**
- * Prisma configuration file.
- * Schema path is declared here. Database connection URLs are managed
- * via environment variables in the datasource block of schema.prisma
- * and at runtime via the PrismaPg adapter in src/lib/prisma.ts.
+ * Prisma 7 configuration file.
+ *
+ * - `datasource.url`: used by `prisma migrate` / `prisma db push` commands.
+ *   Uses DIRECT_URL (bypasses PgBouncer) so schema migrations work reliably.
+ * - The PrismaClient adapter (PrismaPg) is configured separately in
+ *   `src/lib/prisma.ts` using DATABASE_URL for application queries.
  */
 export default defineConfig({
   schema: './prisma/schema.prisma',
+  datasource: {
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? '',
+  },
 })

@@ -50,7 +50,7 @@ export async function submitDJFeedback(input: DJFeedbackInput): Promise<SubmitDJ
       return { success: false, error: parsed.error.errors[0]?.message ?? 'Ungültige Eingabe' }
     }
 
-    const { bandId, trackId, message } = parsed.data
+    const { bandId, trackId: _trackId, message: _message } = parsed.data
 
     // 3. Verify DJ role: check user metadata from Supabase auth
     // The user_metadata.role is set during OAuth sign-in or by admin

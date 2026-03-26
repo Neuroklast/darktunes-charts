@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
+  "buildCommand": "npx prisma generate && npx prisma migrate deploy && next build",
   "crons": [
     {
       "path": "/api/cron/random-band",
