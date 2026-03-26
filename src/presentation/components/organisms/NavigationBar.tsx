@@ -4,61 +4,149 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { LocaleSwitcher } from '@/presentation/components/atoms/LocaleSwitcher'
+import { DarkTunesLogo } from '@/presentation/components/atoms/DarkTunesLogo'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/features/auth/AuthContext'
+import {
+  BarChart2,
+  LayoutGrid,
+  Heart,
+  Music2,
+  TrendingUp,
+  ScrollText,
+  Shield,
+  LogOut,
+  UserCircle,
+} from 'lucide-react'
 
-const NAV_LINKS: { href: string; labelKey: string }[] = [
-  { href: '/charts', labelKey: 'charts' },
-  { href: '/categories', labelKey: 'categories' },
-  { href: '/how-it-works', labelKey: 'howItWorks' },
-  { href: '/transparency', labelKey: 'transparency' },
+interface NavLink {
+  href: string
+  labelKey: string
+  icon: React.ReactNode
+}
+
+const NAV_LINKS: NavLink[] = [
+  { href: '/charts',       labelKey: 'charts',      icon: <BarChart2  size={14} /> },
+  { href: '/categories',   labelKey: 'categories',  icon: <LayoutGrid size={14} /> },
+  { href: '/vote/fan',     labelKey: 'fanVote',     icon: <Heart      size={14} /> },
+  { href: '/vote/dj',      labelKey: 'djVote',      icon: <Music2     size={14} /> },
+  { href: '/how-it-works', labelKey: 'anr',         icon: <TrendingUp size={14} /> },
+  { href: '/transparency', labelKey: 'transparency', icon: <ScrollText size={14} /> },
 ]
 
 /**
- * NavigationBar organism — Spec §2.2 (Organisms)
+ * NavigationBar — Liquid Obsidian Design System
  *
- * Site-wide top navigation bar with translated links, locale switcher, and
- * auth actions.  Rendered client-side so it can access the current pathname
- * for active link highlighting and the locale switcher.
+ * Glassmorphism header with the DarkTunes brand mark, full navigation,
+ * locale switcher and auth action. Matches the "High-End-Software" aesthetic:
+ * obsidian surface, hairline borders, Oswald display font.
+ *
+ * Session-aware: shows the user's name + a logout button when authenticated,
+ * and a login link when not authenticated.
  */
 export function NavigationBar() {
   const pathname = usePathname()
   const t = useTranslations('navigation')
+  const { user, isAuthenticated, logout } = useAuth()
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <nav className="max-w-7xl mx-auto flex items-center justify-between h-14 px-4">
-        {/* Logo */}
-        <Link href="/" className="font-bold tracking-tight text-lg">
-          DarkTunes
+    <header className="sticky top-0 z-50 w-full border-b border-white/[0.06] glassmorphism">
+      <nav className="max-w-[1440px] mx-auto flex items-center h-14 px-4 gap-4">
+
+        {/* ── Brand ── */}
+        <Link href="/" className="flex items-center gap-3 shrink-0 mr-2" aria-label="DarkTunes Home">
+          <DarkTunesLogo />
+          {/* Chart brand label */}
+          <div className="hidden lg:flex flex-col leading-none pl-3 border-l border-white/10">
+            <span
+              className="text-white font-display text-[11px] tracking-[0.22em] uppercase"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              darkTunes <span className="text-white font-bold">CHARTS</span>
+            </span>
+            <span className="text-[9px] text-white/35 tracking-[0.18em] uppercase" style={{ fontFamily: 'var(--font-body)' }}>
+              Fair · Transparent · Innovativ
+            </span>
+          </div>
         </Link>
 
-        {/* Main Links */}
-        <div className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.map(({ href, labelKey }) => (
-            <Button
-              key={href}
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                'text-muted-foreground',
-                pathname.startsWith(href) && 'text-foreground bg-muted'
-              )}
-            >
-              <Link href={href}>{t(labelKey as Parameters<typeof t>[0])}</Link>
-            </Button>
-          ))}
+        {/* ── Primary Navigation ── */}
+        <div className="hidden md:flex items-center gap-0.5 flex-1">
+          {NAV_LINKS.map(({ href, labelKey, icon }) => {
+            const isActive = pathname === href || pathname.startsWith(href + '/')
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 text-[12px] tracking-wide uppercase rounded-sm transition-all duration-150',
+                  'font-medium',
+                  isActive
+                    ? 'bg-[#7C3AED] text-white'
+                    : 'text-white/50 hover:text-white hover:bg-white/5'
+                )}
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {icon}
+                {labelKey === 'fanVote'    ? 'Fan Vote'    :
+                 labelKey === 'djVote'     ? 'DJ Vote'     :
+                 labelKey === 'anr'        ? 'A&R'         :
+                 labelKey === 'transparency' ? 'Log'        :
+                 t(labelKey as Parameters<typeof t>[0])}
+              </Link>
+            )
+          })}
         </div>
 
-        {/* Right side: locale switcher + auth */}
-        <div className="flex items-center gap-2">
+        {/* ── Right: Security icon + Locale + Auth ── */}
+        <div className="flex items-center gap-2 ml-auto shrink-0">
+          <Link
+            href="/how-it-works"
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-[12px] uppercase tracking-wide text-white/40 hover:text-white transition-colors rounded-sm hover:bg-white/5"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            <Shield size={13} />
+            Security
+          </Link>
           <LocaleSwitcher />
-          <Button asChild size="sm" variant="outline">
-            <Link href="/vote/fan">{t('vote')}</Link>
-          </Button>
+
+          {isAuthenticated && user ? (
+            /* ── Authenticated: user name + logout ── */
+            <div className="flex items-center gap-2">
+              <Link
+                href="/profile"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-wide text-white/70 hover:text-white transition-colors rounded-sm hover:bg-white/5"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                <UserCircle size={13} />
+                {user.name}
+              </Link>
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="flex items-center gap-1.5 h-7 px-3 text-[11px] uppercase tracking-widest border border-white/15 bg-transparent text-white/60 hover:text-white hover:border-white/30 rounded-sm font-medium transition-colors"
+                style={{ fontFamily: 'var(--font-body)' }}
+                aria-label="Abmelden"
+              >
+                <LogOut size={12} />
+                <span className="hidden sm:inline">Abmelden</span>
+              </button>
+            </div>
+          ) : (
+            /* ── Unauthenticated: login button ── */
+            <Button
+              asChild
+              size="sm"
+              className="h-7 px-4 text-[11px] uppercase tracking-widest border border-white/15 bg-transparent text-white hover:bg-white/8 rounded-sm font-medium"
+            >
+              <Link href="/login">{t('login')}</Link>
+            </Button>
+          )}
         </div>
+
       </nav>
     </header>
   )
 }
+

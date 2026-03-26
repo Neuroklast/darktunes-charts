@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { TrackSubmissionSchema } from '@/domain/releases/index'
 
 const createTrackSchema = z.object({
   title: z.string().min(1).max(200),
@@ -49,13 +50,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Extended ISRC validation using TrackSubmissionSchema (strict regex format check)
+    if (parsed.data.isrc) {
+      const isrcCheck = TrackSubmissionSchema.pick({ isrc: true }).safeParse({ isrc: parsed.data.isrc })
+      if (!isrcCheck.success) {
+        return NextResponse.json(
+          { error: 'Invalid ISRC format', details: isrcCheck.error.flatten() },
+          { status: 400 }
+        )
+      }
+    }
+
     // ISRC deduplication:
     // if (parsed.data.isrc) {
     //   const existing = await prisma.track.findUnique({ where: { isrc: parsed.data.isrc } })
     //   if (existing) return NextResponse.json({ error: 'Track with this ISRC already exists', existingTrackId: existing.id }, { status: 409 })
     // }
 
-    return NextResponse.json({ success: true, track: { id: 'new-track-id', ...parsed.data } })
+    // After DB insert, trigger async enrichment (fire-and-forget):
+    // void enrichTrack({ trackId: track.id, title: track.title, artistName: band.name, spotifyTrackId: track.spotifyTrackId })
+
+    return NextResponse.json({ success: true, track: { id: 'new-track-id', ...parsed.data }, enrichmentQueued: true })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

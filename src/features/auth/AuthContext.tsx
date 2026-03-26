@@ -1,3 +1,5 @@
+'use client'
+
 import {
   createContext,
   useContext,
@@ -6,24 +8,23 @@ import {
   useEffect,
   type ReactNode,
 } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import type { AuthUser, UserRole } from '@/lib/types'
+import type { UserProfile } from '@/domain/auth/profile'
 
-/** Simulated network delay in ms — replace with 0 when a real API endpoint is wired up. */
-const SIMULATED_NETWORK_DELAY_MS = 600
+/** Path of the Supabase OAuth callback route handler. */
+const AUTH_CALLBACK_PATH = '/api/auth/callback'
 
-/** Minimum password length enforced at registration. */
+/** Minimum password length enforced client-side (must match Supabase Auth settings). */
 const MIN_PASSWORD_LENGTH = 8
 
-/** localStorage key used to persist the authenticated user session. */
-const STORAGE_KEY = 'darktunes-auth-user'
-
-/** Credentials accepted by the login form. */
+/** Credentials for email/password sign-in. */
 export interface LoginCredentials {
   email: string
   password: string
 }
 
-/** Fields required to register a new account. */
+/** Fields required to create a new email/password account. */
 export interface RegisterPayload {
   name: string
   email: string
@@ -33,124 +34,221 @@ export interface RegisterPayload {
 }
 
 interface AuthContextValue {
-  /** The currently authenticated user, or null when logged out. */
+  /** Platform user — null until session + profile are loaded. */
   user: AuthUser | null
-  /** True while the login / register request is in-flight. */
+  /** True while the initial session is being resolved. */
   isLoading: boolean
   /** True when a user session is active. */
   isAuthenticated: boolean
+  /**
+   * True when the Supabase session exists but no platform profile was found.
+   * Consumers can redirect to /onboarding when this is true.
+   */
+  isProfileIncomplete: boolean
   /** Convenience: checks whether the current user has a given role. */
   hasRole: (role: UserRole) => boolean
-  /** Authenticates an existing user. Returns an error string on failure. */
+  /** Sign in with email and password. Returns error string on failure. */
   login: (credentials: LoginCredentials) => Promise<string | null>
-  /** Creates a new account and signs the user in. Returns an error string on failure. */
+  /** Create a Supabase account + platform profile. Returns error string on failure. */
   register: (payload: RegisterPayload) => Promise<string | null>
-  /** Destroys the current session. */
-  logout: () => void
+  /** Sign in via an OAuth provider (browser redirect — returns null or error). */
+  loginWithOAuth: (provider: 'spotify' | 'google' | 'github') => Promise<string | null>
+  /** Sign out and clear the session. */
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 /**
- * Provides authentication state to the entire application tree.
+ * AuthProvider — Real Supabase Authentication
  *
- * Auth state is persisted in localStorage so sessions survive page reloads.
- * In this frontend-only MVP, login is simulated locally; the KV-shim backend
- * is ready to swap in a real OAuth / JWT flow when the API layer is finalised.
+ * Replaces the previous localStorage simulation with a proper Supabase session.
+ * Session state is driven by `supabase.auth.onAuthStateChange` so it stays
+ * consistent across tabs and page reloads without manual persistence.
+ *
+ * Profile lookup flow:
+ *   1. `onAuthStateChange` fires `SIGNED_IN` or `INITIAL_SESSION`
+ *   2. We call `GET /api/profile` to load the platform role + credits
+ *   3. If no profile exists, `isProfileIncomplete = true` → redirect to /onboarding
+ *      (the actual redirect is the responsibility of the onboarding page or layout)
+ *
+ * Admin accounts are NEVER creatable via this flow — they require a direct
+ * database update after an initial OAuth sign-in. See docs/ADMIN_BOOTSTRAP.md.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isProfileIncomplete, setIsProfileIncomplete] = useState(false)
 
-  // Restore persisted session on mount
-  useEffect(() => {
+  /**
+   * Fetches the platform profile for the currently authenticated Supabase user
+   * and populates the local `user` state. Sets `isProfileIncomplete` if the
+   * profile row does not exist yet (first-time OAuth login).
+   */
+  const loadProfile = useCallback(async (): Promise<void> => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsed: unknown = JSON.parse(stored)
-        if (isValidAuthUser(parsed)) {
-          setUser(parsed)
-        }
+      const res = await fetch('/api/profile')
+      if (!res.ok) {
+        setUser(null)
+        setIsProfileIncomplete(false)
+        return
       }
+
+      const data = (await res.json()) as { profile: UserProfile | null }
+
+      if (!data.profile) {
+        // Authenticated but no platform profile — needs onboarding
+        setUser(null)
+        setIsProfileIncomplete(true)
+        return
+      }
+
+      const p = data.profile
+      setUser({
+        id: p.id,
+        role: p.role,
+        name: p.name,
+        email: p.email,
+        credits: p.credits,
+        bandId: p.bandId ?? undefined,
+        isDJVerified: p.isDJVerified,
+        avatarUrl: p.avatarUrl ?? undefined,
+        joinedAt: new Date(p.createdAt).getTime(),
+      })
+      setIsProfileIncomplete(false)
     } catch {
-      localStorage.removeItem(STORAGE_KEY)
+      // Network failure — treat as unauthenticated rather than crashing
+      setUser(null)
+      setIsProfileIncomplete(false)
     }
   }, [])
 
-  const persistUser = useCallback((u: AuthUser) => {
-    setUser(u)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u))
+  // Subscribe to Supabase auth state on mount
+  useEffect(() => {
+    const supabase = createClient()
+
+    // Resolve existing session immediately so we don't flash a loading state
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!session) {
+          setIsLoading(false)
+          return
+        }
+        return loadProfile()
+      })
+      .catch((err: unknown) => {
+        // Network failure on initial session check — log in dev, stay logged out
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[AuthContext] Initial session check failed:', err)
+        }
+      })
+      .finally(() => { setIsLoading(false) })
+
+    // Keep state in sync across tabs / token refreshes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        void loadProfile()
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setIsProfileIncomplete(false)
+      }
+    })
+
+    return () => { subscription.unsubscribe() }
+  }, [loadProfile])
+
+  /**
+   * Email / password sign-in.
+   * Returns a localised error message on failure, null on success.
+   */
+  const login = useCallback(async ({ email, password }: LoginCredentials): Promise<string | null> => {
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (!error) return null
+    if (error.message.toLowerCase().includes('invalid login credentials')) {
+      return 'E-Mail oder Passwort ist ungültig.'
+    }
+    return error.message
   }, [])
 
   /**
-   * Simulated login: matches email against seeded demo accounts.
-   * Replace this body with a real API call (POST /api/auth/login) in production.
+   * Email / password sign-up.
+   *
+   * The chosen role is stored in `user_metadata` under the key
+   * `darktunes_role` so the OAuth callback (and the profile API) can create
+   * the platform profile automatically after email confirmation.
+   *
+   * When auto-confirm is on (dev / "Confirm email" disabled in Supabase),
+   * a session is returned immediately and we create the profile right away.
    */
-  const login = useCallback(
-    async (credentials: LoginCredentials): Promise<string | null> => {
-      setIsLoading(true)
-      try {
-        // Simulate network latency
-        await new Promise(resolve => setTimeout(resolve, SIMULATED_NETWORK_DELAY_MS))
+  const register = useCallback(async (payload: RegisterPayload): Promise<string | null> => {
+    if (payload.password.length < MIN_PASSWORD_LENGTH) {
+      return `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen lang sein.`
+    }
 
-        const demo = DEMO_ACCOUNTS.find(
-          a => a.email === credentials.email.toLowerCase().trim(),
-        )
+    const supabase = createClient()
+    const { data, error } = await supabase.auth.signUp({
+      email: payload.email,
+      password: payload.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}${AUTH_CALLBACK_PATH}`,
+        data: {
+          darktunes_role: payload.role,
+          darktunes_name: payload.name,
+          darktunes_band_name: payload.bandName,
+        },
+      },
+    })
 
-        if (!demo || credentials.password !== DEMO_PASSWORD) {
-          return 'E-Mail oder Passwort ist ungültig.'
-        }
+    if (error) return error.message
 
-        persistUser(demo)
-        return null
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [persistUser],
-  )
+    // Auto-confirm path: create the profile immediately
+    if (data.session) {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: payload.name,
+          role: payload.role,
+          bandName: payload.bandName,
+        }),
+      })
+      if (!res.ok) return 'Profil konnte nicht erstellt werden.'
+      await loadProfile()
+    }
+
+    return null
+  }, [loadProfile])
 
   /**
-   * Simulated registration: creates a new user object and persists it.
-   * Replace with a real POST /api/auth/register endpoint in production.
+   * OAuth sign-in via an external provider.
+   *
+   * Triggers a browser redirect to the provider's login page. The Supabase
+   * auth callback at `/api/auth/callback` handles the return redirect, checks
+   * for a platform profile, and redirects to `/onboarding` if none exists.
+   *
+   * SECURITY NOTE: Admin accounts cannot be created through this flow.
+   * A fresh OAuth login always produces a `fan`-role user. Admin privileges
+   * require a manual database update. See docs/ADMIN_BOOTSTRAP.md.
    */
-  const register = useCallback(
-    async (payload: RegisterPayload): Promise<string | null> => {
-      setIsLoading(true)
-      try {
-        await new Promise(resolve => setTimeout(resolve, SIMULATED_NETWORK_DELAY_MS))
+  const loginWithOAuth = useCallback(async (
+    provider: 'spotify' | 'google' | 'github',
+  ): Promise<string | null> => {
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}${AUTH_CALLBACK_PATH}`,
+        scopes: provider === 'spotify' ? 'user-read-email' : undefined,
+      },
+    })
+    return error ? error.message : null
+  }, [])
 
-        if (!payload.email || !payload.password || !payload.name) {
-          return 'Alle Pflichtfelder müssen ausgefüllt sein.'
-        }
-
-        if (payload.password.length < MIN_PASSWORD_LENGTH) {
-          return `Das Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen lang sein.`
-        }
-
-        const newUser: AuthUser = {
-          id: `user-${Date.now()}`,
-          role: payload.role,
-          name: payload.name.trim(),
-          email: payload.email.toLowerCase().trim(),
-          credits: 100,
-          bandId: payload.role === 'band' ? `band-${Date.now()}` : undefined,
-          isDJVerified: false,
-          joinedAt: Date.now(),
-        }
-
-        persistUser(newUser)
-        return null
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [persistUser],
-  )
-
-  const logout = useCallback(() => {
-    setUser(null)
-    localStorage.removeItem(STORAGE_KEY)
+  /** Sign out and clear all local auth state. */
+  const logout = useCallback(async (): Promise<void> => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
   }, [])
 
   const hasRole = useCallback(
@@ -162,9 +260,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     isAuthenticated: user !== null,
+    isProfileIncomplete,
     hasRole,
     login,
     register,
+    loginWithOAuth,
     logout,
   }
 
@@ -173,7 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 /**
  * Accesses the auth context. Must be used inside an `AuthProvider` subtree.
- * Throws if called outside of the provider (fail-fast for misconfiguration).
+ * Throws on misconfiguration so the error surfaces immediately in development.
  */
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext)
@@ -181,70 +281,4 @@ export function useAuth(): AuthContextValue {
     throw new Error('useAuth must be used inside <AuthProvider>.')
   }
   return context
-}
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-const DEMO_PASSWORD = 'demo1234'
-
-/** Pre-seeded demo accounts for development / testing. */
-const DEMO_ACCOUNTS: AuthUser[] = [
-  {
-    id: 'admin-1',
-    role: 'admin',
-    name: 'Raphaël Beck',
-    email: 'admin@darktunes.com',
-    credits: 100,
-    isDJVerified: true,
-    joinedAt: Date.now(),
-  },
-  {
-    id: 'dj-1',
-    role: 'dj',
-    name: 'DJ Schatten',
-    email: 'dj@darktunes.com',
-    credits: 100,
-    isDJVerified: true,
-    joinedAt: Date.now(),
-  },
-  {
-    id: 'band-1',
-    role: 'band',
-    name: 'CZARINA',
-    email: 'band@darktunes.com',
-    credits: 100,
-    bandId: 'band-czarina',
-    isDJVerified: false,
-    joinedAt: Date.now(),
-  },
-  {
-    id: 'editor-1',
-    role: 'editor',
-    name: 'Nacht Redaktion',
-    email: 'editor@darktunes.com',
-    credits: 100,
-    isDJVerified: false,
-    joinedAt: Date.now(),
-  },
-  {
-    id: 'fan-1',
-    role: 'fan',
-    name: 'Dark Fan',
-    email: 'fan@darktunes.com',
-    credits: 100,
-    isDJVerified: false,
-    joinedAt: Date.now(),
-  },
-]
-
-function isValidAuthUser(value: unknown): value is AuthUser {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'role' in value &&
-    'email' in value
-  )
 }
