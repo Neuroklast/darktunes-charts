@@ -2,18 +2,12 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
+import { HelpPanel } from '@/presentation/components/molecules/HelpPanel'
 
 interface HelpButtonProps {
-  /** Short title shown in the dialog header. */
+  /** Short title shown in the panel header. */
   title: string
-  /** Full explanation text shown in the dialog body. */
+  /** Full explanation text shown in the panel body. */
   description: string
   /** Optional ARIA label for the (?) button; defaults to "Hilfe". */
   ariaLabel?: string
@@ -22,14 +16,13 @@ interface HelpButtonProps {
 /**
  * HelpButton — ISO 9241-110 Selbstbeschreibungsfähigkeit (Spec §8.1)
  *
- * A small circular (?) button that opens a modal dialog with contextual
+ * A small circular (?) button that opens a slide-in HelpPanel with contextual
  * help text for complex UI elements (e.g. voting algorithms, tier system).
  * Designed to be placed inline, directly next to the element it explains.
  *
  * Accessibility:
- *   - Uses a Dialog with proper aria-labelledby / aria-describedby
+ *   - HelpPanel uses role="dialog" + aria-modal + aria-label
  *   - The trigger button has an aria-label with the section name
- *   - Focus is managed automatically by Radix Dialog
  */
 export function HelpButton({ title, description, ariaLabel = 'Hilfe' }: HelpButtonProps) {
   const [open, setOpen] = useState(false)
@@ -46,16 +39,12 @@ export function HelpButton({ title, description, ariaLabel = 'Hilfe' }: HelpButt
         ?
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed mt-2 whitespace-pre-line">
-              {description}
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+      <HelpPanel
+        open={open}
+        onClose={() => setOpen(false)}
+        title={title}
+        description={description}
+      />
     </>
   )
 }

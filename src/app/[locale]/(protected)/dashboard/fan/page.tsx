@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { EarlyDiscovererBadge } from '@/presentation/components/molecules/EarlyDiscovererBadge'
 import { computeEarlyDiscoverer } from '@/domain/gamification/earlyDiscoverer'
+import { AchievementGrid } from '@/presentation/components/organisms/AchievementGrid'
 
 export const metadata = { title: 'Fan Dashboard · DarkTunes' }
 
@@ -52,11 +53,25 @@ export default function FanDashboardPage() {
           <EarlyDiscovererBadge result={EXAMPLE_EARLY_DISCOVERER} />
         </div>
 
-        <Card className="p-8 glassmorphism text-center">
+        <Card className="p-8 glassmorphism text-center mb-8">
           <p className="text-muted-foreground">
             Melde dich an, um deine Voting-Historie und Statistiken zu sehen.
           </p>
         </Card>
+
+        {/* Achievements section */}
+        <div className="mb-8">
+          <h2
+            className="text-2xl font-bold mb-4 uppercase tracking-wider"
+            style={{ fontFamily: 'Oswald, sans-serif' }}
+          >
+            Deine Achievements
+          </h2>
+          <AchievementGrid
+            earnedSlugs={new Set(['early_signal', 'verified_human', 'loyalty_core'])}
+            pillar="FAN"
+          />
+        </div>
       </div>
     </main>
   )
