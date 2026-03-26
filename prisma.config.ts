@@ -11,7 +11,10 @@ export default defineConfig({
   schema: './prisma/schema.prisma',
   migrate: {
     async adapter() {
-      const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? ''
+      const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL
+      if (!connectionString) {
+        throw new Error('DIRECT_URL or DATABASE_URL environment variable must be set for migrations')
+      }
       return new PrismaPg({ connectionString })
     },
   },
