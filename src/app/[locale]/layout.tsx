@@ -3,7 +3,7 @@ import { getLocale, getMessages } from 'next-intl/server'
 import { NextIntlClientProvider } from 'next-intl'
 import { ThemeProvider } from 'next-themes'
 import { NavigationBar } from '@/presentation/components/organisms/NavigationBar'
-import './globals.css'
+import '../globals.css'
 
 export const metadata: Metadata = {
   title: 'DarkTunes Charts',

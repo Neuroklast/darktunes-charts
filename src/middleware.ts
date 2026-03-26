@@ -53,33 +53,19 @@ function isProtectedPath(pathname: string): boolean {
  * Supabase response to avoid overwriting critical Supabase auth headers.
  */
 export async function middleware(request: NextRequest) {
-  // Run next-intl middleware first to obtain locale cookies/headers
   const intlResponse = intlMiddleware(request)
 
-  // If next-intl returned a redirect (e.g. to add locale prefix), honour it
-  if (intlResponse.status !== 200) {
-    return intlResponse
-  }
+  const supabaseResponse = await updateSession(request, intlResponse)
 
-  // Run Supabase session refresh; it returns a response with updated cookies
-  const supabaseResponse = await updateSession(request)
-
-  // Auth guard — only evaluate for protected routes to avoid overhead on
-  // every public page request.
   if (isProtectedPath(request.nextUrl.pathname)) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (url && anonKey) {
-      // Use getSession() to read from the already-refreshed cookies synchronously.
-      // The session was validated by updateSession() above, so this is a local
-      // cookie read — no additional network request is made.
       const supabase = createServerClient(url, anonKey, {
         cookies: {
           getAll: () => request.cookies.getAll(),
-          // No-op: we only read cookies for session validation here; all
-          // cookie writes were handled by updateSession() above.
-          setAll: () => { /* intentionally no-op */ },
+          setAll: () => {},
         },
       })
 
@@ -94,26 +80,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Merge only the NEXT_LOCALE cookie set by next-intl into the Supabase
-  // response so locale preference is persisted without overwriting Supabase
-  // auth cookies or other critical headers.
-  const nextLocaleCookie = intlResponse.cookies.get('NEXT_LOCALE')
-  if (nextLocaleCookie) {
-    supabaseResponse.cookies.set(
-      nextLocaleCookie.name,
-      nextLocaleCookie.value,
-      { path: '/', maxAge: 31536000, sameSite: 'lax' }
-    )
-  }
-
   return supabaseResponse
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for static files.
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
