@@ -63,7 +63,8 @@ function isBrowser(): boolean {
 export function saveFanVoteDraft(voterId: string, draft: FanVoteDraft): void {
   if (!isBrowser()) return
   const key = storageKey('fan', voterId, draft.periodId)
-  localStorage.setItem(key, JSON.stringify({ ...draft, savedAt: new Date().toISOString() }))
+  const toStore: FanVoteDraft = { ...draft, savedAt: new Date().toISOString() }
+  localStorage.setItem(key, JSON.stringify(toStore))
 }
 
 /**
@@ -97,7 +98,8 @@ export function clearFanVoteDraft(voterId: string, periodId: string): void {
 export function saveDJBallotDraft(voterId: string, draft: DJBallotDraft): void {
   if (!isBrowser()) return
   const key = storageKey('dj', voterId, draft.periodId)
-  localStorage.setItem(key, JSON.stringify({ ...draft, savedAt: new Date().toISOString() }))
+  const toStore: DJBallotDraft = { ...draft, savedAt: new Date().toISOString() }
+  localStorage.setItem(key, JSON.stringify(toStore))
 }
 
 export function loadDJBallotDraft(voterId: string, periodId: string): DJBallotDraft | null {
@@ -123,7 +125,8 @@ export function clearDJBallotDraft(voterId: string, periodId: string): void {
 export function saveBandVoteDraft(voterId: string, draft: BandVoteDraft): void {
   if (!isBrowser()) return
   const key = storageKey('band', voterId, draft.periodId)
-  localStorage.setItem(key, JSON.stringify({ ...draft, savedAt: new Date().toISOString() }))
+  const toStore: BandVoteDraft = { ...draft, savedAt: new Date().toISOString() }
+  localStorage.setItem(key, JSON.stringify(toStore))
 }
 
 export function loadBandVoteDraft(voterId: string, periodId: string): BandVoteDraft | null {

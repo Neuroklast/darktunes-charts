@@ -63,13 +63,17 @@ export async function POST(request: NextRequest) {
 
     const { bandId, trackId, message } = parsed.data
 
-    // In a real implementation this would create a DJFeedback record via Prisma:
-    // await prisma.dJFeedback.create({
+    // TODO: Persist to database via Prisma when provisioned:
+    // const feedback = await prisma.dJFeedback.create({
     //   data: { djId: user.id, bandId, trackId, message },
     // })
+    // return NextResponse.json({ success: true, feedback }, { status: 201 })
 
+    // Interim: acknowledge receipt but note persistence is pending DB setup
     return NextResponse.json({
       success: true,
+      pending: true,
+      message: 'Feedback received. Database persistence will be active once provisioned.',
       feedback: {
         djId: user.id,
         bandId,
@@ -77,7 +81,7 @@ export async function POST(request: NextRequest) {
         message,
         createdAt: new Date().toISOString(),
       },
-    }, { status: 201 })
+    }, { status: 202 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

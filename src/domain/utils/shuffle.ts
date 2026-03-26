@@ -40,10 +40,7 @@ export function fisherYatesShuffle<T>(
   const result = [...items]
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1))
-    // Swap result[i] and result[j]
-    const temp = result[i]!
-    result[i] = result[j]!
-    result[j] = temp
+    ;[result[i], result[j]] = [result[j]!, result[i]!]
   }
   return result
 }

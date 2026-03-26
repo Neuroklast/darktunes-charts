@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button'
  * LocaleSwitcher — Spec §8.3
  *
  * A toggle button in the navigation bar that switches between the supported
- * locales (DE / EN).  Uses next-intl's `useLocale` to read the current
- * locale and Next.js router + NEXT_LOCALE cookie to switch.
+ * locales (DE / EN).  Sets the NEXT_LOCALE cookie and refreshes the page
+ * so next-intl's middleware picks up the new preference on the next request.
  *
- * The locale preference is persisted via the NEXT_LOCALE cookie that
- * next-intl middleware reads on subsequent requests.
+ * The cookie is set with a 1-year expiry and SameSite=Lax to prevent CSRF.
+ * Path is '/' so it applies to all routes.
  */
 export function LocaleSwitcher() {
   const locale = useLocale()
@@ -22,11 +22,13 @@ export function LocaleSwitcher() {
   const targetLocale = locale === 'de' ? 'en' : 'de'
 
   function switchLocale() {
-    // Persist via cookie so next-intl middleware picks it up
-    document.cookie = `NEXT_LOCALE=${targetLocale}; path=/; max-age=31536000; SameSite=Lax`
-    router.refresh()
-    // Re-navigate to the same path to trigger a server re-render with new locale
+    // Set NEXT_LOCALE cookie for next-intl middleware to detect on next request
+    const expires = new Date()
+    expires.setFullYear(expires.getFullYear() + 1)
+    document.cookie = `NEXT_LOCALE=${targetLocale}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`
+    // Navigate to same path; the middleware will use the new cookie
     router.push(pathname)
+    router.refresh()
   }
 
   return (

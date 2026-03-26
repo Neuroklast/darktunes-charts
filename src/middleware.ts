@@ -21,8 +21,8 @@ const intlMiddleware = createMiddleware({
  * 1. next-intl detects/sets the locale via cookie or Accept-Language header.
  * 2. Supabase session is refreshed so Server Components can read auth state.
  *
- * Both middlewares must run; the response from next-intl carries locale headers
- * that the intl provider needs, while Supabase needs the refreshed cookie.
+ * Only the NEXT_LOCALE cookie from the intl middleware is merged into the
+ * Supabase response to avoid overwriting critical Supabase auth headers.
  */
 export async function middleware(request: NextRequest) {
   // Run next-intl middleware first to obtain locale cookies/headers
@@ -36,11 +36,17 @@ export async function middleware(request: NextRequest) {
   // Run Supabase session refresh; it returns a response with updated cookies
   const supabaseResponse = await updateSession(request)
 
-  // Merge next-intl headers into the Supabase response so the locale cookie
-  // set by next-intl is preserved alongside the Supabase session cookie
-  intlResponse.headers.forEach((value, key) => {
-    supabaseResponse.headers.set(key, value)
-  })
+  // Merge only the NEXT_LOCALE cookie set by next-intl into the Supabase
+  // response so locale preference is persisted without overwriting Supabase
+  // auth cookies or other critical headers.
+  const nextLocaleCookie = intlResponse.cookies.get('NEXT_LOCALE')
+  if (nextLocaleCookie) {
+    supabaseResponse.cookies.set(
+      nextLocaleCookie.name,
+      nextLocaleCookie.value,
+      { path: '/', maxAge: 31536000, sameSite: 'lax' }
+    )
+  }
 
   return supabaseResponse
 }

@@ -52,11 +52,16 @@ export async function submitDJFeedback(input: DJFeedbackInput): Promise<SubmitDJ
 
     const { bandId, trackId, message } = parsed.data
 
-    // 3. In production: verify DJ status and create record via Prisma
-    // const user_record = await prisma.user.findUnique({ where: { id: user.id } })
-    // if (!user_record?.isDJVerified) {
-    //   return { success: false, error: 'DJ-Verifizierung erforderlich' }
-    // }
+    // 3. Verify DJ role: check user metadata from Supabase auth
+    // The user_metadata.role is set during OAuth sign-in or by admin
+    const userRole = user.user_metadata?.role as string | undefined
+    const isDJVerified = user.user_metadata?.isDJVerified as boolean | undefined
+
+    if (userRole !== 'DJ' && userRole !== 'ADMIN' && !isDJVerified) {
+      return { success: false, error: 'DJ-Verifizierung erforderlich' }
+    }
+
+    // 4. In production: create record via Prisma
     // const feedback = await prisma.dJFeedback.create({
     //   data: { djId: user.id, bandId, trackId, message },
     // })
