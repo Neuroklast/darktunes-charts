@@ -44,13 +44,17 @@ export interface SubmissionCostResult {
  * Tier assignment uses exclusive lower bounds: a band at exactly 10,000 listeners
  * remains in Micro; they must exceed the threshold to advance.
  *
- * Negative listener counts are not valid (Spotify returns 0 as the minimum); callers
- * must ensure `monthlyListeners >= 0`. Negative inputs would incorrectly return 'Micro'.
+ * Negative listener counts are not valid (Spotify returns 0 as the minimum);
+ * this function throws a `RangeError` for negative inputs to fail fast on invalid data.
  *
- * @param monthlyListeners - Spotify monthly listener count (non-negative; caller-validated).
+ * @param monthlyListeners - Spotify monthly listener count (must be ≥ 0).
  * @returns The corresponding Tier label.
+ * @throws {RangeError} If `monthlyListeners` is negative.
  */
 export function getTierFromListeners(monthlyListeners: number): Tier {
+  if (monthlyListeners < 0) {
+    throw new RangeError(`monthlyListeners must be ≥ 0, got ${monthlyListeners}`)
+  }
   if (monthlyListeners > TIER_THRESHOLDS.International) return 'Macro'
   if (monthlyListeners > TIER_THRESHOLDS.Established) return 'International'
   if (monthlyListeners > TIER_THRESHOLDS.Emerging) return 'Established'

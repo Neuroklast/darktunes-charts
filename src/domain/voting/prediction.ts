@@ -23,9 +23,8 @@ export interface AIPredictionResult {
  *
  * Combines three independent signals with fixed weights:
  * - **Vote Velocity** (40%): rate of fan vote increase over the past 30 days.
- *   Calculated as (last_votes − first_votes) / entry_count over recent entries.
- *   Note: this yields "votes per entry" not "votes per day"; future iterations
- *   should use the time span in ms for a true daily velocity.
+ *   Calculated as (last_votes − first_votes) / actual_time_span_in_days.
+ *   Produces true votes-per-day velocity; falls back to 0 if fewer than two data points exist.
  *   A high velocity indicates an emerging, passionate fanbase before mainstream breakthrough.
  * - **Stream Growth** (40%): percentage increase in Spotify monthly listeners.
  *   Absolute listeners are irrelevant; only growth rate matters for breakthrough detection.
@@ -38,7 +37,7 @@ export interface AIPredictionResult {
  * @param _bandId - Band identifier (reserved for future real Spotify/API integration).
  * @param historicalVotes - Time-series of vote counts for velocity calculation.
  *   Each entry must include a `timestamp` (epoch ms) and cumulative `votes` count.
- *   Velocity is computed as delta votes / number of entries (not per day).
+ *   Velocity is computed as delta votes divided by the time span in days between the first and last entry.
  * @param currentListeners - Current Spotify monthly listener count.
  * @param previousListeners - Listener count from the previous period (must be > 0 to avoid division by zero).
  * @param genreAvgGrowth - Average stream growth percentage across the band's genre.
@@ -54,9 +53,17 @@ export function generateAIPrediction(
   const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
   const recentVotes = historicalVotes.filter(v => v.timestamp > thirtyDaysAgo)
 
+  // True daily velocity: delta votes divided by the actual time span in days.
+  // Uses the time difference between the first and last entry within the 30-day window.
+  // Falls back to 0 when fewer than two data points are available.
   const voteVelocity =
     recentVotes.length > 1
-      ? (recentVotes[recentVotes.length - 1].votes - recentVotes[0].votes) / recentVotes.length
+      ? (recentVotes[recentVotes.length - 1].votes - recentVotes[0].votes) /
+        Math.max(
+          (recentVotes[recentVotes.length - 1].timestamp - recentVotes[0].timestamp) /
+            (24 * 60 * 60 * 1000),
+          1,
+        )
       : 0
 
   const streamGrowth =

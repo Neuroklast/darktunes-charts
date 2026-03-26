@@ -109,7 +109,7 @@ fi
 # Step 2: Install dependencies
 # ---------------------------------------------------------------------------
 step "2/6  Installing dependencies"
-npm ci --prefer-offline 2>&1 | tail -3
+npm ci --prefer-offline 2>&1 | tail -10
 success "Dependencies installed"
 
 # ---------------------------------------------------------------------------
