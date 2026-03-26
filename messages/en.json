@@ -153,5 +153,45 @@
     "budgetExceeded": "Credit budget exceeded",
     "invalidInput": "Invalid input",
     "networkError": "Network error"
+  },
+  "transparency": {
+    "title": "Algorithmic Transparency",
+    "subtitle": "Full documentation of all vote-weighting steps",
+    "qv": {
+      "title": "Quadratic Voting (Fan Voting)",
+      "costFormula": "Cost = Votes²",
+      "description": "Every fan receives 100 Voice Credits per month. The cost of n votes on the same track is n² credits. This quadratic cost function prevents individual fans from dominating results with concentrated credits.",
+      "whyFair": "Why does this prevent wealth concentration? Placing all credits on one track costs exponentially more — but marginal costs rise so steeply that spreading credits is the rational choice. Result: minority preferences carry more weight than in linear voting."
+    },
+    "schulze": {
+      "title": "Schulze Method (DJ Voting)",
+      "description": "DJs submit a complete ranking (drag & drop). The Schulze algorithm computes pairwise comparisons: for each track pair (A, B), it counts how many DJs ranked A above B.",
+      "beatpath": "The strongest path (beatpath) between all pairs is computed with Floyd-Warshall. The track that wins all beatpath comparisons is the Condorcet winner.",
+      "burialProof": "Burial-proof: Because rankings are used instead of point scores, no DJ can harm a competitor by tactically rating a rival low. The honest ranking is always the dominant strategy."
+    },
+    "combined": {
+      "title": "Combined Charts (33/33/33)",
+      "description": "The Combined Charts aggregate the Fan Score, DJ Score and Peer Score with equal weights (33.3% each).",
+      "normalization": "Before combination, each score is Min-Max normalised: normScore = (score - min) / (max - min). This prevents a score with larger variance from dominating.",
+      "formula": "Final Score = (normFanScore + normDJScore + normPeerScore) / 3"
+    },
+    "antiManipulation": {
+      "title": "Anti-Manipulation Algorithms",
+      "cliqueDetection": "Clique Detection: Reciprocal votes (A→B and B→A) are penalised. The more reciprocal votes in a group, the greater the downweight.",
+      "triadicCensus": "Triadic Census: Closed triangles (A→B→C→A) receive a 0.7× penalty per triangle. This algorithm detects voting rings that inflate each other's scores.",
+      "mahalanobis": "Mahalanobis Distance: Outlier voters are identified statistically. A voter whose voting pattern deviates more than 3 standard deviations from the field is weighted less.",
+      "intellectualDistance": "Intellectual Distance Bonus: Bands that vote across diverse genres and regions (high Shannon entropy) receive a weight bonus of up to 1.15×. This rewards genuine musical engagement."
+    },
+    "tierSystem": {
+      "title": "Tier System",
+      "description": "Tiers are based on monthly Spotify followers and define the competitive group and pricing for additional chart categories.",
+      "thresholds": "Micro (0–10,000) → €5/month | Emerging (10k–50k) → €15/month | Established (50k–250k) → €35/month | International (250k–1M) → €75/month | Macro (>1M) → €150/month",
+      "decoupling": "Algorithmic decoupling: Financial contributions have ZERO influence on chart ranking scores. Payment only unlocks participation in additional categories — nothing more."
+    },
+    "randomBand": {
+      "title": "Random Band of the Day",
+      "description": "A band from the Micro or Emerging tier is randomly selected every day. The algorithm uses a Linear Congruential Generator (LCG) seeded with the current date.",
+      "seed": "Seed = YYYY-MM-DD as an integer. This guarantees reproducibility: anyone can independently verify today's Band of the Day."
+    }
   }
 }

@@ -153,5 +153,45 @@
     "budgetExceeded": "Credit-Budget überschritten",
     "invalidInput": "Ungültige Eingabe",
     "networkError": "Netzwerkfehler"
+  },
+  "transparency": {
+    "title": "Algorithmische Transparenz",
+    "subtitle": "Vollständige Dokumentation aller Vote-Gewichtungsschritte",
+    "qv": {
+      "title": "Quadratic Voting (Fan-Voting)",
+      "costFormula": "Kosten = Stimmen²",
+      "description": "Jeder Fan erhält 100 Voice Credits pro Monat. Die Kosten für n Stimmen auf denselben Track betragen n² Credits. Diese quadratische Kostenfunktion verhindert, dass einzelne Fans mit hohem Credit-Einsatz das Ergebnis dominieren.",
+      "whyFair": "Warum verhindert das Wohlstandskonzentration? Wer alle Credits auf einen Track setzt, zahlt exponentiell mehr — aber die Grenzkosten steigen so stark, dass es rational ist, Credits zu streuen. Das Ergebnis: Minderheitenpräferenzen haben mehr Gewicht als bei linearem Voting."
+    },
+    "schulze": {
+      "title": "Schulze-Methode (DJ-Voting)",
+      "description": "DJs reichen eine vollständige Rangliste ein (Drag & Drop). Der Schulze-Algorithmus berechnet Paarvergleiche: Für jeden Trackpaar (A, B) wird gezählt, wie viele DJs A vor B gereiht haben.",
+      "beatpath": "Der stärkste Pfad (Beatpath) zwischen allen Paaren wird mit Floyd-Warshall berechnet. Der Track, der in allen Beatpath-Vergleichen gewinnt, ist der Condorcet-Sieger.",
+      "burialProof": "Burial-Sicherheit: Da Ranglisten statt Punktzahlen verwendet werden, kann kein DJ einen Konkurrenten durch taktisches Niedrigvoten schaden. Die ehrliche Reihenfolge ist immer die dominante Strategie."
+    },
+    "combined": {
+      "title": "Combined Charts (33/33/33)",
+      "description": "Die Combined Charts aggregieren Fan-Score, DJ-Score und Peer-Score mit gleichen Gewichten (je 33,3 %).",
+      "normalization": "Vor der Kombination wird jeder Score Min-Max-normalisiert: normScore = (score - min) / (max - min). Das verhindert, dass ein Score mit größerer Varianz dominiert.",
+      "formula": "Finaler Score = (normFanScore + normDJScore + normPeerScore) / 3"
+    },
+    "antiManipulation": {
+      "title": "Anti-Manipulations-Algorithmen",
+      "cliqueDetection": "Cliquen-Erkennung: Gegenseitige Votes (A→B und B→A) werden mit einem Penalty belegt. Je mehr gegenseitige Votes in einer Gruppe, desto stärker die Abwertung.",
+      "triadicCensus": "Triadic Census: Geschlossene Dreiecke (A→B→C→A) erhalten einen Penalty von 0,7× pro Dreieck. Dieser Algorithmus erkennt Voting-Ringe, die sich gegenseitig hochvoten.",
+      "mahalanobis": "Mahalanobis-Distanz: Outlier-Voter werden statistisch identifiziert. Ein Voter, dessen Stimmmuster mehr als 3 Standardabweichungen vom Mittelfeld abweicht, wird weniger gewichtet.",
+      "intellectualDistance": "Intellektuelle Distanz Bonus: Bands, die diverse Genres und Regionen voten (hohe Shannon-Entropie), erhalten einen Gewichtsbonus von bis zu 1,15×. Das belohnt echte Auseinandersetzung mit Musik."
+    },
+    "tierSystem": {
+      "title": "Tier-System",
+      "description": "Tiers basieren auf monatlichen Spotify-Followern und definieren die Wettbewerbsgruppe sowie die Preisstruktur für zusätzliche Chart-Kategorien.",
+      "thresholds": "Micro (0–10.000) → 5 €/Monat | Emerging (10k–50k) → 15 €/Monat | Established (50k–250k) → 35 €/Monat | International (250k–1M) → 75 €/Monat | Macro (>1M) → 150 €/Monat",
+      "decoupling": "Algorithmische Entkopplung: Finanzielle Beiträge haben NULL Einfluss auf Chart-Ranking-Scores. Zahlung schaltet nur die Teilnahme in weiteren Kategorien frei, nicht mehr."
+    },
+    "randomBand": {
+      "title": "Random Band of the Day",
+      "description": "Täglich wird eine Band aus dem Micro- oder Emerging-Tier zufällig ausgewählt. Der Algorithmus verwendet einen LCG (Linear Congruential Generator) mit dem Datum als Seed.",
+      "seed": "Seed = YYYY-MM-DD als Integer. Das garantiert Reproduzierbarkeit: jeder kann den heutigen Band-of-the-Day unabhängig verifizieren."
+    }
   }
 }
