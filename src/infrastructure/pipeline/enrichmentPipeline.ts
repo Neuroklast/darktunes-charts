@@ -54,7 +54,14 @@ export async function enrichTrack(input: TrackEnrichmentInput): Promise<Enrichme
     const tracks = await searchItunesTracks(term, 1)
     if (tracks.length > 0) {
       metadataSource = 'itunes'
-      // TODO: await prisma.track.update({ where: { id: input.trackId }, data: { coverArtUrl: tracks[0]?.artworkUrl100, itunesTrackId: String(tracks[0]?.trackId) } })
+      const { prisma } = await import('@/lib/prisma')
+      await prisma.track.update({
+        where: { id: input.trackId },
+        data: {
+          coverArtUrl: tracks[0]?.artworkUrl100,
+          itunesTrackId: String(tracks[0]?.trackId),
+        },
+      })
     }
   } catch (err) {
     errors.push(`Metadata bot: ${err instanceof Error ? err.message : String(err)}`)
@@ -67,7 +74,15 @@ export async function enrichTrack(input: TrackEnrichmentInput): Promise<Enrichme
       if (odesli) {
         const platforms = Object.keys(odesli.linksByPlatform)
         streamingLinksCount = platforms.length
-        // TODO: await prisma.trackStreamingLink.createMany({ data: platforms.map(p => ({ trackId: input.trackId, platform: p, url: odesli.linksByPlatform[p]!.url })), skipDuplicates: true })
+        const { prisma } = await import('@/lib/prisma')
+        await prisma.trackStreamingLink.createMany({
+          data: platforms.map((p) => ({
+            trackId: input.trackId,
+            platform: p,
+            url: odesli.linksByPlatform[p]!.url,
+          })),
+          skipDuplicates: true,
+        })
       }
     } catch (err) {
       errors.push(`Link bot: ${err instanceof Error ? err.message : String(err)}`)
@@ -78,8 +93,22 @@ export async function enrichTrack(input: TrackEnrichmentInput): Promise<Enrichme
   if (input.spotifyArtistId) {
     try {
       const listeners = await getMonthlyListeners(input.spotifyArtistId)
-      // TODO: await prisma.band.update({ where: { id: ... }, data: { tier: _classifyTier(listeners.followers), spotifyMonthlyListeners: listeners.followers } })
-      tierUpdated = listeners.followers >= 0 // proxy until DB write is enabled
+      const { prisma } = await import('@/lib/prisma')
+
+      // We need to fetch the track to get the bandId, or the input needs to provide it.
+      // Assuming we fetch it here to be safe:
+      const track = await prisma.track.findUnique({ where: { id: input.trackId } })
+
+      if (track) {
+        await prisma.band.update({
+          where: { id: track.bandId },
+          data: {
+            tier: _classifyTier(listeners.followers) as "MICRO" | "EMERGING" | "ESTABLISHED" | "INTERNATIONAL" | "MACRO",
+            spotifyMonthlyListeners: listeners.followers,
+          },
+        })
+        tierUpdated = true
+      }
     } catch (err) {
       errors.push(`Tier-check bot: ${err instanceof Error ? err.message : String(err)}`)
     }

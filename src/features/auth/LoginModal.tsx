@@ -20,6 +20,7 @@ import {
   SignIn,
   UserPlus,
   MusicNote,
+  GoogleLogo,
 } from '@phosphor-icons/react'
 import { useAuth, type RegisterPayload } from './AuthContext'
 import type { UserRole } from '@/lib/types'
@@ -243,7 +244,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
           </div>
         </div>
 
-        {/* Spotify OAuth button */}
+        {/* OAuth buttons */}
         <div className="space-y-2">
           <Button
             variant="outline"
@@ -254,6 +255,16 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
           >
             <MusicNote className="w-4 h-4" style={{ color: SPOTIFY_GREEN }} weight="fill" />
             Mit Spotify anmelden
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => void handleOAuthLogin('google')}
+            disabled={isLoading}
+            type="button"
+          >
+            <GoogleLogo className="w-4 h-4" weight="bold" />
+            Mit Google anmelden
           </Button>
           {oauthError && (
             <p className="text-sm text-destructive text-center">{oauthError}</p>

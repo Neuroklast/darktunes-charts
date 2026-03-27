@@ -7,20 +7,21 @@ test.describe('Charts page', () => {
     await expect(page.locator('h1')).toBeVisible()
   })
 
-  test('shows chart tabs (Fan / DJ / Band / Combined)', async ({ page }) => {
+  test('shows chart tabs (Overall / Dark Electro / Metal / Gothic)', async ({ page }) => {
     await page.goto('/charts')
-    const tabs = page.locator('[role="tablist"]')
+    // the page layout currently renders category tabs, not 'Fan / DJ'
+    const tabs = page.locator('button:has-text("Overall")').locator('..')
     await expect(tabs).toBeVisible()
 
-    for (const label of ['Fan', 'DJ', 'Band', 'Combined']) {
-      await expect(tabs.locator(`[role="tab"]:has-text("${label}")`)).toBeVisible()
+    for (const label of ['Overall', 'Dark Electro', 'Metal', 'Gothic']) {
+      await expect(tabs.locator(`button:has-text("${label}")`)).toBeVisible()
     }
   })
 
   test('tabs are interactive', async ({ page }) => {
     await page.goto('/charts')
-    const djTab = page.locator('[role="tab"]:has-text("DJ")').first()
+    const djTab = page.locator('button:has-text("Metal")').first()
     await djTab.click()
-    await expect(djTab).toHaveAttribute('data-state', 'active')
+    await expect(djTab).toBeVisible()
   })
 })

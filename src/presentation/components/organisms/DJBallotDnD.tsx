@@ -21,6 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import { Card } from '@/components/ui/card'
+import { getCachedImageUrl } from '@/lib/imageCache'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { HelpButton } from '@/presentation/components/atoms/HelpButton'
@@ -80,7 +81,7 @@ function SortableTrackItem({ track, position }: SortableTrackItemProps) {
       {/* Album art */}
       {track.albumArtUrl ? (
         <Image
-          src={track.albumArtUrl}
+          src={getCachedImageUrl(track.albumArtUrl, { width: 40, height: 40, fit: 'cover' }) ?? track.albumArtUrl}
           alt={`Album-Cover für ${track.title}`}
           width={40}
           height={40}
