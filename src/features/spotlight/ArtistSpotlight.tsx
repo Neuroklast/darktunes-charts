@@ -13,6 +13,7 @@ import {
 } from '@phosphor-icons/react'
 import type { Band, Track } from '@/lib/types'
 import { seededRandom } from '@/lib/utils'
+import { getCachedImageUrl } from '@/lib/imageCache'
 
 interface ArtistSpotlightProps {
   bands: Band[]
@@ -74,7 +75,7 @@ export function ArtistSpotlight({ bands, tracks }: ArtistSpotlightProps) {
         <div className={`relative h-40 bg-gradient-to-br ${gradient} flex items-end p-5`}>
           {featured.coverArtUrl ? (
             <Image
-              src={featured.coverArtUrl}
+              src={getCachedImageUrl(featured.coverArtUrl, { width: 600, height: 600, fit: 'cover' }) ?? featured.coverArtUrl}
               alt={`${featured.name} cover art`}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"

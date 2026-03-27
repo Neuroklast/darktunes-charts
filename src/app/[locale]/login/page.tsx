@@ -8,9 +8,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { MusicNote, GoogleLogo } from '@phosphor-icons/react'
 
 /** Auth callback path used for OAuth redirect. */
 const AUTH_CALLBACK_PATH = '/api/auth/callback'
+
+/** Spotify brand green */
+const SPOTIFY_GREEN = '#1DB954'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -45,14 +49,17 @@ export default function LoginPage() {
     }
   }, [email, password, router, redirectTo])
 
-  const handleOAuthLogin = useCallback(async (provider: 'google' | 'github') => {
+  const handleOAuthLogin = useCallback(async (provider: 'spotify' | 'google' | 'github') => {
     setError(null)
     setIsLoading(true)
     try {
       const supabase = createClient()
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}${AUTH_CALLBACK_PATH}` },
+        options: {
+          redirectTo: `${window.location.origin}${AUTH_CALLBACK_PATH}`,
+          scopes: provider === 'spotify' ? 'user-read-email' : undefined,
+        },
       })
       if (oauthError) {
         setError(oauthError.message)
@@ -121,20 +128,24 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
             <Button
               variant="outline"
-              onClick={() => handleOAuthLogin('google')}
+              className="w-full gap-2 border-[#1DB954]/40 hover:border-[#1DB954] hover:bg-[#1DB954]/10 transition-colors"
+              onClick={() => handleOAuthLogin('spotify')}
               disabled={isLoading}
             >
-              Google
+              <MusicNote className="w-4 h-4" style={{ color: SPOTIFY_GREEN }} weight="fill" />
+              Mit Spotify anmelden
             </Button>
             <Button
               variant="outline"
-              onClick={() => handleOAuthLogin('github')}
+              className="w-full gap-2"
+              onClick={() => handleOAuthLogin('google')}
               disabled={isLoading}
             >
-              GitHub
+              <GoogleLogo className="w-4 h-4" weight="bold" />
+              Mit Google anmelden
             </Button>
           </div>
 
