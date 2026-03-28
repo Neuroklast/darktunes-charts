@@ -61,11 +61,19 @@ const DEFAULT_BAND_GENRE = 'GOTH' as const
  * Auth: requires a valid Supabase session cookie.
  */
 export async function GET(): Promise<NextResponse> {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let user = null;
+  try {
+    const supabase = await createClient()
+    const { data, error: authError } = await supabase.auth.getUser()
+    user = data?.user
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  } catch (err) {
+    console.error('[GET /api/profile] Supabase initialization error:', err)
+    // Fallback: When Supabase is not configured (e.g. testing mode without env vars),
+    // we return null to allow the UI to load gracefully without crashing the server component.
+    return NextResponse.json({ profile: null })
   }
 
   try {
@@ -101,11 +109,17 @@ export async function GET(): Promise<NextResponse> {
  * Auth: requires a valid Supabase session cookie.
  */
 export async function POST(req: Request): Promise<NextResponse> {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let user = null;
+  try {
+    const supabase = await createClient()
+    const { data, error: authError } = await supabase.auth.getUser()
+    user = data?.user
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  } catch (err) {
+    console.error('[POST /api/profile] Supabase initialization error:', err)
+    return NextResponse.json({ error: 'Interner Serverfehler (Supabase nicht konfiguriert)' }, { status: 500 })
   }
 
   const body: unknown = await req.json()
