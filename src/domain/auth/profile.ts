@@ -78,6 +78,7 @@ export function dashboardPathForRole(role: UserRole): string {
     editor: '/dashboard/fan',   // editors use fan dashboard + editorial tools
     admin:  '/admin',
     ar:     '/dashboard/label',
+    label:  '/dashboard/label',
   }
   const path = ROLE_DASHBOARD[role]
   if (!path) {
