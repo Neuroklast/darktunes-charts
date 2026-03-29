@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+
+/** Prisma UserRole values allowed to create or revoke label mandates. */
+const MANDATE_ALLOWED_ROLES = ['BAND', 'LABEL', 'ADMIN'] as const
 
 const createMandateSchema = z.object({
   labelId: z.string().uuid(),
@@ -24,6 +28,8 @@ export async function GET() {
 /**
  * POST /api/mandates
  * Creates a new label mandate (band grants label access).
+ *
+ * Access control: Only BAND, LABEL and ADMIN roles may create mandates.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +38,15 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true },
+    })
+
+    if (!dbUser || !MANDATE_ALLOWED_ROLES.includes(dbUser.role as typeof MANDATE_ALLOWED_ROLES[number])) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body: unknown = await request.json()
@@ -54,6 +69,8 @@ export async function POST(request: NextRequest) {
 /**
  * DELETE /api/mandates?mandateId=xxx
  * Revokes a label mandate.
+ *
+ * Access control: Only BAND, LABEL and ADMIN roles may revoke mandates.
  */
 export async function DELETE(request: NextRequest) {
   try {
@@ -62,6 +79,15 @@ export async function DELETE(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true },
+    })
+
+    if (!dbUser || !MANDATE_ALLOWED_ROLES.includes(dbUser.role as typeof MANDATE_ALLOWED_ROLES[number])) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const mandateId = request.nextUrl.searchParams.get('mandateId')
