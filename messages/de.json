@@ -154,6 +154,60 @@
     "invalidInput": "Ungültige Eingabe",
     "networkError": "Netzwerkfehler"
   },
+  "help": {
+    "defaultAriaLabel": "Hilfe",
+    "closePanel": "Panel schließen",
+    "fanVoting": {
+      "title": "Warum steigen die Kosten?",
+      "description": "Quadratic Voting lässt dich Intensität ausdrücken, ohne Minderheiten zu überwältigen.\n\nDie Kosten für n Stimmen auf denselben Track betragen n² Credits:\n• 1 Stimme = 1 Credit\n• 2 Stimmen = 4 Credits\n• 3 Stimmen = 9 Credits\n• 5 Stimmen = 25 Credits\n\nDu kannst deine 100 Credits breiter streuen oder intensiv auf einen Track setzen — aber extremes Bündeln wird teuer.",
+      "ariaLabel": "Hilfe zu Quadratic Voting"
+    },
+    "djBallot": {
+      "title": "Warum Drag & Drop statt Punkte?",
+      "description": "Die Schulze-Methode (Beatpath) findet den Condorcet-Sieger: den Track, der in Paarvergleichen gegen alle anderen gewinnt.\n\nDurch Ranglisten statt Punkten ist strategisches Burial unmöglich:\n• Du kannst einen Favoriten nicht durch taktisches Niedrigvoten eines Konkurrenten schaden.\n• Der Algorithmus bewertet alle Paarvergleiche und findet den stärksten Pfad.\n\nEinfach gesagt: Deine ehrliche Reihenfolge ist immer die beste Strategie.",
+      "ariaLabel": "Hilfe zur Schulze-Methode"
+    },
+    "tier": {
+      "title": "Das Tier-System erklärt",
+      "description": "Tiers basieren auf monatlichen Spotify-Streamzahlen:\n\n• MAJOR: > 1.000.000 Streams/Monat\n• INDIE: 100.000 – 1.000.000 Streams/Monat\n• MICRO: 10.000 – 100.000 Streams/Monat\n• UNDERGROUND: < 10.000 Streams/Monat\n\nDas Tier-System verhindert, dass Major-Labels kleinere Bands verdrängen. Voting-Pools sind nach Tiers getrennt.",
+      "ariaLabel": "Hilfe zum Tier-System"
+    },
+    "bandVote": {
+      "title": "Wie erkennt das System Voting-Zirkel?",
+      "description": "Drei Sicherheitsschichten schützen vor koordinierter Manipulation:\n\n1. Cliquen-Erkennung: Gegenseitige Votes (A→B und B→A) werden abgewertet.\n2. Mahalanobis-Distanz: Outlier-Voter werden identifiziert und weniger gewichtet.\n3. Triadic Census: Geschlossene Dreiecke (A→B→C→A) erhalten einen Penalty von 0,7× pro Dreieck.\n\nMehr intellektuelle Diversität beim Voten (verschiedene Genres, Regionen) erhöht das Gewicht deiner Stimme um bis zu 15 %.",
+      "ariaLabel": "Hilfe zu Anti-Kollusions-Maßnahmen"
+    },
+    "voterStructure": {
+      "title": "Voter-Struktur erklärt",
+      "description": "Die Voter-Struktur zeigt, welche Gruppen für deine Band gestimmt haben:\n\n• Fan Votes: Quadratic Voting, 100 Credits/Monat\n• DJ Ballots: Schulze-Methode, Ranglisten-Ballots\n• Peer Reviews: Band-Peer-Review mit Anti-Kollusions-Algorithmus\n\nDie Combined Charts gewichten alle drei Gruppen gleich (je 33,3 %).",
+      "ariaLabel": "Hilfe zur Voter-Struktur"
+    },
+    "superListener": {
+      "title": "Super Listener",
+      "description": "Super Listener sind Fans, die in mindestens 3 aufeinanderfolgenden Monaten für deine Band gestimmt haben und dabei ihr QV-Budget zu mehr als 50% eingesetzt haben. Sie sind deine treuesten Unterstützer.",
+      "ariaLabel": "Hilfe zu Super Listener"
+    },
+    "chartTrend": {
+      "title": "Chart-Position Trend",
+      "description": "Zeigt deine kombinierten Chart-Platzierungen der letzten 6 Monate. Niedrigere Werte = bessere Platzierung. Ein sinkender Trend bedeutet, dass du dich verbesserst.",
+      "ariaLabel": "Hilfe zum Chart-Trend"
+    },
+    "voteVelocity": {
+      "title": "Vote-Velocity erklärt",
+      "description": "Vote-Velocity misst, wie schnell eine Band neue Votes gewinnt im Vergleich zum Vormonat. Bands mit hoher Velocity haben Momentum — sie werden gerade entdeckt. Basiert auf dem AI-Prediction-Modul (Spec §9.4).",
+      "ariaLabel": "Hilfe zur Vote-Velocity"
+    },
+    "conversionRate": {
+      "title": "Konversionsrate erklärt",
+      "description": "Konversionsrate = Anteil aller Fan-Voter, die für mindestens eine deiner mandatierten Bands gestimmt haben. Hoch = deine Bands ziehen viele Fans an.",
+      "ariaLabel": "Hilfe zur Konversionsrate"
+    },
+    "peerReview": {
+      "title": "Peer-Review-Analyse erklärt",
+      "description": "Zeigt, wie andere Bands die Artists deines Labels im Peer-Review bewertet haben. Hohe Peer-Scores signalisieren Anerkennung in der Musikergemeinschaft — ein starker Indikator für Nachhaltigkeit.",
+      "ariaLabel": "Hilfe zur Peer-Review-Analyse"
+    }
+  },
   "transparency": {
     "title": "Algorithmische Transparenz",
     "subtitle": "Vollständige Dokumentation aller Vote-Gewichtungsschritte",

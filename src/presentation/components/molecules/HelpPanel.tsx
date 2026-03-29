@@ -1,6 +1,7 @@
 'use client'
 
 import { X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 
 interface HelpPanelProps {
@@ -31,6 +32,7 @@ const INSTANT_VARIANTS = {
  */
 export function HelpPanel({ open, onClose, title, description }: HelpPanelProps) {
   const shouldReduceMotion = useReducedMotion()
+  const t = useTranslations('help')
   const variants = shouldReduceMotion ? INSTANT_VARIANTS : SLIDE_VARIANTS
   const transition = shouldReduceMotion
     ? { duration: 0.01 }
@@ -74,7 +76,7 @@ export function HelpPanel({ open, onClose, title, description }: HelpPanelProps)
               <button
                 onClick={onClose}
                 className="p-1 rounded text-white/50 hover:text-white transition-colors"
-                aria-label="Panel schließen"
+                aria-label={t('closePanel')}
               >
                 <X size={18} />
               </button>

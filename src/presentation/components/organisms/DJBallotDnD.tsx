@@ -116,11 +116,6 @@ interface DJBallotDnDProps {
   onSubmit: (rankedTrackIds: string[]) => Promise<void>
 }
 
-const DJ_HELP = {
-  title: 'Warum Drag & Drop statt Punkte?',
-  description:
-    'Die Schulze-Methode (Beatpath) findet den Condorcet-Sieger: den Track, der in Paarvergleichen gegen alle anderen gewinnt.\n\nDurch Ranglisten statt Punkten ist strategisches Burial unmöglich:\n• Du kannst einen Favoriten nicht durch taktisches Niedrigvoten eines Konkurrenten schaden.\n• Der Algorithmus bewertet alle Paarvergleiche und findet den stärksten Pfad.\n\nEinfach gesagt: Deine ehrliche Reihenfolge ist immer die beste Strategie.',
-}
 
 /**
  * DJBallotDnD — Drag-and-drop ballot for DJ ranked-choice voting (Spec §5.2).
@@ -208,11 +203,7 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
         <p className="text-sm text-muted-foreground">
           Ziehe Tracks in deine bevorzugte Reihenfolge. Platz 1 ist dein Favorit.
         </p>
-        <HelpButton
-          title={DJ_HELP.title}
-          description={DJ_HELP.description}
-          ariaLabel="Hilfe zur Schulze-Methode"
-        />
+        <HelpButton helpKey="djBallot" />
       </div>
 
       {/* Sortable list */}

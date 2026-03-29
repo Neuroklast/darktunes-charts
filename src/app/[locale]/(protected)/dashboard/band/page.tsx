@@ -4,24 +4,6 @@ import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 
 export const metadata = { title: 'Band Dashboard · DarkTunes' }
 
-const VOTER_STRUCTURE_HELP = {
-  title: 'Voter-Struktur erklärt',
-  description:
-    'Die Voter-Struktur zeigt, welche Gruppen für deine Band gestimmt haben:\n\n• Fan Votes: Quadratic Voting, 100 Credits/Monat\n• DJ Ballots: Schulze-Methode, Ranglisten-Ballots\n• Peer Reviews: Band-Peer-Review mit Anti-Kollusions-Algorithmus\n\nDie Combined Charts gewichten alle drei Gruppen gleich (je 33,3 %).',
-}
-
-const SUPER_LISTENER_HELP = {
-  title: 'Super Listener',
-  description:
-    'Super Listener sind Fans, die in mindestens 3 aufeinanderfolgenden Monaten für deine Band gestimmt haben und dabei ihr QV-Budget zu mehr als 50% eingesetzt haben. Sie sind deine treuesten Unterstützer.',
-}
-
-const CHART_TREND_HELP = {
-  title: 'Chart-Position Trend',
-  description:
-    'Zeigt deine kombinierten Chart-Platzierungen der letzten 6 Monate. Niedrigere Werte = bessere Platzierung. Ein sinkender Trend bedeutet, dass du dich verbesserst.',
-}
-
 export default function BandDashboardPage() {
   // In production: fetch real data via Prisma / Server Component
   const voterStructure = [
@@ -53,11 +35,7 @@ export default function BandDashboardPage() {
           <Card className="p-6 glassmorphism">
             <div className="flex items-center gap-1 mb-1">
               <p className="text-sm text-muted-foreground">Super Listener</p>
-              <HelpButton
-                title={SUPER_LISTENER_HELP.title}
-                description={SUPER_LISTENER_HELP.description}
-                ariaLabel="Hilfe zu Super Listener"
-              />
+              <HelpButton helpKey="superListener" />
             </div>
             <p className="text-3xl font-bold">0</p>
             <p className="text-xs text-muted-foreground mt-1">≥3 Monate, &gt;50% Budget</p>
@@ -73,11 +51,7 @@ export default function BandDashboardPage() {
         <Card className="p-6 glassmorphism mb-6">
           <div className="flex items-center gap-2 mb-4">
             <h2 className="text-lg font-semibold">Voter-Struktur</h2>
-            <HelpButton
-              title={VOTER_STRUCTURE_HELP.title}
-              description={VOTER_STRUCTURE_HELP.description}
-              ariaLabel="Hilfe zur Voter-Struktur"
-            />
+            <HelpButton helpKey="voterStructure" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {voterStructure.map((group) => (
@@ -102,11 +76,7 @@ export default function BandDashboardPage() {
         <Card className="p-6 glassmorphism mb-6">
           <div className="flex items-center gap-2 mb-4">
             <h2 className="text-lg font-semibold">Chart-Position Trend</h2>
-            <HelpButton
-              title={CHART_TREND_HELP.title}
-              description={CHART_TREND_HELP.description}
-              ariaLabel="Hilfe zum Chart-Trend"
-            />
+            <HelpButton helpKey="chartTrend" />
           </div>
           <p className="text-sm text-muted-foreground">
             Keine Chart-Daten verfügbar. Registriere deine Band und reiche Tracks ein.

@@ -37,11 +37,6 @@ function quadraticCost(n: number): number {
   return n * n
 }
 
-const FAN_HELP = {
-  title: 'Warum steigen die Kosten?',
-  description:
-    'Quadratic Voting lässt dich Intensität ausdrücken, ohne Minderheiten zu überwältigen.\n\nDie Kosten für n Stimmen auf denselben Track betragen n² Credits:\n• 1 Stimme = 1 Credit\n• 2 Stimmen = 4 Credits\n• 3 Stimmen = 9 Credits\n• 5 Stimmen = 25 Credits\n\nDu kannst deine 100 Credits breiter streuen oder intensiv auf einen Track setzen — aber extremes Bündeln wird teuer.',
-}
 
 /**
  * FanVotingPanel — Interactive fan voting UI (Spec §9.1).
@@ -134,11 +129,7 @@ export function FanVotingPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Voice Credits</span>
-            <HelpButton
-              title={FAN_HELP.title}
-              description={FAN_HELP.description}
-              ariaLabel="Hilfe zu Quadratic Voting"
-            />
+            <HelpButton helpKey="fanVoting" />
           </div>
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="tabular-nums">

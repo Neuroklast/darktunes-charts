@@ -154,6 +154,60 @@
     "invalidInput": "Invalid input",
     "networkError": "Network error"
   },
+  "help": {
+    "defaultAriaLabel": "Help",
+    "closePanel": "Close panel",
+    "fanVoting": {
+      "title": "Why do costs increase?",
+      "description": "Quadratic Voting lets you express intensity without overwhelming minorities.\n\nThe cost of n votes on the same track is n² credits:\n• 1 vote = 1 credit\n• 2 votes = 4 credits\n• 3 votes = 9 credits\n• 5 votes = 25 credits\n\nYou can spread your 100 credits broadly or bet intensely on one track — but extreme concentration gets expensive.",
+      "ariaLabel": "Help on Quadratic Voting"
+    },
+    "djBallot": {
+      "title": "Why drag & drop instead of points?",
+      "description": "The Schulze Method (Beatpath) finds the Condorcet winner: the track that wins all pairwise comparisons.\n\nRankings instead of points make strategic burial impossible:\n• You cannot harm a competitor by tactically rating a rival low.\n• The algorithm evaluates all pairwise comparisons and finds the strongest path.\n\nSimply put: your honest order is always the best strategy.",
+      "ariaLabel": "Help on Schulze Method"
+    },
+    "tier": {
+      "title": "The Tier System explained",
+      "description": "Tiers are based on monthly Spotify stream counts:\n\n• MAJOR: > 1,000,000 streams/month\n• INDIE: 100,000 – 1,000,000 streams/month\n• MICRO: 10,000 – 100,000 streams/month\n• UNDERGROUND: < 10,000 streams/month\n\nThe tier system prevents major labels from crowding out smaller bands. Voting pools are separated by tier.",
+      "ariaLabel": "Help on Tier System"
+    },
+    "bandVote": {
+      "title": "How does the system detect voting rings?",
+      "description": "Three security layers protect against coordinated manipulation:\n\n1. Clique detection: Reciprocal votes (A→B and B→A) are downweighted.\n2. Mahalanobis distance: Outlier voters are identified and weighted less.\n3. Triadic Census: Closed triangles (A→B→C→A) receive a 0.7× penalty per triangle.\n\nMore intellectual diversity when voting (different genres, regions) increases the weight of your vote by up to 15%.",
+      "ariaLabel": "Help on anti-collusion measures"
+    },
+    "voterStructure": {
+      "title": "Voter Structure explained",
+      "description": "The voter structure shows which groups voted for your band:\n\n• Fan Votes: Quadratic Voting, 100 credits/month\n• DJ Ballots: Schulze Method, ranked-choice ballots\n• Peer Reviews: Band peer review with anti-collusion algorithm\n\nThe Combined Charts weight all three groups equally (33.3% each).",
+      "ariaLabel": "Help on Voter Structure"
+    },
+    "superListener": {
+      "title": "Super Listener",
+      "description": "Super Listeners are fans who have voted for your band in at least 3 consecutive months while spending more than 50% of their QV budget. They are your most loyal supporters.",
+      "ariaLabel": "Help on Super Listener"
+    },
+    "chartTrend": {
+      "title": "Chart Position Trend",
+      "description": "Shows your combined chart positions over the last 6 months. Lower values = better placement. A declining trend means you are improving.",
+      "ariaLabel": "Help on Chart Trend"
+    },
+    "voteVelocity": {
+      "title": "Vote Velocity explained",
+      "description": "Vote Velocity measures how quickly a band gains new votes compared to the previous month. Bands with high velocity have momentum — they are being discovered right now. Based on the AI Prediction Module (Spec §9.4).",
+      "ariaLabel": "Help on Vote Velocity"
+    },
+    "conversionRate": {
+      "title": "Conversion Rate explained",
+      "description": "Conversion Rate = the share of all fan voters who voted for at least one of your mandated bands. High = your bands attract many fans.",
+      "ariaLabel": "Help on Conversion Rate"
+    },
+    "peerReview": {
+      "title": "Peer Review Analysis explained",
+      "description": "Shows how other bands rated your label's artists in the peer review. High peer scores signal recognition in the music community — a strong indicator of sustainability.",
+      "ariaLabel": "Help on Peer Review Analysis"
+    }
+  },
   "transparency": {
     "title": "Algorithmic Transparency",
     "subtitle": "Full documentation of all vote-weighting steps",

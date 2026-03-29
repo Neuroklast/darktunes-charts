@@ -21,11 +21,6 @@ import {
 
 export const metadata = { title: 'Charts · DarkTunes' }
 
-const TIER_HELP = {
-  title: 'Das Tier-System erklärt',
-  description:
-    'Tiers basieren auf monatlichen Spotify-Streamzahlen:\n\n• MAJOR: > 1.000.000 Streams/Monat\n• INDIE: 100.000 – 1.000.000 Streams/Monat\n• MICRO: 10.000 – 100.000 Streams/Monat\n• UNDERGROUND: < 10.000 Streams/Monat\n\nDas Tier-System verhindert, dass Major-Labels kleinere Bands verdrängen. Voting-Pools sind nach Tiers getrennt.',
-}
 
 /* ── Seed data — replaced by real API data once votes are submitted ── */
 const PLACEHOLDER_ENTRIES: ChartEntry[] = [
@@ -190,11 +185,7 @@ export default function ChartsPage() {
             >
               Overall Charts
             </h1>
-            <HelpButton
-              title={TIER_HELP.title}
-              description={TIER_HELP.description}
-              ariaLabel="Hilfe zum Tier-System"
-            />
+            <HelpButton helpKey="tier" />
           </div>
           <p className="text-sm text-white/40" style={{ fontFamily: 'var(--font-body)' }}>
             Kombination aller drei Voting-Säulen · Fan 33,3&nbsp;% · DJ 33,3&nbsp;% · Peer 33,3&nbsp;%

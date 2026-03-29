@@ -1,15 +1,18 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { HelpPanel } from '@/presentation/components/molecules/HelpPanel'
 
 interface HelpButtonProps {
-  /** Short title shown in the panel header. */
-  title: string
-  /** Full explanation text shown in the panel body. */
-  description: string
-  /** Optional ARIA label for the (?) button; defaults to "Hilfe". */
+  /** i18n key under the 'help' namespace (e.g. "fanVoting"). When provided, title/description/ariaLabel are loaded from translations. */
+  helpKey?: string
+  /** Short title shown in the panel header. Ignored when helpKey is provided. */
+  title?: string
+  /** Full explanation text shown in the panel body. Ignored when helpKey is provided. */
+  description?: string
+  /** Optional ARIA label override for the (?) button. */
   ariaLabel?: string
 }
 
@@ -20,12 +23,21 @@ interface HelpButtonProps {
  * help text for complex UI elements (e.g. voting algorithms, tier system).
  * Designed to be placed inline, directly next to the element it explains.
  *
+ * Supports two usage patterns:
+ *   1. `helpKey` — i18n key resolved via `useTranslations('help')` (preferred)
+ *   2. `title` + `description` — direct string props (backward-compatible)
+ *
  * Accessibility:
  *   - HelpPanel uses role="dialog" + aria-modal + aria-label
  *   - The trigger button has an aria-label with the section name
  */
-export function HelpButton({ title, description, ariaLabel = 'Hilfe' }: HelpButtonProps) {
+export function HelpButton({ helpKey, title, description, ariaLabel }: HelpButtonProps) {
   const [open, setOpen] = useState(false)
+  const t = useTranslations('help')
+
+  const resolvedTitle = helpKey ? t(`${helpKey}.title`) : title ?? ''
+  const resolvedDescription = helpKey ? t(`${helpKey}.description`) : description ?? ''
+  const resolvedAriaLabel = ariaLabel ?? (helpKey ? t(`${helpKey}.ariaLabel`) : t('defaultAriaLabel'))
 
   return (
     <>
@@ -34,7 +46,7 @@ export function HelpButton({ title, description, ariaLabel = 'Hilfe' }: HelpButt
         size="icon"
         className="h-5 w-5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted text-xs font-bold p-0 leading-none"
         onClick={() => setOpen(true)}
-        aria-label={ariaLabel}
+        aria-label={resolvedAriaLabel}
       >
         ?
       </Button>
@@ -42,8 +54,8 @@ export function HelpButton({ title, description, ariaLabel = 'Hilfe' }: HelpButt
       <HelpPanel
         open={open}
         onClose={() => setOpen(false)}
-        title={title}
-        description={description}
+        title={resolvedTitle}
+        description={resolvedDescription}
       />
     </>
   )
