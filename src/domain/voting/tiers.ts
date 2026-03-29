@@ -1,22 +1,8 @@
 import type { Band, Tier } from '@/lib/types'
+import { TIER_PRICING_EUR } from '@/domain/tiers'
 
-/** Spotify monthly listener thresholds that define each competition tier. */
-const TIER_THRESHOLDS: Record<Tier, number> = {
-  Micro: 10_000,
-  Emerging: 50_000,
-  Established: 250_000,
-  International: 1_000_000,
-  Macro: Infinity,
-}
-
-/** Monthly EUR price per additional chart category for each tier (beyond the first free entry). */
-const TIER_PRICING: Record<Tier, number> = {
-  Micro: 5,
-  Emerging: 15,
-  Established: 35,
-  International: 75,
-  Macro: 150,
-}
+// Re-export getTierFromListeners from the canonical source for backward compatibility.
+export { getTierFromListeners } from '@/domain/tiers'
 
 /** Breakdown of the cost for a single category submission. */
 export interface CategoryCostItem {
@@ -29,37 +15,6 @@ export interface CategoryCostItem {
 export interface SubmissionCostResult {
   totalCost: number
   breakdown: CategoryCostItem[]
-}
-
-/**
- * Derives the competition tier for a band from its Spotify monthly listener count.
- *
- * Five-tier structure (Darktunes platform specification, Section 5):
- * - **Micro** (Underground): 0 – 10,000
- * - **Emerging** (Small): 10,001 – 50,000
- * - **Established** (Medium): 50,001 – 250,000
- * - **International** (Large): 250,001 – 1,000,000
- * - **Macro** (Crossover): above 1,000,000
- *
- * Tier assignment uses exclusive lower bounds: a band at exactly 10,000 listeners
- * remains in Micro; they must exceed the threshold to advance.
- *
- * Negative listener counts are not valid (Spotify returns 0 as the minimum);
- * this function throws a `RangeError` for negative inputs to fail fast on invalid data.
- *
- * @param monthlyListeners - Spotify monthly listener count (must be ≥ 0).
- * @returns The corresponding Tier label.
- * @throws {RangeError} If `monthlyListeners` is negative.
- */
-export function getTierFromListeners(monthlyListeners: number): Tier {
-  if (monthlyListeners < 0) {
-    throw new RangeError(`monthlyListeners must be ≥ 0, got ${monthlyListeners}`)
-  }
-  if (monthlyListeners > TIER_THRESHOLDS.International) return 'Macro'
-  if (monthlyListeners > TIER_THRESHOLDS.Established) return 'International'
-  if (monthlyListeners > TIER_THRESHOLDS.Emerging) return 'Established'
-  if (monthlyListeners > TIER_THRESHOLDS.Micro) return 'Emerging'
-  return 'Micro'
 }
 
 /**
@@ -76,7 +31,7 @@ export function getTierFromListeners(monthlyListeners: number): Tier {
  * @returns EUR price for each additional category beyond the first free one.
  */
 export function calculateCategoryPrice(tier: Tier): number {
-  return TIER_PRICING[tier]
+  return TIER_PRICING_EUR[tier]
 }
 
 /**
