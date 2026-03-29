@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ACHIEVEMENT_DEFINITIONS } from '@/domain/achievements/index'
+import { requireAuth, withCORS } from '@/lib/auth/rbac'
 
 /** Shape of a UserAchievement record returned by Prisma (subset we use). */
 interface EarnedRecord {
@@ -12,17 +13,33 @@ interface EarnedRecord {
 /**
  * GET /api/achievements
  *
- * Returns all achievement definitions merged with the user's earned status.
- * Unauthenticated — userId is passed as a query param (validated server-side
- * against the session in the calling page before this route is hit).
+ * Returns all achievement definitions merged with the authenticated user's earned status.
+ *
+ * Security:
+ * - Requires authentication
+ * - IDOR protection: Only returns achievements for the authenticated user
+ * - The userId query parameter is validated against the session
  */
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const userId = searchParams.get('userId')
-
-  if (!userId) {
-    return NextResponse.json({ error: 'userId required' }, { status: 400 })
+  // Require authentication and validate user
+  const authResult = await requireAuth()
+  if (!authResult.success) {
+    return authResult.response
   }
+
+  const { searchParams } = new URL(req.url)
+  const requestedUserId = searchParams.get('userId')
+
+  // IDOR Protection: Validate that the requested userId matches the authenticated user
+  if (requestedUserId && requestedUserId !== authResult.user.id) {
+    return NextResponse.json(
+      { error: 'Forbidden - You can only access your own achievements' },
+      { status: 403 }
+    )
+  }
+
+  // Use the authenticated user's ID (not the query param)
+  const userId = authResult.user.id
 
   const earned = await prisma.userAchievement.findMany({
     where: { userId },
@@ -48,5 +65,5 @@ export async function GET(req: Request) {
     }
   })
 
-  return NextResponse.json({ achievements: all })
+  return withCORS(NextResponse.json({ achievements: all }))
 }

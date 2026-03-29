@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireRole, withCORS } from '@/lib/auth/rbac'
 
 /**
  * Escapes a value for safe inclusion in a CSV cell.
@@ -46,17 +46,16 @@ const EXPORT_COLUMNS = [
  *   Content-Type: text/csv; charset=utf-8
  *   Content-Disposition: attachment; filename="darktunes-ar-export-{date}.csv"
  *
- * Access control:
+ * Authorization:
  *   Only authenticated users with role LABEL or AR can access this endpoint.
  *   In production this would query the DB for mandated bands and their scores.
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Require label or ar role
+    const authResult = await requireRole(request, ['ar', 'admin'])
+    if (!authResult.success) {
+      return authResult.response
     }
 
     // In production: verify user role is LABEL or AR, fetch mandated bands + scores from Prisma.
@@ -86,7 +85,7 @@ export async function GET(_request: NextRequest) {
     const dateStr = new Date().toISOString().slice(0, 10)
     const filename = `darktunes-ar-export-${dateStr}.csv`
 
-    return new NextResponse(csv, {
+    const response = new NextResponse(csv, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
@@ -94,8 +93,10 @@ export async function GET(_request: NextRequest) {
         'Cache-Control': 'no-store',
       },
     })
+
+    return withCORS(response)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return withCORS(NextResponse.json({ error: message }, { status: 500 }))
   }
 }

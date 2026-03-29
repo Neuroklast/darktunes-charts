@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { requireRole, withCORS } from '@/lib/auth/rbac'
 
 const createAwardSchema = z.object({
   bandId: z.string().uuid().optional(),
@@ -18,39 +18,40 @@ const createAwardSchema = z.object({
  */
 export async function GET() {
   try {
-    return NextResponse.json({ awards: [] })
+    return withCORS(NextResponse.json({ awards: [] }))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return withCORS(NextResponse.json({ error: message }, { status: 500 }))
   }
 }
 
 /**
  * POST /api/awards
- * Creates a new award (admin only).
+ * Creates a new award.
+ *
+ * Authorization: Requires admin role only
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Require admin role only
+    const authResult = await requireRole(request, ['admin'])
+    if (!authResult.success) {
+      return authResult.response
     }
 
     const body: unknown = await request.json()
     const parsed = createAwardSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json(
+      return withCORS(NextResponse.json(
         { error: 'Invalid request body', details: parsed.error.flatten() },
         { status: 400 }
-      )
+      ))
     }
 
-    return NextResponse.json({ success: true, award: { id: 'new-award-id', createdAt: new Date().toISOString(), ...parsed.data } })
+    return withCORS(NextResponse.json({ success: true, award: { id: 'new-award-id', createdAt: new Date().toISOString(), ...parsed.data } }))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return withCORS(NextResponse.json({ error: message }, { status: 500 }))
   }
 }

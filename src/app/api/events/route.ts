@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
 import { rankEvents, filterUpcomingEvents } from '@/domain/events/ranking'
+import { requireRole, withCORS } from '@/lib/auth/rbac'
 
 const createEventSchema = z.object({
   name: z.string().min(1).max(200),
@@ -23,39 +23,40 @@ export async function GET() {
     // const events = await prisma.event.findMany({ include: { _count: { select: { intents: true } } } })
     const mockEvents = filterUpcomingEvents([])
     const ranked = rankEvents(mockEvents)
-    return NextResponse.json({ events: ranked })
+    return withCORS(NextResponse.json({ events: ranked }))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return withCORS(NextResponse.json({ error: message }, { status: 500 }))
   }
 }
 
 /**
  * POST /api/events
- * Creates a new event (admin or editor only).
+ * Creates a new event.
+ *
+ * Authorization: Requires admin or editor role
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Require admin or editor role
+    const authResult = await requireRole(request, ['admin', 'editor'])
+    if (!authResult.success) {
+      return authResult.response
     }
 
     const body: unknown = await request.json()
     const parsed = createEventSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json(
+      return withCORS(NextResponse.json(
         { error: 'Invalid request body', details: parsed.error.flatten() },
         { status: 400 }
-      )
+      ))
     }
 
-    return NextResponse.json({ success: true, event: { id: 'new-event-id', intentCount: 0, ...parsed.data } })
+    return withCORS(NextResponse.json({ success: true, event: { id: 'new-event-id', intentCount: 0, ...parsed.data } }))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return withCORS(NextResponse.json({ error: message }, { status: 500 }))
   }
 }
