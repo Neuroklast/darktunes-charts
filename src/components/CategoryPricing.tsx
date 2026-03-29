@@ -11,12 +11,16 @@ import type { Band, Genre, Tier } from '@/lib/types'
 import { calculateCategoryPrice, getTierFromListeners, simulateSpotifyListenersFetch } from '@/lib/voting'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { TRIAL_PERIOD_DAYS } from '@/domain/payment/trialConfig'
+import { TrialStatusBanner } from '@/presentation/components/organisms/TrialStatusBanner'
 
 interface CategoryPricingProps {
   bandId: string
+  /** ISO-8601 date string when the trial started (null if not on trial). */
+  trialStartDate?: string | null
 }
 
-export function CategoryPricing({ bandId }: CategoryPricingProps) {
+export function CategoryPricing({ bandId, trialStartDate = null }: CategoryPricingProps) {
   const [bands] = useKV<Band[]>('bands', [])
   const [selectedCategories, setSelectedCategories] = useState<Genre[]>(['Goth'])
   const [isCalculating, setIsCalculating] = useState(false)
@@ -102,6 +106,8 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
 
   return (
     <div className="space-y-6">
+      <TrialStatusBanner trialStartDate={trialStartDate} />
+
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl font-bold tracking-tight mb-2">
@@ -295,7 +301,9 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
         disabled={selectedCategories.length === 0}
       >
         <CurrencyEur className="w-5 h-5" />
-        Submit for €{totalCost}.00/month
+        {selectedCategories.length > 1
+          ? `Start ${TRIAL_PERIOD_DAYS}-Day Free Trial — then €${totalCost}.00/month`
+          : `Submit for €${totalCost}.00/month`}
       </Button>
     </div>
   )

@@ -10,7 +10,9 @@ import { handleWebhook } from '@/infrastructure/payment/stripeAdapter'
  * raw bytes required for HMAC verification.
  *
  * Currently handled events:
- * - `checkout.session.completed` → activates band's paid categories in DB
+ * - `checkout.session.completed` → activates band's paid/trial categories in DB
+ * - `customer.subscription.trial_will_end` → queues trial expiration reminder
+ * - `customer.subscription.updated` → handles trial-to-paid conversion
  */
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature')
@@ -34,9 +36,35 @@ export async function POST(request: NextRequest) {
       // In production with Prisma:
       // await prisma.band.update({
       //   where: { id: result.bandId },
-      //   data: { paidCategorySlots: result.paidCategories },
+      //   data: {
+      //     paidCategorySlots: result.paidCategories,
+      //     ...(result.isTrial ? { trialStartDate: new Date() } : {}),
+      //   },
       // })
-      return NextResponse.json({ received: true, processed: result.type })
+      return NextResponse.json({ received: true, processed: result.type, isTrial: result.isTrial })
+    }
+
+    if (result.type === 'customer.subscription.trial_will_end') {
+      // In production:
+      // const band = await prisma.band.findUnique({ where: { id: result.bandId } })
+      // await sendTrialExpirationReminder({ bandId, email: band.email, ... })
+      return NextResponse.json({ received: true, processed: result.type, bandId: result.bandId })
+    }
+
+    if (result.type === 'customer.subscription.updated') {
+      if (result.trialExpired) {
+        // Trial has ended; subscription auto-converts to paid.
+        // In production with Prisma:
+        // await prisma.band.update({
+        //   where: { id: result.bandId },
+        //   data: { trialStartDate: null },
+        // })
+      }
+      return NextResponse.json({
+        received: true,
+        processed: result.type,
+        trialExpired: result.trialExpired,
+      })
     }
 
     return NextResponse.json({ received: true, processed: 'unhandled' })

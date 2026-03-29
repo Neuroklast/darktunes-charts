@@ -2,7 +2,8 @@
  * Stripe payment adapter (Spec §3.1).
  *
  * Handles Checkout session creation for additional chart category fees and
- * webhook processing for payment confirmation. Financial transactions have
+ * webhook processing for payment confirmation. Supports a 30-day trial period
+ * for bands exploring additional categories. Financial transactions have
  * ZERO effect on chart ranking scores — payment only unlocks participation
  * in additional categories (Spec §3.2).
  */
@@ -10,6 +11,8 @@
 import Stripe from 'stripe'
 import type { Tier } from '@/lib/types'
 import { calculateTierPrice } from '@/domain/payment/tierPricing'
+import { TRIAL_PERIOD_DAYS } from '@/domain/payment/trialConfig'
+import { buildTrialMetadata } from '@/domain/payment/trialStatus'
 
 function getStripeClient(): Stripe {
   const secretKey = process.env.STRIPE_SECRET_KEY
@@ -28,6 +31,8 @@ export interface CheckoutSessionParams {
   successUrl: string
   /** URL to redirect to if the user cancels checkout. */
   cancelUrl: string
+  /** When true, applies a 30-day trial period before billing begins. */
+  enableTrial?: boolean
 }
 
 export interface CheckoutSessionResult {
@@ -45,7 +50,7 @@ export interface CheckoutSessionResult {
 export async function createCheckoutSession(
   params: CheckoutSessionParams
 ): Promise<CheckoutSessionResult> {
-  const { bandId, tier, totalCategories, successUrl, cancelUrl } = params
+  const { bandId, tier, totalCategories, successUrl, cancelUrl, enableTrial = false } = params
 
   if (process.env.NEXT_PUBLIC_APP_ENV === 'test') {
     return {
@@ -61,6 +66,9 @@ export async function createCheckoutSession(
   if (pricing.paidCategories === 0) {
     throw new Error('No paid categories: first category is always free, no checkout needed')
   }
+
+  const trialStartDate = new Date().toISOString()
+  const trialMetadata = enableTrial ? buildTrialMetadata(trialStartDate) : {}
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
@@ -79,7 +87,15 @@ export async function createCheckoutSession(
         quantity: pricing.paidCategories,
       },
     ],
-    metadata: { bandId, tier, paidCategories: String(pricing.paidCategories) },
+    ...(enableTrial
+      ? { subscription_data: { trial_period_days: TRIAL_PERIOD_DAYS } }
+      : {}),
+    metadata: {
+      bandId,
+      tier,
+      paidCategories: String(pricing.paidCategories),
+      ...trialMetadata,
+    },
     success_url: successUrl,
     cancel_url: cancelUrl,
   })
@@ -92,11 +108,18 @@ export async function createCheckoutSession(
 }
 
 export type StripeWebhookResult =
-  | { type: 'checkout.session.completed'; bandId: string; paidCategories: number }
+  | { type: 'checkout.session.completed'; bandId: string; paidCategories: number; isTrial: boolean }
+  | { type: 'customer.subscription.trial_will_end'; bandId: string; trialEndDate: string }
+  | { type: 'customer.subscription.updated'; bandId: string; trialExpired: boolean }
   | { type: 'unhandled'; eventType: string }
 
 /**
  * Verifies and processes a Stripe webhook payload.
+ *
+ * Handled events:
+ * - `checkout.session.completed` → activates band's (trial or paid) categories.
+ * - `customer.subscription.trial_will_end` → triggers trial expiration reminder.
+ * - `customer.subscription.updated` → detects trial-to-paid conversion.
  *
  * @param payload - Raw request body as a Buffer or string.
  * @param signature - Value of the `stripe-signature` header.
@@ -119,7 +142,29 @@ export async function handleWebhook(
     const session = event.data.object as Stripe.Checkout.Session
     const bandId = session.metadata?.bandId ?? ''
     const paidCategories = parseInt(session.metadata?.paidCategories ?? '0', 10)
-    return { type: 'checkout.session.completed', bandId, paidCategories }
+    const isTrial = session.metadata?.is_trial === 'true'
+    return { type: 'checkout.session.completed', bandId, paidCategories, isTrial }
+  }
+
+  if (event.type === 'customer.subscription.trial_will_end') {
+    const subscription = event.data.object as Stripe.Subscription
+    const bandId = subscription.metadata?.bandId ?? ''
+    const trialEnd = subscription.trial_end
+    const trialEndDate = trialEnd
+      ? new Date(trialEnd * 1000).toISOString()
+      : new Date().toISOString()
+    return { type: 'customer.subscription.trial_will_end', bandId, trialEndDate }
+  }
+
+  if (event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object as Stripe.Subscription
+    const bandId = subscription.metadata?.bandId ?? ''
+    const trialExpired =
+      subscription.metadata?.is_trial === 'true' &&
+      subscription.status === 'active' &&
+      subscription.trial_end !== null &&
+      subscription.trial_end < Math.floor(Date.now() / 1000)
+    return { type: 'customer.subscription.updated', bandId, trialExpired }
   }
 
   return { type: 'unhandled', eventType: event.type }
