@@ -1,12 +1,13 @@
 'use client'
 
 import { Zap } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import type { ScoutingSuggestion } from '@/domain/releases/index'
 
-const REASON_LABEL: Record<ScoutingSuggestion['reason'], string> = {
-  new_release: 'New Release',
-  velocity_spike: 'Velocity ↑',
-  genre_match: 'Genre Match',
+const REASON_KEY: Record<ScoutingSuggestion['reason'], string> = {
+  new_release: 'reason.newRelease',
+  velocity_spike: 'reason.velocitySpike',
+  genre_match: 'reason.genreMatch',
 }
 
 const REASON_COLOR: Record<ScoutingSuggestion['reason'], string> = {
@@ -65,6 +66,7 @@ interface ScoutingPanelProps {
  * Falls back to demo data when no real suggestions are available.
  */
 export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
+  const t = useTranslations('scouting')
   const items = suggestions && suggestions.length > 0 ? suggestions : DEMO_SUGGESTIONS
 
   return (
@@ -75,13 +77,13 @@ export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
           className="text-xl font-bold uppercase tracking-wider text-white"
           style={{ fontFamily: 'Oswald, sans-serif' }}
         >
-          Discovery Scouting
+          {t('title')}
         </h2>
       </div>
 
       {items.length === 0 ? (
         <p className="text-sm text-white/40">
-          Keine neuen Vorschläge — Bots scouten im Hintergrund.
+          {t('emptyState')}
         </p>
       ) : (
         <div className="space-y-3">
@@ -105,7 +107,7 @@ export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
                     className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
                     style={{ color: REASON_COLOR[s.reason], backgroundColor: `${REASON_COLOR[s.reason]}18`, border: `1px solid ${REASON_COLOR[s.reason]}40` }}
                   >
-                    {REASON_LABEL[s.reason]}
+                    {t(REASON_KEY[s.reason])}
                   </span>
                 </div>
               </div>
@@ -113,7 +115,7 @@ export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
               {/* Confidence bar */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-white/40">Konfidenz</span>
+                  <span className="text-[10px] text-white/40">{t('confidence')}</span>
                   <span className="text-[10px] text-white/60 font-mono">{Math.round(s.confidenceScore * 100)}%</span>
                 </div>
                 <div className="w-full h-1 rounded-full bg-white/10">
@@ -131,7 +133,7 @@ export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
                 }}
                 className="self-start text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/10 text-white/70 hover:text-white transition-colors"
               >
-                Nominieren
+                {t('nominate')}
               </button>
             </div>
           ))}

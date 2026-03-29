@@ -193,5 +193,16 @@
       "description": "A band from the Micro or Emerging tier is randomly selected every day. The algorithm uses a Linear Congruential Generator (LCG) seeded with the current date.",
       "seed": "Seed = YYYY-MM-DD as an integer. This guarantees reproducibility: anyone can independently verify today's Band of the Day."
     }
+  },
+  "scouting": {
+    "title": "Discovery Scouting",
+    "emptyState": "No new suggestions — bots are scouting in the background.",
+    "confidence": "Confidence",
+    "nominate": "Nominate",
+    "reason": {
+      "newRelease": "New Release",
+      "velocitySpike": "Velocity ↑",
+      "genreMatch": "Genre Match"
+    }
   }
 }

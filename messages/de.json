@@ -193,5 +193,16 @@
       "description": "Täglich wird eine Band aus dem Micro- oder Emerging-Tier zufällig ausgewählt. Der Algorithmus verwendet einen LCG (Linear Congruential Generator) mit dem Datum als Seed.",
       "seed": "Seed = YYYY-MM-DD als Integer. Das garantiert Reproduzierbarkeit: jeder kann den heutigen Band-of-the-Day unabhängig verifizieren."
     }
+  },
+  "scouting": {
+    "title": "Discovery Scouting",
+    "emptyState": "Keine neuen Vorschläge — Bots scouten im Hintergrund.",
+    "confidence": "Konfidenz",
+    "nominate": "Nominieren",
+    "reason": {
+      "newRelease": "Neue Veröffentlichung",
+      "velocitySpike": "Velocity ↑",
+      "genreMatch": "Genre Match"
+    }
   }
 }
