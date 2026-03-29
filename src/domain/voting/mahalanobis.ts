@@ -113,16 +113,35 @@ export function computeCovarianceMatrix(matrix: number[][]): number[][] {
   return cov
 }
 
+/** Optional context passed to {@link invertMatrix} for diagnostic logging. */
+export interface InvertMatrixContext {
+  /** Number of voters that produced the covariance matrix. */
+  voterCount?: number
+  /** Number of bands (dimensions) in the voting matrix. */
+  bandCount?: number
+}
+
 /**
  * Inverts a square matrix using Gaussian elimination with partial pivoting.
  *
  * Returns the identity matrix if the input is singular (determinant ≈ 0),
  * which gracefully degrades to Euclidean distance behaviour.
+ * A warning is logged when this fallback occurs so operators can investigate.
+ *
+ * **When does singularity occur?**
+ * The covariance matrix becomes singular when the sample size (number of
+ * voters) is smaller than the number of dimensions (bands), or when some
+ * bands receive perfectly correlated votes.  This is expected for small
+ * sample sizes and the Euclidean fallback is a safe degradation.
  *
  * @param matrix - k×k invertible matrix.
+ * @param context - Optional metadata for diagnostic logging.
  * @returns k×k inverse matrix.
  */
-export function invertMatrix(matrix: number[][]): number[][] {
+export function invertMatrix(
+  matrix: number[][],
+  context?: InvertMatrixContext
+): number[][] {
   const k = matrix.length
   // Augment with identity matrix.
   const aug = matrix.map((row, i) => [
@@ -143,6 +162,12 @@ export function invertMatrix(matrix: number[][]): number[][] {
 
     const pivot = aug[col]![col]!
     if (Math.abs(pivot) < SINGULARITY_EPSILON) {
+      const voters = context?.voterCount ?? 'unknown'
+      const bands = context?.bandCount ?? k
+      console.warn(
+        `[Mahalanobis] Singular covariance matrix detected, falling back to Euclidean distance` +
+          ` (voters: ${voters}, bands: ${bands})`
+      )
       // Singular matrix — return identity.
       return Array.from({ length: k }, (_, i) =>
         Array.from({ length: k }, (__, j) => (i === j ? 1 : 0))
@@ -235,7 +260,10 @@ export function detectOutliers(vectors: VotingVector[]): OutlierResult[] {
   )
 
   const cov = computeCovarianceMatrix(centredMatrix)
-  const invCov = invertMatrix(cov)
+  const invCov = invertMatrix(cov, {
+    voterCount: vectors.length,
+    bandCount: allBandIds.length,
+  })
 
   return vectors.map((v, i) => {
     const row = rawMatrix[i]!
