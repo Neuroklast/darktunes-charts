@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ACHIEVEMENT_DEFINITIONS } from '@/domain/achievements/index'
+import type { IAchievementRepository, EarnedAchievementRecord } from '@/domain/repositories'
+import { PrismaAchievementRepository } from '@/infrastructure/repositories'
 
-/** Shape of a UserAchievement record returned by Prisma (subset we use). */
-interface EarnedRecord {
-  grantedAt: Date
-  metadata: unknown
-  achievement: { slug: string }
-}
+/** Default repository instance — overridable in tests via `createAchievementsHandler`. */
+const defaultRepo: IAchievementRepository = new PrismaAchievementRepository(prisma)
 
 /**
  * GET /api/achievements
@@ -17,36 +15,42 @@ interface EarnedRecord {
  * against the session in the calling page before this route is hit).
  */
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const userId = searchParams.get('userId')
+  return createAchievementsHandler(defaultRepo)(req)
+}
 
-  if (!userId) {
-    return NextResponse.json({ error: 'userId required' }, { status: 400 })
-  }
+/**
+ * Factory that creates the GET handler with an injected repository.
+ * Enables unit testing without Prisma by passing an in-memory repo.
+ */
+export function createAchievementsHandler(repo: IAchievementRepository) {
+  return async function handler(req: Request) {
+    const { searchParams } = new URL(req.url)
+    const userId = searchParams.get('userId')
 
-  const earned = await prisma.userAchievement.findMany({
-    where: { userId },
-    include: { achievement: true },
-  }) as EarnedRecord[]
-
-  const earnedSlugs = new Set(earned.map((e: EarnedRecord) => e.achievement.slug))
-
-  const all = ACHIEVEMENT_DEFINITIONS.map((def) => {
-    const record = earned.find((e: EarnedRecord) => e.achievement.slug === def.slug)
-    return {
-      slug: def.slug,
-      pillar: def.pillar,
-      rarity: def.rarity,
-      iconKey: def.iconKey,
-      titleDe: def.titleDe,
-      titleEn: def.titleEn,
-      descDe: def.descDe,
-      descEn: def.descEn,
-      earned: earnedSlugs.has(def.slug),
-      grantedAt: record?.grantedAt ?? null,
-      metadata: record?.metadata ?? null,
+    if (!userId) {
+      return NextResponse.json({ error: 'userId required' }, { status: 400 })
     }
-  })
 
-  return NextResponse.json({ achievements: all })
+    const earned = await repo.findEarnedByUserId(userId)
+    const earnedSlugs = new Set(earned.map((e: EarnedAchievementRecord) => e.achievement.slug))
+
+    const all = ACHIEVEMENT_DEFINITIONS.map((def) => {
+      const record = earned.find((e: EarnedAchievementRecord) => e.achievement.slug === def.slug)
+      return {
+        slug: def.slug,
+        pillar: def.pillar,
+        rarity: def.rarity,
+        iconKey: def.iconKey,
+        titleDe: def.titleDe,
+        titleEn: def.titleEn,
+        descDe: def.descDe,
+        descEn: def.descEn,
+        earned: earnedSlugs.has(def.slug),
+        grantedAt: record?.grantedAt ?? null,
+        metadata: record?.metadata ?? null,
+      }
+    })
+
+    return NextResponse.json({ achievements: all })
+  }
 }

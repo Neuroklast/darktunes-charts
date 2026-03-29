@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import type { IUserRepository } from '@/domain/repositories'
+import { PrismaUserRepository } from '@/infrastructure/repositories'
+
+/** Default repository instance — overridable in tests via `createMandateHandlers`. */
+const defaultUserRepo: IUserRepository = new PrismaUserRepository(prisma)
 
 /** Prisma UserRole values allowed to create or revoke label mandates. */
 const MANDATE_ALLOWED_ROLES = ['BAND', 'LABEL', 'ADMIN'] as const
@@ -40,10 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { role: true },
-    })
+    const dbUser = await defaultUserRepo.findRoleById(user.id)
 
     if (!dbUser || !MANDATE_ALLOWED_ROLES.includes(dbUser.role as typeof MANDATE_ALLOWED_ROLES[number])) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -81,10 +83,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { role: true },
-    })
+    const dbUser = await defaultUserRepo.findRoleById(user.id)
 
     if (!dbUser || !MANDATE_ALLOWED_ROLES.includes(dbUser.role as typeof MANDATE_ALLOWED_ROLES[number])) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
