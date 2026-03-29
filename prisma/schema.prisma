@@ -437,6 +437,24 @@ model DJFeedback {
   @@map("dj_feedback")
 }
 
+// ─── Coupon / Discount System ─────────────────────────────────────────────────
+
+model Coupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  discountPercent Int
+  maxUses         Int
+  currentUses     Int       @default(0)
+  validUntil      DateTime
+  partnerId       String
+  partnerName     String
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("coupons")
+}
+
 // ─── Achievement & Index System ───────────────────────────────────────────────
 
 model AchievementDefinition {

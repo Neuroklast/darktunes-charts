@@ -1,13 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { createCheckoutSession } from '@/infrastructure/payment/stripeAdapter'
+import { validateCoupon, type CouponRecord } from '@/domain/payment/couponValidation'
 import type { Tier } from '@/lib/types'
 
 const checkoutSchema = z.object({
   bandId: z.string().uuid(),
   tier: z.enum(['Micro', 'Emerging', 'Established', 'International', 'Macro']),
   totalCategories: z.number().int().min(2, 'Must have at least 2 categories for a paid checkout'),
+  couponCode: z.string().max(50).transform((v) => v.trim().toUpperCase()).optional(),
 })
 
 /** Allowed origin domains for Stripe Checkout redirect URLs. */
@@ -53,12 +56,42 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate and apply optional coupon code
+    let couponDiscountPercent: number | undefined
+    let couponId: string | undefined
+
+    if (parsed.data.couponCode) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: parsed.data.couponCode },
+      })
+
+      const couponResult = validateCoupon(coupon as CouponRecord | null)
+
+      if (!couponResult.valid) {
+        return NextResponse.json(
+          { error: 'Invalid coupon', reason: couponResult.reason },
+          { status: 400 }
+        )
+      }
+
+      couponDiscountPercent = couponResult.discountPercent
+      couponId = couponResult.couponId
+
+      // Increment usage counter
+      await prisma.coupon.update({
+        where: { id: couponResult.couponId },
+        data: { currentUses: { increment: 1 } },
+      })
+    }
+
     const { sessionId, sessionUrl } = await createCheckoutSession({
       bandId: parsed.data.bandId,
       tier: parsed.data.tier as Tier,
       totalCategories: parsed.data.totalCategories,
       successUrl: `${origin}/dashboard/band?payment=success`,
       cancelUrl: `${origin}/dashboard/band?payment=cancelled`,
+      couponDiscountPercent,
+      couponId,
     })
 
     return NextResponse.json({ sessionId, sessionUrl })

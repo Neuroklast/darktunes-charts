@@ -193,5 +193,25 @@
       "description": "Täglich wird eine Band aus dem Micro- oder Emerging-Tier zufällig ausgewählt. Der Algorithmus verwendet einen LCG (Linear Congruential Generator) mit dem Datum als Seed.",
       "seed": "Seed = YYYY-MM-DD als Integer. Das garantiert Reproduzierbarkeit: jeder kann den heutigen Band-of-the-Day unabhängig verifizieren."
     }
+  },
+  "coupons": {
+    "title": "Gutscheinverwaltung",
+    "code": "Gutscheincode",
+    "codePlaceholder": "z. B. FESTIVAL2026",
+    "discountPercent": "Rabatt (%)",
+    "maxUses": "Max. Einlösungen",
+    "currentUses": "Bisherige Einlösungen",
+    "validUntil": "Gültig bis",
+    "partnerId": "Partner-ID",
+    "partnerName": "Partnername",
+    "isActive": "Aktiv",
+    "create": "Gutschein erstellen",
+    "apply": "Gutschein einlösen",
+    "applied": "Gutschein angewandt: {percent}% Rabatt",
+    "invalid": "Ungültiger Gutscheincode",
+    "expired": "Dieser Gutschein ist abgelaufen",
+    "maxUsesReached": "Dieser Gutschein wurde bereits vollständig eingelöst",
+    "inactive": "Dieser Gutschein ist nicht mehr aktiv",
+    "notFound": "Gutschein nicht gefunden"
   }
 }

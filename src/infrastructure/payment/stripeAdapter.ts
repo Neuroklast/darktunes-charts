@@ -10,6 +10,7 @@
 import Stripe from 'stripe'
 import type { Tier } from '@/lib/types'
 import { calculateTierPrice } from '@/domain/payment/tierPricing'
+import { applyDiscount } from '@/domain/payment/couponValidation'
 
 function getStripeClient(): Stripe {
   const secretKey = process.env.STRIPE_SECRET_KEY
@@ -28,6 +29,10 @@ export interface CheckoutSessionParams {
   successUrl: string
   /** URL to redirect to if the user cancels checkout. */
   cancelUrl: string
+  /** Optional coupon discount percentage (1–100) to apply before session creation. */
+  couponDiscountPercent?: number
+  /** Optional coupon ID for metadata tracking. */
+  couponId?: string
 }
 
 export interface CheckoutSessionResult {
@@ -45,7 +50,7 @@ export interface CheckoutSessionResult {
 export async function createCheckoutSession(
   params: CheckoutSessionParams
 ): Promise<CheckoutSessionResult> {
-  const { bandId, tier, totalCategories, successUrl, cancelUrl } = params
+  const { bandId, tier, totalCategories, successUrl, cancelUrl, couponDiscountPercent, couponId } = params
 
   if (process.env.NEXT_PUBLIC_APP_ENV === 'test') {
     return {
@@ -62,6 +67,25 @@ export async function createCheckoutSession(
     throw new Error('No paid categories: first category is always free, no checkout needed')
   }
 
+  // Apply coupon discount if provided (discount is applied before Stripe session creation)
+  const effectiveUnitAmount = couponDiscountPercent
+    ? applyDiscount(pricing, couponDiscountPercent).finalTotalCents / pricing.paidCategories
+    : pricing.pricePerCategoryEurCents
+
+  const unitAmountCents = Math.round(effectiveUnitAmount)
+
+  const metadata: Record<string, string> = {
+    bandId,
+    tier,
+    paidCategories: String(pricing.paidCategories),
+  }
+  if (couponId) {
+    metadata.couponId = couponId
+  }
+  if (couponDiscountPercent) {
+    metadata.couponDiscountPercent = String(couponDiscountPercent)
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
@@ -71,15 +95,17 @@ export async function createCheckoutSession(
           currency: 'eur',
           product_data: {
             name: `DarkTunes Chart Kategorien (${tier})`,
-            description: `${pricing.paidCategories} zusätzliche Kategorie(n) à ${pricing.pricePerCategoryEurCents / 100} €/Monat`,
+            description: couponDiscountPercent
+              ? `${pricing.paidCategories} zusätzliche Kategorie(n) – ${couponDiscountPercent}% Rabatt angewandt`
+              : `${pricing.paidCategories} zusätzliche Kategorie(n) à ${pricing.pricePerCategoryEurCents / 100} €/Monat`,
           },
           recurring: { interval: 'month' },
-          unit_amount: pricing.pricePerCategoryEurCents,
+          unit_amount: unitAmountCents,
         },
         quantity: pricing.paidCategories,
       },
     ],
-    metadata: { bandId, tier, paidCategories: String(pricing.paidCategories) },
+    metadata,
     success_url: successUrl,
     cancel_url: cancelUrl,
   })

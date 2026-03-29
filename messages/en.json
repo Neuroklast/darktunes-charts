@@ -193,5 +193,25 @@
       "description": "A band from the Micro or Emerging tier is randomly selected every day. The algorithm uses a Linear Congruential Generator (LCG) seeded with the current date.",
       "seed": "Seed = YYYY-MM-DD as an integer. This guarantees reproducibility: anyone can independently verify today's Band of the Day."
     }
+  },
+  "coupons": {
+    "title": "Coupon Management",
+    "code": "Coupon Code",
+    "codePlaceholder": "e.g. FESTIVAL2026",
+    "discountPercent": "Discount (%)",
+    "maxUses": "Max Redemptions",
+    "currentUses": "Current Redemptions",
+    "validUntil": "Valid Until",
+    "partnerId": "Partner ID",
+    "partnerName": "Partner Name",
+    "isActive": "Active",
+    "create": "Create Coupon",
+    "apply": "Apply Coupon",
+    "applied": "Coupon applied: {percent}% discount",
+    "invalid": "Invalid coupon code",
+    "expired": "This coupon has expired",
+    "maxUsesReached": "This coupon has reached its maximum number of uses",
+    "inactive": "This coupon is no longer active",
+    "notFound": "Coupon not found"
   }
 }
