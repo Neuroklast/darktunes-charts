@@ -2,14 +2,19 @@
   "navigation": {
     "charts": "Charts",
     "categories": "Categories",
+    "fanVote": "Fan Vote",
+    "djVote": "DJ Vote",
+    "anr": "A&R",
     "howItWorks": "How it works",
-    "transparency": "Transparency",
+    "transparency": "Log",
     "vote": "Vote",
     "dashboard": "Dashboard",
     "profile": "Profile",
     "admin": "Admin",
     "login": "Log in",
     "logout": "Log out",
+    "security": "Security",
+    "tagline": "Fair · Transparent · Innovative",
     "switchLanguage": "Switch language"
   },
   "home": {

@@ -2,14 +2,19 @@
   "navigation": {
     "charts": "Charts",
     "categories": "Kategorien",
+    "fanVote": "Fan Vote",
+    "djVote": "DJ Vote",
+    "anr": "A&R",
     "howItWorks": "Wie funktioniert es?",
-    "transparency": "Transparenz",
+    "transparency": "Log",
     "vote": "Abstimmen",
     "dashboard": "Dashboard",
     "profile": "Profil",
     "admin": "Admin",
     "login": "Anmelden",
     "logout": "Abmelden",
+    "security": "Sicherheit",
+    "tagline": "Fair · Transparent · Innovativ",
     "switchLanguage": "Sprache wechseln"
   },
   "home": {
