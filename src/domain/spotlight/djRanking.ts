@@ -1,20 +1,30 @@
 /**
  * DJ Leaderboard ranking module.
  *
- * The DJ ranking score combines two dimensions:
+ * The DJ ranking score combines three dimensions:
  *
  * 1. **Predictive accuracy** — how often did the DJ's ballot rankings match
  *    the final chart outcome?  Measured as normalised Kendall's tau (rank
  *    correlation) between the DJ's submitted ranking and the final combined chart.
  *
- * 2. **Participation rate** — what fraction of available voting periods did
+ * 2. **Ballot coverage** — what fraction of eligible tracks did the DJ rank?
+ *    A DJ who only ranks 2 out of 20 tracks should not receive the same neutral
+ *    accuracy score as a DJ who ranks all tracks.  Ballots covering less than 50 %
+ *    of eligible tracks are penalised proportionally:
+ *
+ *      adjustedAccuracy = rawAccuracy × min(ballotCoverage / 0.5, 1.0)
+ *
+ *    This prevents gaming the system by submitting minimal ballots.
+ *
+ * 3. **Participation rate** — what fraction of available voting periods did
  *    the DJ participate in?  A DJ who votes every cycle should rank higher
  *    than one who only submits occasionally.
  *
- * Final score: totalScore = predictiveAccuracy × participationRate
+ * Final score: totalScore = adjustedAccuracy × participationRate
  *
  * This multiplicative formula ensures that a highly accurate but rarely-present
- * DJ still scores lower than a consistently present DJ with moderate accuracy.
+ * DJ still scores lower than a consistently present DJ with moderate accuracy,
+ * and that minimal-ballot submissions are discouraged.
  */
 
 export interface DJParticipation {
@@ -31,17 +41,27 @@ export interface DJBallotOutcome {
   submittedRankings: string[]
   /** Final combined chart ranking (array of trackIds, index 0 = #1 chart position). */
   finalRankings: string[]
+  /** Total number of tracks eligible for ranking in this period. */
+  totalEligibleTracks: number
 }
 
 export interface DJRankingResult {
   userId: string
   predictiveAccuracy: number
+  /** Fraction of eligible tracks the DJ ranked (0–1). */
+  ballotCoverage: number
   participationRate: number
   totalScore: number
 }
 
 /** Neutral score returned when there are fewer than 2 shared tracks for comparison. */
 const NEUTRAL_KENDALL_TAU_SCORE = 0.5
+
+/**
+ * Minimum ballot coverage ratio before a penalty is applied.
+ * DJs covering at least this fraction of eligible tracks receive no penalty.
+ */
+const BALLOT_COVERAGE_PENALTY_THRESHOLD = 0.5
 
 /**
  * Computes the normalised Kendall tau rank correlation.
@@ -95,6 +115,44 @@ export function computeKendallTau(submitted: string[], final: string[]): number 
 }
 
 /**
+ * Computes ballot coverage: the fraction of eligible tracks the DJ ranked.
+ *
+ * @param submittedCount - Number of tracks the DJ included in the ballot.
+ * @param totalEligibleTracks - Total tracks available for ranking in this period.
+ * @returns Value in [0, 1]; 1.0 = DJ ranked every eligible track. 0 when no tracks are eligible.
+ */
+export function computeBallotCoverage(
+  submittedCount: number,
+  totalEligibleTracks: number
+): number {
+  if (totalEligibleTracks <= 0) return 0
+  return Math.min(1, submittedCount / totalEligibleTracks)
+}
+
+/**
+ * Adjusts raw Kendall's tau accuracy by a ballot-coverage penalty.
+ *
+ * DJs who rank fewer than {@link BALLOT_COVERAGE_PENALTY_THRESHOLD} (50 %) of
+ * eligible tracks receive a proportional penalty to discourage minimal ballots.
+ *
+ * Formula: `adjustedAccuracy = rawAccuracy × min(ballotCoverage / 0.5, 1.0)`
+ *
+ * @param rawAccuracy - Normalised Kendall's tau in [0, 1].
+ * @param ballotCoverage - Fraction of eligible tracks ranked in [0, 1].
+ * @returns Adjusted accuracy in [0, 1].
+ */
+export function computeAdjustedAccuracy(
+  rawAccuracy: number,
+  ballotCoverage: number
+): number {
+  const coverageMultiplier = Math.min(
+    ballotCoverage / BALLOT_COVERAGE_PENALTY_THRESHOLD,
+    1.0
+  )
+  return rawAccuracy * coverageMultiplier
+}
+
+/**
  * Computes the participation rate for a DJ.
  *
  * @param participation - Period counts for the DJ.
@@ -119,10 +177,17 @@ export function computeDJRankings(
   const participationMap = new Map(participations.map(p => [p.userId, p]))
 
   const results: DJRankingResult[] = ballotOutcomes.map(outcome => {
-    const predictiveAccuracy = computeKendallTau(
+    const rawAccuracy = computeKendallTau(
       outcome.submittedRankings,
       outcome.finalRankings
     )
+
+    const ballotCoverage = computeBallotCoverage(
+      outcome.submittedRankings.length,
+      outcome.totalEligibleTracks
+    )
+
+    const predictiveAccuracy = computeAdjustedAccuracy(rawAccuracy, ballotCoverage)
 
     const participation = participationMap.get(outcome.userId) ?? {
       userId: outcome.userId,
@@ -136,6 +201,7 @@ export function computeDJRankings(
     return {
       userId: outcome.userId,
       predictiveAccuracy,
+      ballotCoverage,
       participationRate,
       totalScore,
     }
