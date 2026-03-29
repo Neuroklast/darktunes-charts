@@ -10,7 +10,13 @@
     "admin": "Admin",
     "login": "Log in",
     "logout": "Log out",
-    "switchLanguage": "Switch language"
+    "switchLanguage": "Switch language",
+    "fanVote": "Fan Vote",
+    "djVote": "DJ Vote",
+    "anr": "A&R",
+    "security": "Security",
+    "brandName": "darkTunes CHARTS",
+    "tagline": "Fair · Transparent · Innovativ"
   },
   "home": {
     "title": "DarkTunes Charts",
@@ -193,5 +199,14 @@
       "description": "A band from the Micro or Emerging tier is randomly selected every day. The algorithm uses a Linear Congruential Generator (LCG) seeded with the current date.",
       "seed": "Seed = YYYY-MM-DD as an integer. This guarantees reproducibility: anyone can independently verify today's Band of the Day."
     }
+  },
+  "scouting": {
+    "title": "Discovery Scouting",
+    "noSuggestions": "No new suggestions — bots are scouting in the background.",
+    "confidence": "Confidence",
+    "nominate": "Nominate"
+  },
+  "help": {
+    "defaultAriaLabel": "Help"
   }
 }

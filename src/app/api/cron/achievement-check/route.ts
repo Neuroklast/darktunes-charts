@@ -48,8 +48,15 @@ export async function POST(req: Request) {
   // Pass empty set — demo user has no previously granted achievements
   const result = evaluateAchievements(demoContext, new Set<string>())
 
-  // TODO: prisma.userAchievement.createMany({
-  //   data: result.toGrant.map(slug => ({ userId: demoContext.userId, achievementSlug: slug, grantedAt: new Date() })),
+  // FUTURE: Persist achievements to database once Prisma schema is provisioned
+  // Requires: UserAchievement table with columns: userId, achievementSlug, grantedAt
+  // Implementation:
+  // await prisma.userAchievement.createMany({
+  //   data: result.toGrant.map(slug => ({
+  //     userId: demoContext.userId,
+  //     achievementSlug: slug,
+  //     grantedAt: new Date()
+  //   })),
   //   skipDuplicates: true,
   // })
 

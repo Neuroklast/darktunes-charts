@@ -63,7 +63,9 @@ export async function POST(request: NextRequest) {
 
     const { bandId, trackId, message } = parsed.data
 
-    // TODO: Persist to database via Prisma when provisioned:
+    // FUTURE: Persist to database via Prisma once schema is provisioned
+    // Requires: DJFeedback table with columns: djId, bandId, trackId, message, createdAt
+    // Implementation:
     // const feedback = await prisma.dJFeedback.create({
     //   data: { djId: user.id, bandId, trackId, message },
     // })

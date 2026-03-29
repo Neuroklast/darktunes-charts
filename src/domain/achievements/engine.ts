@@ -1,13 +1,14 @@
 /**
  * Achievement Granting Engine
  *
- * Pure, side-effect-free checkers that evaluate whether a user has met
- * the criteria for a specific achievement. The engine is called by the
+ * Pure, side-effect-free orchestrator that evaluates whether a user has met
+ * the criteria for specific achievements. The engine is called by the
  * Vercel Cron Job (/api/cron/achievement-check) and must never block
  * the request path.
  *
  * Architecture:
  *   - Each checker is a deterministic function: (context) → boolean
+ *   - Checkers are organized by role in separate modules
  *   - The orchestrator loops all definitions, runs the relevant checker,
  *     and returns the slugs that should be granted
  *   - Actual DB writes happen in the API route, not here
@@ -18,6 +19,10 @@
  */
 
 import { ACHIEVEMENT_DEFINITIONS, type AchievementDefinition } from './index'
+import * as fanCheckers from './checkers/fanCheckers'
+import * as bandCheckers from './checkers/bandCheckers'
+import * as djCheckers from './checkers/djCheckers'
+import * as labelCheckers from './checkers/labelCheckers'
 
 // ─── Context shapes passed to the engine ─────────────────────────────────────
 
@@ -104,102 +109,72 @@ export type AchievementContext =
   | DJAchievementContext
   | LabelAchievementContext
 
-// ─── Individual checkers ──────────────────────────────────────────────────────
+// ─── Checker Registry ─────────────────────────────────────────────────────────
 
 type Checker = (ctx: AchievementContext, def: AchievementDefinition) => boolean
 
+/**
+ * Central registry mapping achievement slugs to their checker functions.
+ * All checkers are imported from role-specific modules for better organization.
+ */
 const CHECKERS: Record<string, Checker> = {
+  // FAN CHECKERS
+  early_signal: fanCheckers.early_signal as Checker,
+  true_believer: fanCheckers.true_believer as Checker,
+  genre_nomad: fanCheckers.genre_nomad as Checker,
+  verified_human: fanCheckers.verified_human as Checker,
+  scene_veteran: fanCheckers.scene_veteran as Checker,
+  alpha_listener: fanCheckers.alpha_listener as Checker,
+  trend_scout: fanCheckers.trend_scout as Checker,
+  loyalty_core: fanCheckers.loyalty_core as Checker,
+  vibe_curator: fanCheckers.vibe_curator as Checker,
+  data_contributor: fanCheckers.data_contributor as Checker,
+  discovery_engine: fanCheckers.discovery_engine as Checker,
+  quality_advocate: fanCheckers.quality_advocate as Checker,
+  local_hero: fanCheckers.local_hero as Checker,
+  bridge_builder: fanCheckers.bridge_builder as Checker,
+  founding_fan: fanCheckers.founding_fan as Checker,
 
-  // FAN
-  early_signal:       (c) => (c as FanAchievementContext).votedTop20Before.length > 0,
-  true_believer:      (c) => (c as FanAchievementContext).budgetFullOnSingleTrack,
-  genre_nomad:        (c) => (c as FanAchievementContext).subGenresThisCycle >= 5,
-  verified_human:     (c, def) => {
-    const ctx = c as FanAchievementContext
-    if (def.requiresKyc && !ctx.anomalyPassed) return false
-    return ctx.cyclesWithoutBotFlag >= 6
-  },
-  scene_veteran:      (c) => (c as FanAchievementContext).totalVotingCycles >= 12,
-  alpha_listener:     (c) => (c as FanAchievementContext).alpha1stVotesOnTop1,
-  trend_scout:        (c) => (c as FanAchievementContext).predictiveCorrelation >= 0.75,
-  loyalty_core:       (c) => (c as FanAchievementContext).loyaltyStreakMonths >= 3,
-  vibe_curator:       (c) => (c as FanAchievementContext).eventsRatedThisMonth >= 10,
-  data_contributor:   (c) => {
-    const ctx = c as FanAchievementContext
-    return ctx.profileCompletenessPercent >= 100 && ctx.streamingPlatformsLinked >= 3
-  },
-  discovery_engine:   (c) => (c as FanAchievementContext).tracksUnder1kListeners >= 10,
-  quality_advocate:   (c) => (c as FanAchievementContext).highValidationVoteRatio >= 0.9,
-  local_hero:         (c) => (c as FanAchievementContext).primaryRegionVoteRatio >= 0.7,
-  bridge_builder:     (c) => (c as FanAchievementContext).countriesVotedThisCycle >= 3,
-  founding_fan:       (c) => (c as FanAchievementContext).accountAgeMonths <= 12,
+  // BAND CHECKERS
+  musicians_choice: bandCheckers.musicians_choice as Checker,
+  high_intensity_core: bandCheckers.high_intensity_core as Checker,
+  genre_bender: bandCheckers.genre_bender as Checker,
+  honest_player: bandCheckers.honest_player as Checker,
+  velocity_star: bandCheckers.velocity_star as Checker,
+  independent_power: bandCheckers.independent_power as Checker,
+  club_standard: bandCheckers.club_standard as Checker,
+  global_resonance: bandCheckers.global_resonance as Checker,
+  consistent_edge: bandCheckers.consistent_edge as Checker,
+  crowd_magnet: bandCheckers.crowd_magnet as Checker,
+  visual_identity: bandCheckers.visual_identity as Checker,
+  scene_respect: bandCheckers.scene_respect as Checker,
+  underground_king: bandCheckers.underground_king as Checker,
+  collaboration_pro: bandCheckers.collaboration_pro as Checker,
+  combined_champion: bandCheckers.combined_champion as Checker,
 
-  // BAND
-  musicians_choice:   (c) => (c as BandAchievementContext).peerRank1,
-  high_intensity_core:(c) => (c as BandAchievementContext).superListenerDensityRank === 1,
-  genre_bender:       (c) => (c as BandAchievementContext).genreChartCount >= 3,
-  honest_player:      (c) => (c as BandAchievementContext).reciprocityPenaltyRate === 0,
-  velocity_star:      (c) => (c as BandAchievementContext).smlGrowthRank === 1,
-  independent_power:  (c) => {
-    const ctx = c as BandAchievementContext
-    return !ctx.hasLabelAssociation && ctx.topCombinedRank <= 10
-  },
-  club_standard:      (c) => (c as BandAchievementContext).djGenreRank1,
-  global_resonance:   (c) => (c as BandAchievementContext).votingCountryCount >= 20,
-  consistent_edge:    (c) => (c as BandAchievementContext).monthsInTop50 >= 6,
-  crowd_magnet:       (c) => (c as BandAchievementContext).eventIntentRank === 1,
-  visual_identity:    (c) => (c as BandAchievementContext).metadataEngagementHigh,
-  scene_respect:      (c) => (c as BandAchievementContext).outsideLabelVotes > 0,
-  underground_king:   (c) => {
-    const ctx = c as BandAchievementContext
-    return ctx.tier === 'MICRO' && ctx.professionalValidationRank === 1
-  },
-  collaboration_pro:  (c) => (c as BandAchievementContext).featuredArtistCount >= 2,
-  combined_champion:  (c) => (c as BandAchievementContext).combinedRank1,
+  // DJ CHECKERS
+  predictive_authority: djCheckers.predictive_authority as Checker,
+  technical_critic: djCheckers.technical_critic as Checker,
+  reliable_curator: djCheckers.reliable_curator as Checker,
+  venue_pillar: djCheckers.venue_pillar as Checker,
+  first_responder: djCheckers.first_responder as Checker,
+  master_of_paths: djCheckers.master_of_paths as Checker,
+  industry_insider: djCheckers.industry_insider as Checker,
+  floor_filler: djCheckers.floor_filler as Checker,
+  diverse_ear: djCheckers.diverse_ear as Checker,
+  legacy_curator: djCheckers.legacy_curator as Checker,
 
-  // DJ
-  predictive_authority:(c) => (c as DJAchievementContext).schulzeCorrelation >= 0.8,
-  technical_critic:    (c) => (c as DJAchievementContext).highQualityFeedbackCount >= 20,
-  reliable_curator:    (c) => (c as DJAchievementContext).participationMonths >= 12,
-  venue_pillar:        (c, def) => {
-    const ctx = c as DJAchievementContext
-    if (def.requiresKyc && !ctx.kycApproved) return false
-    return ctx.hasVerifiedVenueResidency
-  },
-  first_responder:     (c) => (c as DJAchievementContext).rankedClubStandardTrackFirst,
-  master_of_paths:     (c) => (c as DJAchievementContext).fullSchulzeGenreCount >= 5,
-  industry_insider:    (c) => (c as DJAchievementContext).usefulFeedbackFromArtists >= 10,
-  floor_filler:        (c) => (c as DJAchievementContext).spotifySaveConversionRank === 1,
-  diverse_ear:         (c) => (c as DJAchievementContext).expertGenreCount >= 3,
-  legacy_curator:      (c, def) => {
-    const ctx = c as DJAchievementContext
-    if (def.requiresKyc && !ctx.kycApproved) return false
-    return ctx.sceneYears >= 10
-  },
-
-  // LABEL
-  ar_vanguard:         (c) => (c as LabelAchievementContext).signedsInVelocityTop10 >= 3,
-  newcomer_engine:     (c) => (c as LabelAchievementContext).tier1or2EntryCount >= 1,
-  efficiency_pro:      (c) => (c as LabelAchievementContext).successToRosterRatio === 1,
-  transparent_partner: (c, def) => {
-    const ctx = c as LabelAchievementContext
-    if (def.requiresKyc && !ctx.kycApproved) return false
-    return ctx.allMandatesClean
-  },
-  scene_catalyst:      (c) => (c as LabelAchievementContext).bestPartySupported,
-  territory_lead:      (c) => (c as LabelAchievementContext).internationalChartEntries >= 5,
-  market_mover:        (c) => (c as LabelAchievementContext).superListenerActivityRank === 1,
-  sustainability_star: (c) => (c as LabelAchievementContext).actsInTop100OverYear >= 5,
-  b2b_networker:       (c, def) => {
-    const ctx = c as LabelAchievementContext
-    if (def.requiresKyc && !ctx.kycApproved) return false
-    return ctx.mandatedBandCount >= 10
-  },
-  industrial_excellence:(c, def) => {
-    const ctx = c as LabelAchievementContext
-    if (def.requiresKyc && !ctx.kycApproved) return false
-    return ctx.daasRatingRank === 1
-  },
+  // LABEL CHECKERS
+  ar_vanguard: labelCheckers.ar_vanguard as Checker,
+  newcomer_engine: labelCheckers.newcomer_engine as Checker,
+  efficiency_pro: labelCheckers.efficiency_pro as Checker,
+  transparent_partner: labelCheckers.transparent_partner as Checker,
+  scene_catalyst: labelCheckers.scene_catalyst as Checker,
+  territory_lead: labelCheckers.territory_lead as Checker,
+  market_mover: labelCheckers.market_mover as Checker,
+  sustainability_star: labelCheckers.sustainability_star as Checker,
+  b2b_networker: labelCheckers.b2b_networker as Checker,
+  industrial_excellence: labelCheckers.industrial_excellence as Checker,
 }
 
 // ─── Orchestrator ─────────────────────────────────────────────────────────────

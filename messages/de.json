@@ -10,7 +10,13 @@
     "admin": "Admin",
     "login": "Anmelden",
     "logout": "Abmelden",
-    "switchLanguage": "Sprache wechseln"
+    "switchLanguage": "Sprache wechseln",
+    "fanVote": "Fan Vote",
+    "djVote": "DJ Vote",
+    "anr": "A&R",
+    "security": "Sicherheit",
+    "brandName": "darkTunes CHARTS",
+    "tagline": "Fair · Transparent · Innovativ"
   },
   "home": {
     "title": "DarkTunes Charts",
@@ -193,5 +199,14 @@
       "description": "Täglich wird eine Band aus dem Micro- oder Emerging-Tier zufällig ausgewählt. Der Algorithmus verwendet einen LCG (Linear Congruential Generator) mit dem Datum als Seed.",
       "seed": "Seed = YYYY-MM-DD als Integer. Das garantiert Reproduzierbarkeit: jeder kann den heutigen Band-of-the-Day unabhängig verifizieren."
     }
+  },
+  "scouting": {
+    "title": "Discovery Scouting",
+    "noSuggestions": "Keine neuen Vorschläge — Bots scouten im Hintergrund.",
+    "confidence": "Konfidenz",
+    "nominate": "Nominieren"
+  },
+  "help": {
+    "defaultAriaLabel": "Hilfe"
   }
 }

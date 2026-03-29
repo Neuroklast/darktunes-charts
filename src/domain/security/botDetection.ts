@@ -6,6 +6,8 @@
  * happens at the API layer.
  */
 
+import { BOT_DETECTION_CONFIG } from './botDetectionConfig'
+
 export type AlertSeverity = 'low' | 'medium' | 'high' | 'critical'
 
 export interface BotDetectionAlert {
@@ -31,22 +33,6 @@ export interface VoteRecord {
   accountCreatedAt: string
 }
 
-/** Maximum votes allowed per unique IP within the burst window. */
-const BURST_VOTE_THRESHOLD = 10
-/** Time window for burst detection in milliseconds (5 minutes). */
-const BURST_WINDOW_MS = 5 * 60 * 1000
-/** Minimum identical ballots to flag as suspicious. */
-const IDENTICAL_BALLOT_THRESHOLD = 3
-/** Account age threshold in milliseconds — accounts younger than this are considered new. */
-const NEW_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000
-/** Minimum new-account votes to trigger a mass-voting alert. */
-const NEW_ACCOUNT_VOTE_THRESHOLD = 5
-/** Night-time voting anomaly window (UTC hours 02:00–04:00). */
-const ANOMALY_HOUR_START = 2
-const ANOMALY_HOUR_END = 4
-/** Minimum clustered night-time votes to trigger a time anomaly alert. */
-const NIGHT_VOTE_THRESHOLD = 8
-
 /**
  * Groups vote records by IP address and detects burst voting:
  * more than BURST_VOTE_THRESHOLD votes from the same IP within BURST_WINDOW_MS.
@@ -67,13 +53,13 @@ function detectBurstVoting(votes: VoteRecord[]): BotDetectionAlert[] {
     for (let i = 0; i < sorted.length; i++) {
       const windowStart = sorted[i].timestamp
       const windowVotes = sorted.filter(
-        (v) => v.timestamp >= windowStart && v.timestamp <= windowStart + BURST_WINDOW_MS
+        (v) => v.timestamp >= windowStart && v.timestamp <= windowStart + BOT_DETECTION_CONFIG.BURST_WINDOW_MS
       )
-      if (windowVotes.length > BURST_VOTE_THRESHOLD) {
+      if (windowVotes.length > BOT_DETECTION_CONFIG.BURST_VOTE_THRESHOLD) {
         alerts.push({
           type: 'BURST_VOTING',
-          severity: windowVotes.length > BURST_VOTE_THRESHOLD * 2 ? 'critical' : 'high',
-          description: `IP ${ip} cast ${windowVotes.length} votes within ${BURST_WINDOW_MS / 60_000} minutes`,
+          severity: windowVotes.length > BOT_DETECTION_CONFIG.BURST_VOTE_THRESHOLD * BOT_DETECTION_CONFIG.CRITICAL_MULTIPLIER ? 'critical' : 'high',
+          description: `IP ${ip} cast ${windowVotes.length} votes within ${BOT_DETECTION_CONFIG.BURST_WINDOW_MS / 60_000} minutes`,
           affectedIds: [ip],
           detectedAt: Date.now(),
         })
@@ -101,10 +87,10 @@ function detectIdenticalBallots(votes: VoteRecord[]): BotDetectionAlert[] {
   }
 
   for (const [hash, voterIds] of byHash.entries()) {
-    if (voterIds.length >= IDENTICAL_BALLOT_THRESHOLD) {
+    if (voterIds.length >= BOT_DETECTION_CONFIG.IDENTICAL_BALLOT_THRESHOLD) {
       alerts.push({
         type: 'IDENTICAL_BALLOT',
-        severity: voterIds.length >= IDENTICAL_BALLOT_THRESHOLD * 2 ? 'high' : 'medium',
+        severity: voterIds.length >= BOT_DETECTION_CONFIG.IDENTICAL_BALLOT_THRESHOLD * BOT_DETECTION_CONFIG.CRITICAL_MULTIPLIER ? 'high' : 'medium',
         description: `${voterIds.length} users submitted identical ballot (hash: ${hash.slice(0, 8)}…)`,
         affectedIds: voterIds,
         detectedAt: Date.now(),
@@ -124,16 +110,16 @@ function detectNewAccountMassVoting(votes: VoteRecord[]): BotDetectionAlert[] {
 
   for (const vote of votes) {
     const accountAge = vote.timestamp - new Date(vote.accountCreatedAt).getTime()
-    if (accountAge < NEW_ACCOUNT_AGE_MS) {
+    if (accountAge < BOT_DETECTION_CONFIG.NEW_ACCOUNT_AGE_MS) {
       newAccountVotes.set(vote.voterId, (newAccountVotes.get(vote.voterId) ?? 0) + 1)
     }
   }
 
   for (const [voterId, count] of newAccountVotes.entries()) {
-    if (count >= NEW_ACCOUNT_VOTE_THRESHOLD) {
+    if (count >= BOT_DETECTION_CONFIG.NEW_ACCOUNT_VOTE_THRESHOLD) {
       alerts.push({
         type: 'NEW_ACCOUNT_MASS_VOTING',
-        severity: count >= NEW_ACCOUNT_VOTE_THRESHOLD * 2 ? 'high' : 'medium',
+        severity: count >= BOT_DETECTION_CONFIG.NEW_ACCOUNT_VOTE_THRESHOLD * BOT_DETECTION_CONFIG.CRITICAL_MULTIPLIER ? 'high' : 'medium',
         description: `New account ${voterId} cast ${count} votes within 24h of registration`,
         affectedIds: [voterId],
         detectedAt: Date.now(),
@@ -151,10 +137,10 @@ function detectNewAccountMassVoting(votes: VoteRecord[]): BotDetectionAlert[] {
 function detectTimeOfDayAnomaly(votes: VoteRecord[]): BotDetectionAlert[] {
   const nightVotes = votes.filter((vote) => {
     const hour = new Date(vote.timestamp).getUTCHours()
-    return hour >= ANOMALY_HOUR_START && hour < ANOMALY_HOUR_END
+    return hour >= BOT_DETECTION_CONFIG.ANOMALY_HOUR_START && hour < BOT_DETECTION_CONFIG.ANOMALY_HOUR_END
   })
 
-  if (nightVotes.length < NIGHT_VOTE_THRESHOLD) return []
+  if (nightVotes.length < BOT_DETECTION_CONFIG.NIGHT_VOTE_THRESHOLD) return []
 
   const affectedIds = [...new Set(nightVotes.map((v) => v.voterId))]
 
