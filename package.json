@@ -16,7 +16,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "prepare": "husky",
-    "validate": "prisma validate && tsc --noEmit && eslint ."
+    "validate": "prisma validate && tsc --noEmit && eslint .",
+    "seed:test": "npx tsx prisma/seed-test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

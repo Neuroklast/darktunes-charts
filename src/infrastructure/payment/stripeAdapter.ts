@@ -45,8 +45,16 @@ export interface CheckoutSessionResult {
 export async function createCheckoutSession(
   params: CheckoutSessionParams
 ): Promise<CheckoutSessionResult> {
-  const stripe = getStripeClient()
   const { bandId, tier, totalCategories, successUrl, cancelUrl } = params
+
+  if (process.env.NEXT_PUBLIC_APP_ENV === 'test') {
+    return {
+      sessionId: `test_session_${Date.now()}`,
+      sessionUrl: successUrl,
+    }
+  }
+
+  const stripe = getStripeClient()
 
   const pricing = calculateTierPrice(tier, totalCategories)
 

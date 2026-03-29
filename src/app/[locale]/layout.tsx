@@ -11,9 +11,15 @@ export default async function LocaleLayout({
 }) {
   const locale = await getLocale()
   const messages = await getMessages()
+  const isTestMode = process.env.NEXT_PUBLIC_APP_ENV === 'test'
 
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
+      {isTestMode && (
+        <div className="bg-red-600 text-white text-center text-sm font-bold py-1 w-full z-50 sticky top-0 uppercase tracking-widest">
+          TESTMODUS AKTIV
+        </div>
+      )}
       <ThemeProvider
         attribute="class"
         defaultTheme="dark"
