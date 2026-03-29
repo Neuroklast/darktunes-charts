@@ -66,7 +66,7 @@ export function NavigationBar() {
               darkTunes <span className="text-white font-bold">CHARTS</span>
             </span>
             <span className="text-[9px] text-white/35 tracking-[0.18em] uppercase" style={{ fontFamily: 'var(--font-body)' }}>
-              Fair · Transparent · Innovativ
+              {t('tagline')}
             </span>
           </div>
         </Link>
@@ -89,11 +89,7 @@ export function NavigationBar() {
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 {icon}
-                {labelKey === 'fanVote'    ? 'Fan Vote'    :
-                 labelKey === 'djVote'     ? 'DJ Vote'     :
-                 labelKey === 'anr'        ? 'A&R'         :
-                 labelKey === 'transparency' ? 'Log'        :
-                 t(labelKey as Parameters<typeof t>[0])}
+                {t(labelKey as Parameters<typeof t>[0])}
               </Link>
             )
           })}
@@ -107,7 +103,7 @@ export function NavigationBar() {
             style={{ fontFamily: 'var(--font-body)' }}
           >
             <Shield size={13} />
-            Security
+            {t('security')}
           </Link>
           <LocaleSwitcher />
 
@@ -127,10 +123,10 @@ export function NavigationBar() {
                 onClick={() => void logout()}
                 className="flex items-center gap-1.5 h-7 px-3 text-[11px] uppercase tracking-widest border border-white/15 bg-transparent text-white/60 hover:text-white hover:border-white/30 rounded-sm font-medium transition-colors"
                 style={{ fontFamily: 'var(--font-body)' }}
-                aria-label="Abmelden"
+                aria-label={t('logout')}
               >
                 <LogOut size={12} />
-                <span className="hidden sm:inline">Abmelden</span>
+                <span className="hidden sm:inline">{t('logout')}</span>
               </button>
             </div>
           ) : (
