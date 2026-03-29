@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
 import { calculateSchulzeMethod } from '@/domain/voting/schulze'
+import { withAuth, type AuthenticatedUser } from '@/infrastructure/security/rbac'
+import { createRateLimiter, withRateLimit, getRateLimitKey } from '@/infrastructure/security/rateLimiter'
+import { VOTE_RATE_LIMIT } from '@/infrastructure/security/rateLimitConfig'
+
+const voteLimiter = createRateLimiter(VOTE_RATE_LIMIT)
 
 const djBallotRequestSchema = z.object({
   periodId: z.string().uuid(),
@@ -14,23 +18,18 @@ const djBallotRequestSchema = z.object({
  * POST /api/votes/dj
  * Accepts DJ ranked-choice ballot submissions.
  * Validates and triggers Schulze calculation.
+ * Rate limited: 10 requests/minute per user.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+export const POST = withRateLimit(
+  voteLimiter,
+  withAuth(['dj'], async (request: NextRequest, user: AuthenticatedUser) => {
     const body: unknown = await request.json()
     const parsed = djBallotRequestSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid request body', details: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -40,8 +39,6 @@ export async function POST(request: NextRequest) {
     ])
 
     return NextResponse.json({ success: true, schulzeResult })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-}
+  }),
+  (req) => getRateLimitKey(req),
+)

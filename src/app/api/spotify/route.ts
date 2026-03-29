@@ -1,5 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { z } from 'zod'
 import { getMonthlyListeners } from '@/infrastructure/api/spotifyAdapter'
+
+/**
+ * Spotify artist IDs are 22-character base62 strings (alphanumeric).
+ * Validates format before passing to the Spotify API to prevent
+ * unexpected inputs (OWASP A03:2021 — Injection).
+ */
+const spotifyArtistIdSchema = z
+  .string()
+  .regex(/^[a-zA-Z0-9]{22}$/, 'Invalid Spotify artist ID format — expected 22 alphanumeric characters')
 
 /**
  * GET /api/spotify?artistId=xxx
@@ -8,13 +18,22 @@ import { getMonthlyListeners } from '@/infrastructure/api/spotifyAdapter'
  */
 export async function GET(request: NextRequest) {
   try {
-    const artistId = request.nextUrl.searchParams.get('artistId')
+    const rawArtistId = request.nextUrl.searchParams.get('artistId')
 
-    if (!artistId) {
+    if (!rawArtistId) {
       return NextResponse.json({ error: 'artistId parameter required' }, { status: 400 })
     }
 
-    const data = await getMonthlyListeners(artistId)
+    const parsed = spotifyArtistIdSchema.safeParse(rawArtistId)
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid artistId format', details: parsed.error.flatten() },
+        { status: 400 },
+      )
+    }
+
+    const data = await getMonthlyListeners(parsed.data)
 
     return NextResponse.json(data, {
       headers: {

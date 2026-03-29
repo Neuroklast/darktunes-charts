@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { withAuth } from '@/infrastructure/security/rbac'
+import { createRateLimiter, withRateLimit, getRateLimitKey } from '@/infrastructure/security/rateLimiter'
+import { PUBLIC_RATE_LIMIT } from '@/infrastructure/security/rateLimitConfig'
+
+const publicLimiter = createRateLimiter(PUBLIC_RATE_LIMIT)
 
 const createBandSchema = z.object({
   name: z.string().min(1).max(200),
@@ -13,44 +17,32 @@ const createBandSchema = z.object({
 /**
  * GET /api/bands
  * Returns a list of all registered bands.
+ * Rate limited: 60 requests/minute per IP.
  */
-export async function GET() {
-  try {
+export const GET = withRateLimit(
+  publicLimiter,
+  async () => {
     // In production: const bands = await prisma.band.findMany({ include: { tracks: true } })
     return NextResponse.json({ bands: [] })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-}
+  },
+  (req: NextRequest) => getRateLimitKey(req),
+)
 
 /**
  * POST /api/bands
- * Creates a new band registration.
+ * Creates a new band registration. Restricted to BAND role.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+export const POST = withAuth(['band'], async (request: NextRequest) => {
+  const body: unknown = await request.json()
+  const parsed = createBandSchema.safeParse(body)
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const body: unknown = await request.json()
-    const parsed = createBandSchema.safeParse(body)
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request body', details: parsed.error.flatten() },
-        { status: 400 }
-      )
-    }
-
-    // In production: const band = await prisma.band.create({ data: { ...parsed.data, ownerId: user.id } })
-    return NextResponse.json({ success: true, band: { id: 'new-band-id', ...parsed.data } })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid request body', details: parsed.error.flatten() },
+      { status: 400 },
+    )
   }
-}
+
+  // In production: const band = await prisma.band.create({ data: { ...parsed.data, ownerId: user.id } })
+  return NextResponse.json({ success: true, band: { id: 'new-band-id', ...parsed.data } })
+})

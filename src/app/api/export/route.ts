@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { withAuth } from '@/infrastructure/security/rbac'
 
 /**
  * Escapes a value for safe inclusion in a CSV cell.
@@ -40,62 +40,50 @@ const EXPORT_COLUMNS = [
 
 /**
  * GET /api/export
- * Generates a CSV file with A&R analytics data for the authenticated Label/AR user.
+ * Generates a CSV file with A&R analytics data.
  *
  * Response:
  *   Content-Type: text/csv; charset=utf-8
  *   Content-Disposition: attachment; filename="darktunes-ar-export-{date}.csv"
  *
  * Access control:
- *   Only authenticated users with role LABEL or AR can access this endpoint.
+ *   Restricted to LABEL, AR, and ADMIN roles.
  *   In production this would query the DB for mandated bands and their scores.
  */
-export async function GET(_request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+export const GET = withAuth(['label', 'ar', 'admin'], async (_request: NextRequest) => {
+  // In production: fetch mandated bands + scores from Prisma using user.id.
+  // For now, generate example rows to demonstrate the CSV structure.
+  const exampleRows: Record<string, string | number | null>[] = [
+    {
+      Band: 'Nightwish',
+      Tier: 'MAJOR',
+      'QV-Score': 8750,
+      'DJ-Score': 0.92,
+      'Peer-Score': 0.87,
+      'Combined-Score': 0.91,
+      Trend: '+12%',
+    },
+    {
+      Band: 'Lacuna Coil',
+      Tier: 'INDIE',
+      'QV-Score': 5230,
+      'DJ-Score': 0.78,
+      'Peer-Score': 0.81,
+      'Combined-Score': 0.79,
+      Trend: '+4%',
+    },
+  ]
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const csv = toCsv(EXPORT_COLUMNS, exampleRows)
+  const dateStr = new Date().toISOString().slice(0, 10)
+  const filename = `darktunes-ar-export-${dateStr}.csv`
 
-    // In production: verify user role is LABEL or AR, fetch mandated bands + scores from Prisma.
-    // For now, generate example rows to demonstrate the CSV structure.
-    const exampleRows: Record<string, string | number | null>[] = [
-      {
-        Band: 'Nightwish',
-        Tier: 'MAJOR',
-        'QV-Score': 8750,
-        'DJ-Score': 0.92,
-        'Peer-Score': 0.87,
-        'Combined-Score': 0.91,
-        Trend: '+12%',
-      },
-      {
-        Band: 'Lacuna Coil',
-        Tier: 'INDIE',
-        'QV-Score': 5230,
-        'DJ-Score': 0.78,
-        'Peer-Score': 0.81,
-        'Combined-Score': 0.79,
-        Trend: '+4%',
-      },
-    ]
-
-    const csv = toCsv(EXPORT_COLUMNS, exampleRows)
-    const dateStr = new Date().toISOString().slice(0, 10)
-    const filename = `darktunes-ar-export-${dateStr}.csv`
-
-    return new NextResponse(csv, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-store',
-      },
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-}
+  return new NextResponse(csv, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store',
+    },
+  })
+})

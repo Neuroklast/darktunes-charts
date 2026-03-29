@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
 import { calculateQuadraticCost, validateFanVotes, MONTHLY_CREDIT_BUDGET } from '@/domain/voting/quadratic'
+import { withAuth, type AuthenticatedUser } from '@/infrastructure/security/rbac'
+import { createRateLimiter, withRateLimit, getRateLimitKey } from '@/infrastructure/security/rateLimiter'
+import { VOTE_RATE_LIMIT } from '@/infrastructure/security/rateLimitConfig'
+
+const voteLimiter = createRateLimiter(VOTE_RATE_LIMIT)
 
 const fanVoteRequestSchema = z.object({
   votes: z.array(z.object({
@@ -15,23 +19,18 @@ const fanVoteRequestSchema = z.object({
  * POST /api/votes/fan
  * Accepts fan vote submissions with Quadratic Voting validation.
  * Validates budget constraints server-side.
+ * Rate limited: 10 requests/minute per user.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+export const POST = withRateLimit(
+  voteLimiter,
+  withAuth(['fan'], async (request: NextRequest, user: AuthenticatedUser) => {
     const body: unknown = await request.json()
     const parsed = fanVoteRequestSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid request body', details: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -46,13 +45,11 @@ export async function POST(request: NextRequest) {
     if (!valid) {
       return NextResponse.json(
         { error: `Credit budget exceeded: ${totalCredits} > ${MONTHLY_CREDIT_BUDGET}` },
-        { status: 422 }
+        { status: 422 },
       )
     }
 
-    return NextResponse.json({ success: true, totalCreditsSpent: totalCredits })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-}
+    return NextResponse.json({ success: true, totalCreditsSpent: totalCredits, userId: user.id })
+  }),
+  (req) => getRateLimitKey(req),
+)

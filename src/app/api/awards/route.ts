@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { withAuth } from '@/infrastructure/security/rbac'
 
 const createAwardSchema = z.object({
   bandId: z.string().uuid().optional(),
@@ -14,7 +14,7 @@ const createAwardSchema = z.object({
 
 /**
  * GET /api/awards
- * Returns all awards.
+ * Returns all awards (public endpoint).
  */
 export async function GET() {
   try {
@@ -27,30 +27,21 @@ export async function GET() {
 
 /**
  * POST /api/awards
- * Creates a new award (admin only).
+ * Creates a new award. Restricted to ADMIN role only.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+export const POST = withAuth(['admin'], async (request: NextRequest) => {
+  const body: unknown = await request.json()
+  const parsed = createAwardSchema.safeParse(body)
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const body: unknown = await request.json()
-    const parsed = createAwardSchema.safeParse(body)
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request body', details: parsed.error.flatten() },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json({ success: true, award: { id: 'new-award-id', createdAt: new Date().toISOString(), ...parsed.data } })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid request body', details: parsed.error.flatten() },
+      { status: 400 },
+    )
   }
-}
+
+  return NextResponse.json({
+    success: true,
+    award: { id: 'new-award-id', createdAt: new Date().toISOString(), ...parsed.data },
+  })
+})

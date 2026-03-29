@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
 import { analyzeVotingPatterns, type VoteRecord } from '@/domain/security/botDetection'
 import { calculateSuspicionScore, type UserBehavior } from '@/domain/security/fingerprintAnalysis'
+import { withAuth } from '@/infrastructure/security/rbac'
 
 const updateAlertSchema = z.object({
   alertId: z.string().uuid(),
@@ -26,54 +26,38 @@ const analyzeBodySchema = z.discriminatedUnion('type', [
 
 /**
  * GET /api/bot-detection
- * Returns bot detection alerts (admin only).
+ * Returns bot detection alerts. Restricted to ADMIN role.
  */
-export async function GET() {
-  try {
-    // In production: fetch vote records from DB and run pattern analysis
-    // const votes = await prisma.voteRecord.findMany({ orderBy: { timestamp: 'desc' }, take: 1000 })
-    // const alerts = analyzeVotingPatterns(votes as VoteRecord[])
-    const alerts = analyzeVotingPatterns([])
-    return NextResponse.json({ alerts })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-}
+export const GET = withAuth(['admin'], async () => {
+  // In production: fetch vote records from DB and run pattern analysis
+  // const votes = await prisma.voteRecord.findMany({ orderBy: { timestamp: 'desc' }, take: 1000 })
+  // const alerts = analyzeVotingPatterns(votes as VoteRecord[])
+  const alerts = analyzeVotingPatterns([])
+  return NextResponse.json({ alerts })
+})
 
 /**
  * PUT /api/bot-detection
- * Updates a bot detection alert status (admin only).
+ * Updates a bot detection alert status. Restricted to ADMIN role.
  */
-export async function PUT(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+export const PUT = withAuth(['admin'], async (request: NextRequest) => {
+  const body: unknown = await request.json()
+  const parsed = updateAlertSchema.safeParse(body)
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const body: unknown = await request.json()
-    const parsed = updateAlertSchema.safeParse(body)
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request body', details: parsed.error.flatten() },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid request body', details: parsed.error.flatten() },
+      { status: 400 },
+    )
   }
-}
+
+  return NextResponse.json({ success: true })
+})
 
 /**
  * POST /api/bot-detection
  * Analyses a batch of vote records or a user behaviour fingerprint.
+ * Requires authentication (any role).
  *
  * Body format A (fingerprint analysis):
  *   { type: "behavior", data: UserBehavior }
@@ -81,27 +65,22 @@ export async function PUT(request: NextRequest) {
  * Body format B (pattern analysis):
  *   { type: "votes", data: VoteRecord[] }
  */
-export async function POST(request: NextRequest) {
-  try {
-    const body: unknown = await request.json()
-    const parsed = analyzeBodySchema.safeParse(body)
+export const POST = withAuth([], async (request: NextRequest) => {
+  const body: unknown = await request.json()
+  const parsed = analyzeBodySchema.safeParse(body)
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request body — expected { type: "behavior"|"votes", data: ... }', details: parsed.error.flatten() },
-        { status: 400 }
-      )
-    }
-
-    if (parsed.data.type === 'behavior') {
-      const result = calculateSuspicionScore(parsed.data.data as UserBehavior)
-      return NextResponse.json(result)
-    }
-
-    const alerts = analyzeVotingPatterns(parsed.data.data as VoteRecord[])
-    return NextResponse.json({ alerts })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid request body — expected { type: "behavior"|"votes", data: ... }', details: parsed.error.flatten() },
+      { status: 400 },
+    )
   }
-}
+
+  if (parsed.data.type === 'behavior') {
+    const result = calculateSuspicionScore(parsed.data.data as UserBehavior)
+    return NextResponse.json(result)
+  }
+
+  const alerts = analyzeVotingPatterns(parsed.data.data as VoteRecord[])
+  return NextResponse.json({ alerts })
+})
