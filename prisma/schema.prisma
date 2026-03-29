@@ -123,6 +123,8 @@ model Track {
   botAlerts        BotDetectionAlert[]
   djFeedback       DJFeedback[]
 
+  @@index([bandId])
+  @@index([genre])
   @@map("tracks")
 }
 
@@ -155,6 +157,9 @@ model FanVote {
   period VotingPeriod @relation(fields: [periodId], references: [id])
 
   @@unique([userId, trackId, periodId])
+  @@index([userId])
+  @@index([trackId])
+  @@index([periodId])
   @@map("fan_votes")
 }
 
@@ -170,6 +175,8 @@ model DJBallot {
   entries DJBallotEntry[]
 
   @@unique([userId, periodId, genre])
+  @@index([userId])
+  @@index([periodId])
   @@map("dj_ballots")
 }
 
@@ -201,6 +208,9 @@ model BandVote {
   period    VotingPeriod @relation(fields: [periodId], references: [id])
 
   @@unique([voterId, votedBandId, periodId])
+  @@index([voterId])
+  @@index([votedBandId])
+  @@index([periodId])
   @@map("band_votes")
 }
 
@@ -237,6 +247,8 @@ model ChartSnapshot {
   period VotingPeriod @relation(fields: [periodId], references: [id])
 
   @@unique([periodId, trackId])
+  @@index([periodId])
+  @@index([genre])
   @@map("chart_snapshots")
 }
 
@@ -255,6 +267,9 @@ model TransparencyLogEntry {
   track Track @relation(fields: [trackId], references: [id])
   user  User  @relation(fields: [userId], references: [id])
 
+  @@index([trackId])
+  @@index([userId])
+  @@index([timestamp])
   @@map("transparency_log")
 }
 
