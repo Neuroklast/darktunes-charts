@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useKV } from '@/lib/kv-shim'
 import { CurrencyEur, Tag, TrendUp, Calculator, Sparkle } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
@@ -7,20 +7,29 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import type { Band, Genre, Tier } from '@/lib/types'
 import { calculateCategoryPrice, getTierFromListeners, simulateSpotifyListenersFetch } from '@/lib/voting'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import {
+  type BillingCycle,
+  compareBillingCycles,
+  DEFAULT_YEARLY_DISCOUNT_PERCENT,
+} from '@/domain/payment/tierPricing'
 
 interface CategoryPricingProps {
   bandId: string
+  /** Yearly discount percentage override (0–100). Defaults to 15. */
+  yearlyDiscountPercent?: number
 }
 
-export function CategoryPricing({ bandId }: CategoryPricingProps) {
+export function CategoryPricing({ bandId, yearlyDiscountPercent = DEFAULT_YEARLY_DISCOUNT_PERCENT }: CategoryPricingProps) {
   const [bands] = useKV<Band[]>('bands', [])
   const [selectedCategories, setSelectedCategories] = useState<Genre[]>(['Goth'])
   const [isCalculating, setIsCalculating] = useState(false)
   const [spotifyListeners, setSpotifyListeners] = useState<number | null>(null)
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
 
   const band = bands?.find(b => b.id === bandId)
 
@@ -29,6 +38,15 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
       setSpotifyListeners(band.spotifyMonthlyListeners)
     }
   }, [band])
+
+  const currentTier = (spotifyListeners
+    ? getTierFromListeners(spotifyListeners)
+    : band?.tier) ?? 'Micro'
+
+  const comparison = useMemo(
+    () => compareBillingCycles(currentTier, selectedCategories.length, yearlyDiscountPercent),
+    [currentTier, selectedCategories.length, yearlyDiscountPercent],
+  )
 
   const fetchSpotifyData = async () => {
     setIsCalculating(true)
@@ -66,19 +84,16 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
     )
   }
 
-  const currentTier = spotifyListeners 
-    ? getTierFromListeners(spotifyListeners) 
-    : band.tier
-
   const pricePerCategory = calculateCategoryPrice(currentTier)
+
+  const isYearly = billingCycle === 'yearly'
+  const activePricing = isYearly ? comparison.yearly : comparison.monthly
 
   const costBreakdown = selectedCategories.map((category, idx) => ({
     category,
     price: idx === 0 ? 0 : pricePerCategory,
     isFree: idx === 0
   }))
-
-  const totalCost = costBreakdown.reduce((sum, item) => sum + item.price, 0)
 
   const getTierRange = (tier: Tier) => {
     switch (tier) {
@@ -228,6 +243,29 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
           </div>
         </div>
 
+        {/* Billing Cycle Toggle */}
+        <div className="flex items-center justify-between p-3 mb-4 rounded bg-secondary/30">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="billing-cycle-toggle" className="text-sm font-medium cursor-pointer">
+              Monthly
+            </Label>
+            <Switch
+              id="billing-cycle-toggle"
+              checked={isYearly}
+              onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
+              aria-label="Toggle yearly billing"
+            />
+            <Label htmlFor="billing-cycle-toggle" className="text-sm font-medium cursor-pointer">
+              Yearly
+            </Label>
+          </div>
+          {isYearly && comparison.yearlySavingsCents > 0 && (
+            <Badge variant="default" className="bg-accent text-accent-foreground gap-1">
+              Save {yearlyDiscountPercent}%
+            </Badge>
+          )}
+        </div>
+
         <div className="space-y-2 mb-4">
           {costBreakdown.map((item) => (
             <div key={item.category} className="flex justify-between items-center py-2">
@@ -245,14 +283,49 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
         <Separator className="my-4" />
 
         <div className="flex justify-between items-center">
-          <span className="font-display text-lg font-semibold">Total Monthly Cost</span>
+          <span className="font-display text-lg font-semibold">
+            {isYearly ? 'Total Yearly Cost' : 'Total Monthly Cost'}
+          </span>
           <div className="flex items-center gap-2">
             <CurrencyEur className="w-6 h-6 text-accent" weight="bold" />
             <span className="text-3xl font-mono font-bold text-accent">
-              {totalCost}.00
+              {activePricing.totalEur}
             </span>
           </div>
         </div>
+
+        {/* Yearly vs Monthly comparison */}
+        {isYearly && comparison.yearlySavingsCents > 0 && (
+          <div className="mt-3 p-3 rounded bg-accent/10 border border-accent/20">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Monthly × 12 (no discount)</span>
+              <span className="font-mono text-muted-foreground line-through">
+                €{(comparison.monthly.totalCents * 12 / 100).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm mt-1">
+              <span className="text-accent font-medium">You save per year</span>
+              <span className="font-mono font-bold text-accent">
+                €{comparison.yearlySavingsEur}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {!isYearly && comparison.yearlySavingsCents > 0 && (
+          <div className="mt-3 p-3 rounded bg-secondary/20 border border-border text-sm">
+            <p className="text-muted-foreground">
+              💰 Switch to yearly billing and{' '}
+              <button
+                type="button"
+                className="text-accent font-semibold underline underline-offset-2 hover:text-accent/80"
+                onClick={() => setBillingCycle('yearly')}
+              >
+                save €{comparison.yearlySavingsEur}/year ({yearlyDiscountPercent}% off)
+              </button>
+            </p>
+          </div>
+        )}
 
         <div className="mt-4 p-3 bg-secondary/20 rounded text-xs text-muted-foreground">
           <p>
@@ -295,7 +368,7 @@ export function CategoryPricing({ bandId }: CategoryPricingProps) {
         disabled={selectedCategories.length === 0}
       >
         <CurrencyEur className="w-5 h-5" />
-        Submit for €{totalCost}.00/month
+        Submit for €{activePricing.totalEur}/{isYearly ? 'year' : 'month'}
       </Button>
     </div>
   )
