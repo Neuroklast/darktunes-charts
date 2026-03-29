@@ -160,3 +160,51 @@ A companion `src/infrastructure/api/` layer wraps the iTunes and Odesli HTTP cli
 **Decision:** Add a `@media (prefers-reduced-motion: reduce)` block to `src/index.css` that collapses all animation/transition durations to 0.01ms and explicitly resets all named animation utility classes. Opacity transitions are preserved since they convey state (loading, modal open) without vestibular risk.
 
 **Consequences:** WCAG 2.1 SC 2.3.3 compliance. DIN EN ISO 9241-110 Fehlertoleranz satisfied. No JavaScript required — the CSS media query is handled natively by the browser. Framer Motion's `useReducedMotion` hook should be used for JavaScript-driven animations in future components.
+
+---
+
+## ADR-010: Consolidated Tier Logic — Single Source of Truth
+
+**Status:** Accepted
+
+**Context:** The five-tier band classification constants (`TIER_THRESHOLDS`, `TIER_PRICING`) and the `getTierFromListeners()` function were duplicated across `src/domain/voting/tiers.ts` and `src/domain/payment/tierPricing.ts`. This violated the DRY principle and created a maintenance risk where tier updates in one module could be missed in the other.
+
+**Decision:** Introduce `src/domain/tiers/index.ts` as the single canonical source for tier thresholds (`TIER_THRESHOLDS`), tier pricing (`TIER_PRICING_EUR`), and the `getTierFromListeners()` classifier. Both `voting/tiers.ts` and `payment/tierPricing.ts` import from this shared module and re-export for backward compatibility.
+
+**Consequences:** One place to update tier boundaries or pricing. Downstream modules remain decoupled — voting code has no dependency on payment code and vice versa. The `src/lib/voting.ts` shim continues to re-export `getTierFromListeners` unchanged.
+
+---
+
+## ADR-011: Domain Event System (EventBus / Mediator)
+
+**Status:** Accepted
+
+**Context:** Cross-cutting domain communication (e.g., vote submission → transparency log, tier change → notification) was handled synchronously in API routes, tightly coupling unrelated domains. There was no mechanism for modules to react to domain-significant occurrences without direct imports.
+
+**Decision:** Introduce a lightweight, typed EventBus in `src/domain/events/eventBus.ts` following the Mediator pattern. Events are TypeScript discriminated unions keyed on a `type` field. Four initial events: `VoteSubmitted`, `TierChanged`, `BotDetected`, `AchievementEarned`. The `IEventBus` interface enables test substitution.
+
+**Consequences:** Domains communicate via events rather than direct function calls. Adding a new cross-cutting concern (e.g., analytics, email notifications) requires only subscribing a handler — no changes to the publishing domain. Events are synchronous and in-memory; durable event sourcing can be layered via an infrastructure adapter.
+
+---
+
+## ADR-012: Repository Abstraction Layer
+
+**Status:** Accepted
+
+**Context:** API routes accessed Prisma directly (`prisma.user.findUnique(...)`, `prisma.band.upsert(...)`), violating the Dependency Inversion Principle. This made it impossible to swap the database without modifying all API routes and prevented unit testing without mocking the entire Prisma client.
+
+**Decision:** Define repository interfaces in `src/domain/repositories/` (`IUserRepository`, `IBandRepository`, `IAchievementRepository`) and implement them in `src/infrastructure/repositories/` with both Prisma-backed and in-memory variants. API routes receive their repository through module-level default instances (simple dependency injection), which can be overridden via factory functions in tests.
+
+**Consequences:** API routes depend on abstractions, not on Prisma. In-memory implementations enable fast, isolated unit tests. Database migration (e.g., to Drizzle ORM) only requires new repository implementations — no route changes. The factory pattern (`createAchievementsHandler(repo)`) enables full dependency injection in tests.
+
+---
+
+## ADR-013: Category Domain Layer as Source of Truth
+
+**Status:** Accepted
+
+**Context:** `src/domain/categories/index.ts` imported from `src/lib/categories.ts`, inverting the intended dependency direction. The domain layer should be the authoritative source; `src/lib/` modules should be backward-compatibility shims.
+
+**Decision:** Move the canonical category definitions (interfaces, constants, functions) into `src/domain/categories/index.ts`. Convert `src/lib/categories.ts` into a deprecated re-export shim pointing at the domain module.
+
+**Consequences:** The domain layer (`src/domain/categories/`) is now self-contained with zero dependencies on `src/lib/`. Existing consumers importing from `@/lib/categories` continue to work via the shim. New code should import from `@/domain/categories`.
