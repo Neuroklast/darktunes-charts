@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { submitDJFeedback } from '@/application/actions/submitDJFeedback'
@@ -22,6 +23,7 @@ interface DJFeedbackFormProps {
  * Rendered on the DJ Dashboard.
  */
 export function DJFeedbackForm({ bandId, trackId, bandName }: DJFeedbackFormProps) {
+  const t = useTranslations('dashboard.dj.feedback')
   const [message, setMessage] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -40,7 +42,7 @@ export function DJFeedbackForm({ bandId, trackId, bandName }: DJFeedbackFormProp
       setMessage('')
     } else {
       setStatus('error')
-      setErrorMessage(result.error ?? 'Unbekannter Fehler')
+      setErrorMessage(result.error ?? t('unknownError'))
     }
   }
 
@@ -48,12 +50,12 @@ export function DJFeedbackForm({ bandId, trackId, bandName }: DJFeedbackFormProp
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <label className="text-xs font-medium text-muted-foreground block mb-1">
-          Feedback an {bandName}
+          {t('feedbackTo', { bandName })}
         </label>
         <Textarea
           value={message}
           onChange={e => setMessage(e.target.value)}
-          placeholder="z. B. Bassmischung für Clubanlagen verbessern …"
+          placeholder={t('placeholder')}
           rows={3}
           minLength={10}
           maxLength={2000}
@@ -61,12 +63,12 @@ export function DJFeedbackForm({ bandId, trackId, bandName }: DJFeedbackFormProp
           className="resize-none"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          {message.length}/2000 Zeichen
+          {t('characters', { count: message.length })}
         </p>
       </div>
 
       {status === 'success' && (
-        <p className="text-xs text-green-500">Feedback erfolgreich gesendet</p>
+        <p className="text-xs text-green-500">{t('success')}</p>
       )}
       {status === 'error' && (
         <p className="text-xs text-destructive">{errorMessage}</p>
@@ -77,7 +79,7 @@ export function DJFeedbackForm({ bandId, trackId, bandName }: DJFeedbackFormProp
         size="sm"
         disabled={status === 'loading' || message.trim().length < 10}
       >
-        {status === 'loading' ? 'Wird gesendet …' : 'Feedback senden'}
+        {status === 'loading' ? t('sending') : t('submit')}
       </Button>
     </form>
   )

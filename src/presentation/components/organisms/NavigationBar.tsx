@@ -70,7 +70,7 @@ export function NavigationBar() {
             <button
               type="button"
               className="md:hidden flex items-center justify-center p-1.5 rounded-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-              aria-label="Open menu"
+              aria-label={t('openMenu')}
             >
               <Menu size={20} />
             </button>
@@ -111,7 +111,7 @@ export function NavigationBar() {
         </Sheet>
 
         {/* ── Brand ── */}
-        <Link href="/" className="flex items-center gap-3 shrink-0 mr-2" aria-label="DarkTunes Home">
+        <Link href="/" className="flex items-center gap-3 shrink-0 mr-2" aria-label={t('homeLink')}>
           <DarkTunesLogo />
           {/* Chart brand label */}
           <div className="hidden lg:flex flex-col leading-none pl-3 border-l border-white/10">

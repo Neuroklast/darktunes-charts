@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslations } from 'next-intl'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { TrackSubmissionSchema, GENRE_VALUES } from '@/domain/releases/index'
 import type { TrackSubmission } from '@/domain/releases/index'
@@ -18,6 +19,7 @@ const DEMO_BAND_ID = '00000000-0000-0000-0000-000000000001'
  * status with a skeleton shimmer after successful submission.
  */
 export function TrackSubmissionForm() {
+  const t = useTranslations('trackSubmission')
   const [submitted, setSubmitted] = useState(false)
   const [enriching, setEnriching] = useState(false)
 
@@ -47,11 +49,11 @@ export function TrackSubmissionForm() {
       {/* Title */}
       <div className="space-y-1">
         <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">
-          Track-Titel *
+          {t('titleLabel')}
         </label>
         <input
           {...register('title')}
-          placeholder="z.B. Schwarzes Herz"
+          placeholder={t('titlePlaceholder')}
           className="w-full bg-[#141414] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20"
         />
         {errors.title && (
@@ -62,13 +64,13 @@ export function TrackSubmissionForm() {
       {/* Genre */}
       <div className="space-y-1">
         <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">
-          Genre *
+          {t('genreLabel')}
         </label>
         <select
           {...register('genre')}
           className="w-full bg-[#141414] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/20"
         >
-          <option value="">Genre wählen…</option>
+          <option value="">{t('genreSelect')}</option>
           {GENRE_VALUES.map((g) => (
             <option key={g} value={g}>{g.replace(/_/g, ' ')}</option>
           ))}
@@ -81,12 +83,12 @@ export function TrackSubmissionForm() {
       {/* ISRC — shakes on error */}
       <div className="space-y-1">
         <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">
-          ISRC (optional)
+          {t('isrcLabel')}
         </label>
         <ShakeField error={!!errors.isrc}>
           <input
             {...register('isrc')}
-            placeholder="z.B. DEA712345678"
+            placeholder={t('isrcPlaceholder')}
             className="w-full bg-[#141414] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 font-mono"
           />
         </ShakeField>
@@ -98,11 +100,11 @@ export function TrackSubmissionForm() {
       {/* Spotify ID */}
       <div className="space-y-1">
         <label className="text-xs font-semibold text-white/60 uppercase tracking-wider">
-          Spotify Track-ID (optional)
+          {t('spotifyLabel')}
         </label>
         <input
           {...register('spotifyTrackId')}
-          placeholder="z.B. 4uLU6hMCjMI75M1A2tKUQC"
+          placeholder={t('spotifyPlaceholder')}
           className="w-full bg-[#141414] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/20 font-mono"
         />
       </div>
@@ -114,18 +116,18 @@ export function TrackSubmissionForm() {
           disabled={isSubmitting}
           className="w-full bg-[#141414] border border-white/[0.12] hover:border-white/25 rounded-lg px-4 py-3 text-sm font-semibold text-white uppercase tracking-wider transition-colors disabled:opacity-50"
         >
-          {isSubmitting ? 'Einreichen…' : 'Track einreichen'}
+          {isSubmitting ? t('submitting') : t('submit')}
         </button>
       </PulseSuccess>
 
       {/* Enrichment status */}
       {enriching && (
         <div className="skeleton-shimmer rounded-lg px-4 py-3 text-xs text-white/50">
-          Metadata Bot wird ausgeführt…
+          {t('enriching')}
         </div>
       )}
       {submitted && !enriching && (
-        <p className="text-xs text-[#00FF66]">Track erfolgreich eingereicht.</p>
+        <p className="text-xs text-[#00FF66]">{t('success')}</p>
       )}
     </form>
   )

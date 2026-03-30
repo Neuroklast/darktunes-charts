@@ -40,12 +40,6 @@ function quadraticCost(n: number): number {
   return n * n
 }
 
-const FAN_HELP = {
-  title: 'Warum steigen die Kosten?',
-  description:
-    'Quadratic Voting lässt dich Intensität ausdrücken, ohne Minderheiten zu überwältigen.\n\nDie Kosten für n Stimmen auf denselben Track betragen n² Credits:\n• 1 Stimme = 1 Credit\n• 2 Stimmen = 4 Credits\n• 3 Stimmen = 9 Credits\n• 5 Stimmen = 25 Credits\n\nDu kannst deine 100 Credits breiter streuen oder intensiv auf einen Track setzen — aber extremes Bündeln wird teuer.',
-}
-
 /**
  * FanVotingPanel — Interactive fan voting UI (Spec §9.1).
  *
@@ -65,6 +59,7 @@ export function FanVotingPanel({
 }: FanVotingPanelProps) {
   const tDraft = useTranslations('voting.draft')
   const tTour = useTranslations('onboarding.fanTour')
+  const tFan = useTranslations('voting.fanVote')
 
   const fanTourSteps = useMemo(() => [
     { title: tTour('welcome'), description: tTour('welcomeDesc') },
@@ -135,7 +130,7 @@ export function FanVotingPanel({
   if (tracks.length === 0) {
     return (
       <Card className="p-8 glassmorphism text-center">
-        <p className="text-muted-foreground">Keine Tracks zur Bewertung verfügbar.</p>
+        <p className="text-muted-foreground">{tFan('noTracks')}</p>
       </Card>
     )
   }
@@ -157,9 +152,9 @@ export function FanVotingPanel({
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Voice Credits</span>
             <HelpButton
-              title={FAN_HELP.title}
-              description={FAN_HELP.description}
-              ariaLabel="Hilfe zu Quadratic Voting"
+              title={tFan('helpTitle')}
+              description={tFan('helpText')}
+              ariaLabel={tFan('helpAriaLabel')}
             />
           </div>
           <div className="flex items-center gap-3">
@@ -172,7 +167,7 @@ export function FanVotingPanel({
               role={isOverBudget ? 'alert' : undefined}
               aria-live="polite"
             >
-              {creditsRemaining >= 0 ? `${creditsRemaining} verbleibend` : 'Budget überschritten!'}
+              {creditsRemaining >= 0 ? tFan('creditsRemaining', { credits: creditsRemaining }) : tFan('budgetExceeded')}
             </Badge>
           </div>
         </div>
@@ -187,7 +182,7 @@ export function FanVotingPanel({
       </Card>
 
       {/* Track sliders */}
-      <div className="space-y-2" role="group" aria-label="Stimmen auf Tracks verteilen">
+      <div className="space-y-2" role="group" aria-label={tFan('trackGroupAriaLabel')}>
         {tracks.map((track) => (
           <VoiceCreditSlider
             key={track.id}
@@ -208,9 +203,9 @@ export function FanVotingPanel({
           size="sm"
           onClick={handleSaveDraft}
           disabled={isSubmitting}
-          aria-label="Entwurf speichern und später fortfahren"
+          aria-label={tFan('saveDraftAriaLabel')}
         >
-          Entwurf speichern
+          {tDraft('save')}
         </Button>
 
         <Button
@@ -218,18 +213,18 @@ export function FanVotingPanel({
           size="sm"
           onClick={() => setResetConfirmOpen(true)}
           disabled={isSubmitting}
-          aria-label="Alle Votes zurücksetzen"
+          aria-label={tFan('resetAriaLabel')}
         >
-          Zurücksetzen
+          {tFan('resetVotes')}
         </Button>
 
         <Button
           onClick={() => setConfirmOpen(true)}
           disabled={isSubmitting || isOverBudget || creditsSpent === 0}
-          aria-label="Votes endgültig einreichen"
+          aria-label={tFan('submitAriaLabel')}
           className="ml-auto"
         >
-          {isSubmitting ? 'Wird eingereicht…' : 'Votes einreichen'}
+          {isSubmitting ? tFan('submitting') : tFan('submitVotes')}
         </Button>
       </div>
 
@@ -237,10 +232,10 @@ export function FanVotingPanel({
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Votes einreichen"
-        description={`Du gibst ${creditsSpent} von ${totalBudget} Credits aus. Diese Aktion kann nicht rückgängig gemacht werden.`}
-        confirmLabel="Ja, einreichen"
-        cancelLabel="Abbrechen"
+        title={tFan('submitVotes')}
+        description={tFan('confirmDescription', { spent: creditsSpent, total: totalBudget })}
+        confirmLabel={tFan('confirmConfirm')}
+        cancelLabel={tFan('confirmCancel')}
         onConfirm={handleConfirmSubmit}
       />
 
@@ -248,10 +243,10 @@ export function FanVotingPanel({
       <ConfirmDialog
         open={resetConfirmOpen}
         onOpenChange={setResetConfirmOpen}
-        title="Alle Votes zurücksetzen?"
-        description="Alle Slider werden auf 0 zurückgesetzt. Der gespeicherte Entwurf wird ebenfalls gelöscht."
-        confirmLabel="Zurücksetzen"
-        cancelLabel="Abbrechen"
+        title={tFan('confirmReset')}
+        description={tFan('resetDescription')}
+        confirmLabel={tFan('resetConfirm')}
+        cancelLabel={tFan('resetCancel')}
         onConfirm={handleReset}
       />
     </div>
