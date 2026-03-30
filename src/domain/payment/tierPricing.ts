@@ -1,19 +1,24 @@
-import type { Tier } from '@/lib/types'
-
 /**
- * Tier pricing constants (EUR per month per additional category).
- * First category is always free (freemium model, Spec §3.1).
+ * @module domain/payment/tierPricing
+ *
+ * Payment-specific tier pricing utilities (Spec §3.1).
+ *
+ * Base tier prices are imported from the canonical `@/domain/tiers` module
+ * (single source of truth). This module adds the Stripe-oriented breakdown
+ * with EUR-cent amounts used by the payment infrastructure layer.
  *
  * CRITICAL: These prices govern access/participation only.
  * They have ZERO influence on chart ranking scores (Spec §3.2).
  */
-export const TIER_MONTHLY_PRICE_EUR: Record<Tier, number> = {
-  Micro: 5,
-  Emerging: 15,
-  Established: 35,
-  International: 75,
-  Macro: 150,
-}
+
+import type { Tier } from '@/lib/types'
+import { TIER_PRICING_EUR } from '@/domain/tiers'
+
+/**
+ * Re-export the canonical pricing constant under its legacy name so that
+ * existing consumers (tests, Stripe adapter) continue to work.
+ */
+export const TIER_MONTHLY_PRICE_EUR: Readonly<Record<Tier, number>> = TIER_PRICING_EUR
 
 export interface TierPricingResult {
   /** Total monthly cost in EUR cents (to avoid floating-point errors). */
@@ -48,7 +53,7 @@ export function calculateTierPrice(tier: Tier, totalCategories: number): TierPri
     throw new RangeError(`totalCategories must be ≥ 1, got ${totalCategories}`)
   }
 
-  const pricePerCategoryEur = TIER_MONTHLY_PRICE_EUR[tier]
+  const pricePerCategoryEur = TIER_PRICING_EUR[tier]
   const pricePerCategoryEurCents = Math.round(pricePerCategoryEur * 100)
   const paidCategories = totalCategories - 1
   const totalCents = paidCategories * pricePerCategoryEurCents
