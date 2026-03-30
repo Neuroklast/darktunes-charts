@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
 import { rankEvents, filterUpcomingEvents } from '@/domain/events/ranking'
+import { withAuth } from '@/infrastructure/security'
 
 const createEventSchema = z.object({
   name: z.string().min(1).max(200),
@@ -32,30 +32,20 @@ export async function GET() {
 
 /**
  * POST /api/events
- * Creates a new event (admin or editor only).
+ * Creates a new event.
+ *
+ * Access control: Only ADMIN or EDITOR roles may create events.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+export const POST = withAuth(['ADMIN', 'EDITOR'], async (request: NextRequest) => {
+  const body: unknown = await request.json()
+  const parsed = createEventSchema.safeParse(body)
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const body: unknown = await request.json()
-    const parsed = createEventSchema.safeParse(body)
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request body', details: parsed.error.flatten() },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json({ success: true, event: { id: 'new-event-id', intentCount: 0, ...parsed.data } })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid request body', details: parsed.error.flatten() },
+      { status: 400 }
+    )
   }
-}
+
+  return NextResponse.json({ success: true, event: { id: 'new-event-id', intentCount: 0, ...parsed.data } })
+})
