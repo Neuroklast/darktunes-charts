@@ -47,3 +47,10 @@ export {
 
 export type { AIPredictionFactors, AIPredictionResult } from './prediction'
 export { generateAIPrediction } from './prediction'
+
+export type { DecayWindow } from './temporalDecay'
+export {
+  DEFAULT_DECAY_WINDOWS,
+  MINIMUM_TEMPORAL_WEIGHT,
+  calculateTemporalWeight,
+} from './temporalDecay'
