@@ -6,6 +6,17 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **Canonical Tier Module** (`src/domain/tiers/`): Single source of truth for tier thresholds (`TIER_THRESHOLDS`), pricing (`TIER_PRICING_EUR`), and classification (`getTierFromListeners`). Eliminates duplication between `voting/tiers.ts` and `payment/tierPricing.ts` (ADR-010).
+- **Domain Event System** (`src/domain/events/eventBus.ts`): Typed EventBus/Mediator with discriminated union events — `VoteSubmitted`, `TierChanged`, `BotDetected`, `AchievementEarned`. Subscribe/publish/clear API with unsubscribe cleanup (ADR-012).
+- **Repository Abstraction** (`src/domain/repositories/`, `src/infrastructure/repositories/`): Domain interfaces (`IUserRepository`, `IBandRepository`, `IAchievementRepository`) with in-memory test implementations. Decouples API routes from Prisma (ADR-013).
+- **42 new unit tests**: Canonical tiers (16), EventBus (11), repositories (15).
+- **ARCHITECTURE.md**: ADR-010 through ADR-013 documenting tier consolidation, categories fix, event system, and repository pattern.
+
+### Changed
+- **Categories dependency inversion fixed** (ADR-011): `src/domain/categories/index.ts` is now the canonical source for all category definitions, metadata, and eligibility logic. `src/lib/categories.ts` is now a backward-compatibility re-export shim.
+- **Tier logic consolidated**: `src/domain/voting/tiers.ts` and `src/domain/payment/tierPricing.ts` now import constants from `src/domain/tiers/` instead of defining duplicate values.
+
+### Added (pre-architecture-refactor)
 - **Documentation Suite**: Complete bilingual documentation set for all platform areas:
   - `QUICKSTART.md` — Bilingual (DE/EN) quick start guide with installation, commands, demo accounts, and deployment steps
   - `docs/HANDBUCH_DE.md` — Vollständiges Benutzerhandbuch (14 Kapitel, Deutsch)

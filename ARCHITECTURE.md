@@ -137,17 +137,86 @@ src/domain/
 │   ├── quadratic.ts   — Quadratic Voting cost function & budget validation
 │   ├── schulze.ts     — Schulze Beatpath Condorcet method (Floyd-Warshall)
 │   ├── peer.ts        — Anti-collusion clique coefficient (peer pillar)
-│   ├── tiers.ts       — Five-tier classification & progressive pricing
+│   ├── tiers.ts       — Submission cost logic (imports from domain/tiers)
 │   ├── audit.ts       — Transparency log & bot detection
 │   ├── prediction.ts  — AI breakthrough prediction algorithm
 │   └── index.ts       — Barrel re-export
-└── categories/
-    └── index.ts       — Category definitions, eligibility logic, weight calculation
+├── tiers/
+│   └── index.ts       — Single Source of Truth: tier thresholds & pricing (ADR-010)
+├── categories/
+│   └── index.ts       — Canonical category definitions & eligibility logic (ADR-011)
+├── events/
+│   ├── eventBus.ts    — Typed EventBus/Mediator for domain events (ADR-012)
+│   ├── ranking.ts     — Event ranking by attendee intent count
+│   └── index.ts       — Barrel re-export
+├── repositories/
+│   └── index.ts       — Repository interfaces (IUser, IBand, IAchievement) (ADR-013)
+├── payment/
+│   └── tierPricing.ts — Stripe-oriented pricing (imports from domain/tiers)
+└── ...
 ```
 
-A companion `src/infrastructure/api/` layer wraps the iTunes and Odesli HTTP clients, isolating network I/O from domain logic. The existing `src/lib/` files become thin shims that re-export from the domain layer, preserving backward compatibility for all existing tests and consumers.
+A companion `src/infrastructure/` layer wraps external adapters:
+
+```
+src/infrastructure/
+├── api/           — iTunes, Odesli, Spotify adapters
+├── payment/       — Stripe adapter
+├── repositories/  — In-memory (test) repository implementations (ADR-013)
+└── pipeline/      — Track enrichment pipeline
+```
+
+The existing `src/lib/` files become thin shims that re-export from the domain layer, preserving backward compatibility for all existing tests and consumers.
 
 **Consequences:** Domain functions are pure TypeScript — they can be tested without DOM, React, or network stubs. Future migration to a different runtime (Next.js, Deno, Bun) requires only infrastructure adapter changes. The `src/lib/` shim pattern prevents a big-bang migration while establishing the target architecture.
+
+---
+
+## ADR-010: Consolidate Tier Logic into Single Source of Truth
+
+**Status:** Accepted
+
+**Context:** Tier thresholds and pricing were duplicated between `domain/voting/tiers.ts` (`TIER_THRESHOLDS`, `TIER_PRICING`) and `domain/payment/tierPricing.ts` (`TIER_MONTHLY_PRICE_EUR`). Both files defined identical values independently, creating a maintenance risk: a pricing change in one file could easily be missed in the other.
+
+**Decision:** Create `src/domain/tiers/index.ts` as the single canonical source for `TIER_THRESHOLDS`, `TIER_PRICING_EUR`, `getTierFromListeners()`, and `getTierPriceEur()`. Both `voting/tiers.ts` and `payment/tierPricing.ts` now import from this shared module instead of defining their own constants.
+
+**Consequences:** Any future tier threshold or pricing change needs to be made in exactly one file. Existing consumers are unaffected because the public APIs of `voting/tiers` and `payment/tierPricing` remain identical (re-exports preserve the same function signatures).
+
+---
+
+## ADR-011: Fix Categories Dependency Inversion
+
+**Status:** Accepted
+
+**Context:** `src/domain/categories/index.ts` was a re-export facade that imported from `src/lib/categories.ts`. This inverted the dependency direction: the domain layer depended on the library layer, violating Clean Architecture's dependency rule.
+
+**Decision:** Move all category definitions, metadata constants, and pure functions into `src/domain/categories/index.ts` (the canonical source). Convert `src/lib/categories.ts` into a backward-compatibility shim that re-exports from `@/domain/categories`, following the same pattern already established by `src/lib/voting.ts`.
+
+**Consequences:** The dependency direction is now correct: `lib` → `domain` (outward → inward). All existing imports from `@/lib/categories` continue to work through the shim. New code should import from `@/domain/categories`.
+
+---
+
+## ADR-012: Domain Event System (EventBus/Mediator)
+
+**Status:** Accepted
+
+**Context:** Cross-cutting domain communication (e.g., notifying the achievement system when a vote is cast, or logging tier changes in the transparency trail) required direct module-to-module imports, creating tight coupling between unrelated domain modules.
+
+**Decision:** Implement a typed, synchronous EventBus in `src/domain/events/eventBus.ts`. Domain events are TypeScript discriminated unions keyed by `type`: `VoteSubmitted`, `TierChanged`, `BotDetected`, `AchievementEarned`. Handlers subscribe by event type and are invoked in registration order. The bus is intentionally synchronous; async side-effects should enqueue work rather than await inline.
+
+**Consequences:** Domain modules can emit events without knowing who listens. New cross-cutting concerns (e.g., analytics, notifications) can be added by subscribing to existing events without modifying emitting modules. The typed event map provides compile-time safety for event payloads.
+
+---
+
+## ADR-013: Repository Abstraction Layer
+
+**Status:** Accepted
+
+**Context:** API routes in `src/app/api/` access Prisma directly, mixing HTTP concerns with database queries. This makes routes hard to unit test (they require a real or mocked database) and tightly couples the application to Prisma's API surface.
+
+**Decision:** Define repository interfaces in `src/domain/repositories/` (`IUserRepository`, `IBandRepository`, `IAchievementRepository`) and implement them in `src/infrastructure/repositories/`. In-memory implementations are provided for unit testing. API routes will progressively migrate to depend on these interfaces via dependency injection rather than importing Prisma directly.
+
+**Consequences:** Domain logic and API routes can be tested with fast, in-memory repositories. Persistence technology (Prisma, Drizzle, raw SQL) can be swapped without changing business logic. The migration is incremental — existing routes continue to work while new routes adopt the repository pattern.
 
 ---
 
