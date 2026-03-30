@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { rankEvents, filterUpcomingEvents } from '@/domain/events/ranking'
-import { withAuth } from '@/infrastructure/security/rbac'
+import { withAuth } from '@/infrastructure/security'
 
 const createEventSchema = z.object({
   name: z.string().min(1).max(200),
@@ -32,21 +32,20 @@ export async function GET() {
 
 /**
  * POST /api/events
- * Creates a new event. Restricted to ADMIN and EDITOR roles.
+ * Creates a new event.
+ *
+ * Access control: Only ADMIN or EDITOR roles may create events.
  */
-export const POST = withAuth(['admin', 'editor'], async (request: NextRequest) => {
+export const POST = withAuth(['ADMIN', 'EDITOR'], async (request: NextRequest) => {
   const body: unknown = await request.json()
   const parsed = createEventSchema.safeParse(body)
 
   if (!parsed.success) {
     return NextResponse.json(
       { error: 'Invalid request body', details: parsed.error.flatten() },
-      { status: 400 },
+      { status: 400 }
     )
   }
 
-  return NextResponse.json({
-    success: true,
-    event: { id: 'new-event-id', intentCount: 0, ...parsed.data },
-  })
+  return NextResponse.json({ success: true, event: { id: 'new-event-id', intentCount: 0, ...parsed.data } })
 })

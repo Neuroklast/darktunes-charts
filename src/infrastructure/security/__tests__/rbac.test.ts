@@ -1,278 +1,155 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth, type AuthenticatedUser } from '../rbac'
+import type { PrismaUserRole } from '@/domain/auth/profile'
 
-// ─── Mocks ────────────────────────────────────────────────────────────────────
+// ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
+
+const { mockGetUser, mockFindRoleById } = vi.hoisted(() => ({
+  mockGetUser: vi.fn(),
+  mockFindRoleById: vi.fn(),
+}))
 
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(),
+  createClient: vi.fn(() => ({
+    auth: { getUser: mockGetUser },
+  })),
 }))
 
 vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn(),
-    },
+  prisma: {},
+}))
+
+vi.mock('@/infrastructure/repositories', () => ({
+  PrismaUserRepository: class {
+    findRoleById = mockFindRoleById
   },
 }))
 
-// Import mocked modules
-import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { withAuth } from '../rbac'
 
-const mockedCreateClient = vi.mocked(createClient)
-const mockedPrisma = vi.mocked(prisma)
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-// ─── Test helpers ─────────────────────────────────────────────────────────────
-
-function createMockRequest(url = 'http://localhost:3000/api/test'): NextRequest {
-  return new NextRequest(url)
+function makeRequest(url = 'http://localhost/api/test', method = 'GET'): NextRequest {
+  return new NextRequest(url, { method })
 }
 
-function mockAuthSuccess(
-  userId = 'user-123',
-  email = 'test@example.com',
-): void {
-  mockedCreateClient.mockResolvedValue({
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: { id: userId, email } },
-        error: null,
-      }),
-    },
-  } as unknown as Awaited<ReturnType<typeof createClient>>)
-}
+const successHandler = vi.fn(async (_req: NextRequest, user: { id: string; role: PrismaUserRole }) => {
+  return NextResponse.json({ userId: user.id, role: user.role })
+})
 
-function mockAuthFailure(): void {
-  mockedCreateClient.mockResolvedValue({
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: null },
-        error: new Error('Not authenticated'),
-      }),
-    },
-  } as unknown as Awaited<ReturnType<typeof createClient>>)
-}
+// ── Tests ────────────────────────────────────────────────────────────────────
 
-function mockDbUser(role: string): void {
-  (mockedPrisma.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
-    role,
-  })
-}
-
-function mockDbUserNotFound(): void {
-  (mockedPrisma.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null)
-}
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('withAuth RBAC middleware', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
   describe('authentication', () => {
     it('returns 401 when no session exists', async () => {
-      mockAuthFailure()
+      mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: 'No session' } })
 
-      const handler = withAuth([], async () => NextResponse.json({ ok: true }))
-      const response = await handler(createMockRequest())
-      const body = await response.json()
+      const handler = withAuth(['ADMIN'], successHandler)
+      const res = await handler(makeRequest())
 
-      expect(response.status).toBe(401)
-      expect(body.error).toBe('Unauthorized')
+      expect(res.status).toBe(401)
+      const json = await res.json()
+      expect(json.error).toBe('Unauthorized')
+      expect(successHandler).not.toHaveBeenCalled()
     })
 
-    it('returns 401 when user profile not found in database', async () => {
-      mockAuthSuccess()
-      mockDbUserNotFound()
+    it('returns 401 when auth error occurs', async () => {
+      mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: 'Token expired' } })
 
-      const handler = withAuth([], async () => NextResponse.json({ ok: true }))
-      const response = await handler(createMockRequest())
-      const body = await response.json()
+      const handler = withAuth([], successHandler)
+      const res = await handler(makeRequest())
 
-      expect(response.status).toBe(401)
-      expect(body.error).toContain('user profile not found')
-    })
-
-    it('passes authenticated user to handler when session is valid', async () => {
-      mockAuthSuccess('user-abc', 'admin@darktunes.com')
-      mockDbUser('ADMIN')
-
-      let receivedUser: AuthenticatedUser | null = null
-
-      const handler = withAuth([], async (_req, user) => {
-        receivedUser = user
-        return NextResponse.json({ userId: user.id })
-      })
-
-      const response = await handler(createMockRequest())
-      const body = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(body.userId).toBe('user-abc')
-      expect(receivedUser).toEqual({
-        id: 'user-abc',
-        role: 'admin',
-        email: 'admin@darktunes.com',
-      })
+      expect(res.status).toBe(401)
     })
   })
 
-  describe('role-based authorization', () => {
-    it('allows access when no roles are specified (any authenticated user)', async () => {
-      mockAuthSuccess()
-      mockDbUser('FAN')
+  describe('authorization – role enforcement', () => {
+    it('returns 403 when user is not found in database', async () => {
+      mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+      mockFindRoleById.mockResolvedValue(null)
 
-      const handler = withAuth([], async () => NextResponse.json({ ok: true }))
-      const response = await handler(createMockRequest())
+      const handler = withAuth(['ADMIN'], successHandler)
+      const res = await handler(makeRequest())
 
-      expect(response.status).toBe(200)
+      expect(res.status).toBe(403)
+      const json = await res.json()
+      expect(json.error).toBe('Forbidden')
     })
 
-    it('allows access when user has an allowed role', async () => {
-      mockAuthSuccess()
-      mockDbUser('ADMIN')
+    it('returns 403 when user role is not in allowed list', async () => {
+      mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+      mockFindRoleById.mockResolvedValue({ role: 'FAN' as PrismaUserRole })
 
-      const handler = withAuth(
-        ['admin', 'editor'],
-        async () => NextResponse.json({ ok: true }),
-      )
-      const response = await handler(createMockRequest())
+      const handler = withAuth(['ADMIN', 'EDITOR'], successHandler)
+      const res = await handler(makeRequest())
 
-      expect(response.status).toBe(200)
+      expect(res.status).toBe(403)
     })
 
-    it('returns 403 when user role is not in allowed roles', async () => {
-      mockAuthSuccess()
-      mockDbUser('FAN')
+    it.each(['ADMIN', 'EDITOR'] as const)(
+      'allows %s role when in allowed list [ADMIN, EDITOR]',
+      async (role) => {
+        mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+        mockFindRoleById.mockResolvedValue({ role })
 
-      const handler = withAuth(
-        ['admin'],
-        async () => NextResponse.json({ ok: true }),
-      )
-      const response = await handler(createMockRequest())
-      const body = await response.json()
+        const handler = withAuth(['ADMIN', 'EDITOR'], successHandler)
+        const res = await handler(makeRequest())
 
-      expect(response.status).toBe(403)
-      expect(body.error).toContain('insufficient permissions')
-    })
-
-    it('correctly maps all Prisma roles to domain roles', async () => {
-      const roleMappings: Array<{ prisma: string; domain: string }> = [
-        { prisma: 'FAN', domain: 'fan' },
-        { prisma: 'DJ', domain: 'dj' },
-        { prisma: 'BAND', domain: 'band' },
-        { prisma: 'EDITOR', domain: 'editor' },
-        { prisma: 'ADMIN', domain: 'admin' },
-        { prisma: 'AR', domain: 'ar' },
-        { prisma: 'LABEL', domain: 'label' },
-      ]
-
-      for (const mapping of roleMappings) {
-        vi.clearAllMocks()
-        mockAuthSuccess()
-        mockDbUser(mapping.prisma)
-
-        let capturedRole = ''
-        const handler = withAuth([], async (_req, user) => {
-          capturedRole = user.role
-          return NextResponse.json({ role: user.role })
-        })
-
-        await handler(createMockRequest())
-        expect(capturedRole).toBe(mapping.domain)
-      }
-    })
+        expect(res.status).toBe(200)
+        const json = await res.json()
+        expect(json.userId).toBe('u1')
+        expect(json.role).toBe(role)
+      },
+    )
   })
 
-  describe('role-specific endpoint access', () => {
-    it('ADMIN can access admin-only endpoints', async () => {
-      mockAuthSuccess()
-      mockDbUser('ADMIN')
+  describe('authentication-only mode (empty roles)', () => {
+    it.each(['FAN', 'DJ', 'BAND', 'EDITOR', 'ADMIN', 'AR', 'LABEL'] as const)(
+      'allows any authenticated user with %s role when roles array is empty',
+      async (role) => {
+        mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+        mockFindRoleById.mockResolvedValue({ role })
 
-      const handler = withAuth(['admin'], async () => NextResponse.json({ ok: true }))
-      const response = await handler(createMockRequest())
+        const handler = withAuth([], successHandler)
+        const res = await handler(makeRequest())
 
-      expect(response.status).toBe(200)
-    })
-
-    it('FAN cannot access admin-only endpoints', async () => {
-      mockAuthSuccess()
-      mockDbUser('FAN')
-
-      const handler = withAuth(['admin'], async () => NextResponse.json({ ok: true }))
-      const response = await handler(createMockRequest())
-
-      expect(response.status).toBe(403)
-    })
-
-    it('BAND can access band+label endpoints', async () => {
-      mockAuthSuccess()
-      mockDbUser('BAND')
-
-      const handler = withAuth(
-        ['band', 'label'],
-        async () => NextResponse.json({ ok: true }),
-      )
-      const response = await handler(createMockRequest())
-
-      expect(response.status).toBe(200)
-    })
-
-    it('LABEL can access label+ar+admin endpoints', async () => {
-      mockAuthSuccess()
-      mockDbUser('LABEL')
-
-      const handler = withAuth(
-        ['label', 'ar', 'admin'],
-        async () => NextResponse.json({ ok: true }),
-      )
-      const response = await handler(createMockRequest())
-
-      expect(response.status).toBe(200)
-    })
-
-    it('DJ cannot access band-only endpoints', async () => {
-      mockAuthSuccess()
-      mockDbUser('DJ')
-
-      const handler = withAuth(['band'], async () => NextResponse.json({ ok: true }))
-      const response = await handler(createMockRequest())
-
-      expect(response.status).toBe(403)
-    })
+        expect(res.status).toBe(200)
+      },
+    )
   })
 
   describe('error handling', () => {
-    it('returns 500 when handler throws an error', async () => {
-      mockAuthSuccess()
-      mockDbUser('ADMIN')
+    it('returns 500 when handler throws', async () => {
+      mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+      mockFindRoleById.mockResolvedValue({ role: 'ADMIN' as PrismaUserRole })
 
-      const handler = withAuth(['admin'], async () => {
-        throw new Error('Database connection failed')
+      const throwingHandler = vi.fn(async () => {
+        throw new Error('Handler crash')
       })
 
-      const response = await handler(createMockRequest())
-      const body = await response.json()
+      const handler = withAuth(['ADMIN'], throwingHandler)
+      const res = await handler(makeRequest())
 
-      expect(response.status).toBe(500)
-      expect(body.error).toBe('Database connection failed')
+      expect(res.status).toBe(500)
+      const json = await res.json()
+      expect(json.error).toBe('Handler crash')
     })
+  })
 
-    it('returns generic error message for non-Error throws', async () => {
-      mockAuthSuccess()
-      mockDbUser('ADMIN')
+  describe('passes correct arguments to handler', () => {
+    it('passes request and user context', async () => {
+      mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } }, error: null })
+      mockFindRoleById.mockResolvedValue({ role: 'ADMIN' as PrismaUserRole })
 
-      const handler = withAuth(['admin'], async () => {
-        throw 'some string error'
-      })
+      const handler = withAuth(['ADMIN'], successHandler)
+      const req = makeRequest('http://localhost/api/test?foo=bar')
+      await handler(req)
 
-      const response = await handler(createMockRequest())
-      const body = await response.json()
-
-      expect(response.status).toBe(500)
-      expect(body.error).toBe('Internal server error')
+      expect(successHandler).toHaveBeenCalledWith(req, { id: 'user-123', role: 'ADMIN' })
     })
   })
 })

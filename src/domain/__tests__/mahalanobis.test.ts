@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   encodeVotingMatrix,
   computeMeans,
@@ -79,10 +79,36 @@ describe('invertMatrix', () => {
   })
 
   it('returns identity for singular matrix', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const singular = [[1, 2], [2, 4]]
     const inv = invertMatrix(singular)
     expect(inv[0]![0]).toBeCloseTo(1)
     expect(inv[1]![1]).toBeCloseTo(1)
+    warnSpy.mockRestore()
+  })
+
+  it('logs warning when singular matrix detected', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const singular = [[1, 2], [2, 4]]
+    invertMatrix(singular, { voterCount: 3, bandCount: 2 })
+    expect(warnSpy).toHaveBeenCalledOnce()
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[Mahalanobis] Singular covariance matrix detected')
+    )
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('voters: 3')
+    )
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('bands: 2')
+    )
+    warnSpy.mockRestore()
+  })
+
+  it('does not log warning for non-singular matrix', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    invertMatrix([[2, 0], [0, 4]])
+    expect(warnSpy).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
   })
 })
 

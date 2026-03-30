@@ -21,12 +21,12 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Apply CORS headers to all API routes
+        // CORS headers for all API routes
         source: '/api/:path*',
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+            value: process.env.CORS_ALLOWED_ORIGIN ?? 'https://darktunes.com',
           },
           {
             key: 'Access-Control-Allow-Methods',
@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization, X-Requested-With',
+            value: 'Content-Type, Authorization',
           },
           {
             key: 'Access-Control-Allow-Credentials',

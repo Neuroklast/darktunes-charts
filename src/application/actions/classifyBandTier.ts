@@ -1,6 +1,6 @@
 'use server'
 
-import { getTierFromListeners } from '@/domain/voting/tiers'
+import { getTierFromListeners } from '@/domain/tiers'
 import { getMonthlyListeners } from '@/infrastructure/api/spotifyAdapter'
 
 export interface ClassifyBandTierResult {

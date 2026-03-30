@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback, useId } from 'react'
+import { useState, useCallback, useId, useMemo } from 'react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import {
   DndContext,
   closestCenter,
@@ -26,11 +27,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 import { ConfirmDialog } from '@/presentation/components/molecules/ConfirmDialog'
+import { AlbumArtFallback } from '@/presentation/components/atoms/AlbumArtFallback'
+import { OnboardingTour } from '@/presentation/components/molecules/OnboardingTour'
 import {
   saveDJBallotDraft,
   loadDJBallotDraft,
   clearDJBallotDraft,
 } from '@/domain/voting/draftPersistence'
+import { toast } from 'sonner'
 
 export interface DJTrack {
   id: string
@@ -45,6 +49,7 @@ interface SortableTrackItemProps {
 }
 
 function SortableTrackItem({ track, position }: SortableTrackItemProps) {
+  const tDj = useTranslations('voting.djVote')
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: track.id })
 
@@ -67,7 +72,7 @@ function SortableTrackItem({ track, position }: SortableTrackItemProps) {
         {...attributes}
         {...listeners}
         className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 rounded focus:outline-none focus:ring-2 focus:ring-primary"
-        aria-label={`${track.title} ziehen, um die Position zu ändern`}
+        aria-label={tDj('dragAriaLabel', { title: track.title })}
         type="button"
       >
         <GripVertical className="h-4 w-4" aria-hidden="true" />
@@ -82,18 +87,13 @@ function SortableTrackItem({ track, position }: SortableTrackItemProps) {
       {track.albumArtUrl ? (
         <Image
           src={getCachedImageUrl(track.albumArtUrl, { width: 40, height: 40, fit: 'cover' }) ?? track.albumArtUrl}
-          alt={`Album-Cover für ${track.title}`}
+          alt={tDj('albumArtAlt', { title: track.title })}
           width={40}
           height={40}
           className="w-10 h-10 rounded object-cover shrink-0"
         />
       ) : (
-        <div
-          className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0"
-          aria-hidden="true"
-        >
-          🎵
-        </div>
+        <AlbumArtFallback size="w-10 h-10" />
       )}
 
       {/* Track info */}
@@ -116,12 +116,6 @@ interface DJBallotDnDProps {
   onSubmit: (rankedTrackIds: string[]) => Promise<void>
 }
 
-const DJ_HELP = {
-  title: 'Warum Drag & Drop statt Punkte?',
-  description:
-    'Die Schulze-Methode (Beatpath) findet den Condorcet-Sieger: den Track, der in Paarvergleichen gegen alle anderen gewinnt.\n\nDurch Ranglisten statt Punkten ist strategisches Burial unmöglich:\n• Du kannst einen Favoriten nicht durch taktisches Niedrigvoten eines Konkurrenten schaden.\n• Der Algorithmus bewertet alle Paarvergleiche und findet den stärksten Pfad.\n\nEinfach gesagt: Deine ehrliche Reihenfolge ist immer die beste Strategie.',
-}
-
 /**
  * DJBallotDnD — Drag-and-drop ballot for DJ ranked-choice voting (Spec §5.2).
  *
@@ -135,6 +129,16 @@ const DJ_HELP = {
  */
 export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnDProps) {
   const dndContextId = useId()
+  const tDraft = useTranslations('voting.draft')
+  const tTour = useTranslations('onboarding.djTour')
+  const tDj = useTranslations('voting.djVote')
+
+  const djTourSteps = useMemo(() => [
+    { title: tTour('welcome'), description: tTour('welcomeDesc') },
+    { title: tTour('dragDrop'), description: tTour('dragDropDesc') },
+    { title: tTour('schulze'), description: tTour('schulzeDesc') },
+    { title: tTour('submit'), description: tTour('submitDesc') },
+  ], [tTour])
 
   // Load draft on first render if one exists
   const [orderedTracks, setOrderedTracks] = useState<DJTrack[]>(() => {
@@ -151,7 +155,6 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
 
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [draftSaved, setDraftSaved] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -178,9 +181,10 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
       rankedTrackIds: orderedTracks.map((t) => t.id),
       savedAt: new Date().toISOString(),
     })
-    setDraftSaved(true)
-    setTimeout(() => setDraftSaved(false), 2000)
-  }, [voterId, periodId, orderedTracks])
+    toast.success(tDraft('saved'), {
+      description: tDraft('savedDjDesc'),
+    })
+  }, [voterId, periodId, orderedTracks, tDraft])
 
   const handleConfirmSubmit = useCallback(async () => {
     setIsSubmitting(true)
@@ -196,22 +200,31 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
   if (tracks.length === 0) {
     return (
       <Card className="p-8 glassmorphism text-center">
-        <p className="text-muted-foreground">Keine Tracks zur Bewertung verfügbar.</p>
+        <p className="text-muted-foreground">{tDj('noTracks')}</p>
       </Card>
     )
   }
 
   return (
     <div className="space-y-4">
+      {/* Onboarding tour for first-time visitors */}
+      <OnboardingTour
+        storageKey="dj-voting"
+        steps={djTourSteps}
+        skipLabel={tTour('skip')}
+        nextLabel={tTour('next')}
+        finishLabel={tTour('finish')}
+      />
+
       {/* Header */}
       <div className="flex items-center gap-2 mb-2">
         <p className="text-sm text-muted-foreground">
-          Ziehe Tracks in deine bevorzugte Reihenfolge. Platz 1 ist dein Favorit.
+          {tDj('dragInstruction')}
         </p>
         <HelpButton
-          title={DJ_HELP.title}
-          description={DJ_HELP.description}
-          ariaLabel="Hilfe zur Schulze-Methode"
+          title={tDj('helpTitle')}
+          description={tDj('helpText')}
+          ariaLabel={tDj('helpAriaLabel')}
         />
       </div>
 
@@ -226,7 +239,7 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
           items={orderedTracks.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div role="list" aria-label="Rangliste der Tracks" className="space-y-2">
+          <div role="list" aria-label={tDj('rankingAriaLabel')} className="space-y-2">
             {orderedTracks.map((track, index) => (
               <SortableTrackItem
                 key={track.id}
@@ -245,17 +258,17 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
           size="sm"
           onClick={handleSaveDraft}
           disabled={isSubmitting}
-          aria-label="Entwurf speichern und später fortfahren"
+          aria-label={tDj('saveDraftAriaLabel')}
         >
-          {draftSaved ? '✓ Gespeichert' : 'Entwurf speichern'}
+          {tDraft('save')}
         </Button>
 
         <Button
           onClick={() => setConfirmOpen(true)}
           disabled={isSubmitting}
-          aria-label="Ballot endgültig einreichen"
+          aria-label={tDj('submitAriaLabel')}
         >
-          {isSubmitting ? 'Wird eingereicht…' : 'Ballot einreichen'}
+          {isSubmitting ? tDj('submitting') : tDj('submitBallot')}
         </Button>
       </div>
 
@@ -263,10 +276,10 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Ballot einreichen"
-        description="Bist du sicher? Dein DJ-Ballot kann danach nicht mehr geändert werden. Die Schulze-Methode berechnet deine Paarvergleiche automatisch."
-        confirmLabel="Ja, einreichen"
-        cancelLabel="Abbrechen"
+        title={tDj('submitBallot')}
+        description={tDj('confirmDescription')}
+        confirmLabel={tDj('confirmConfirm')}
+        cancelLabel={tDj('confirmCancel')}
         onConfirm={handleConfirmSubmit}
       />
     </div>

@@ -1,17 +1,20 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { VoiceCreditSlider } from '@/presentation/components/molecules/VoiceCreditSlider'
 import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 import { ConfirmDialog } from '@/presentation/components/molecules/ConfirmDialog'
+import { OnboardingTour } from '@/presentation/components/molecules/OnboardingTour'
 import {
   saveFanVoteDraft,
   loadFanVoteDraft,
   clearFanVoteDraft,
 } from '@/domain/voting/draftPersistence'
+import { toast } from 'sonner'
 
 export interface FanTrack {
   id: string
@@ -37,12 +40,6 @@ function quadraticCost(n: number): number {
   return n * n
 }
 
-const FAN_HELP = {
-  title: 'Warum steigen die Kosten?',
-  description:
-    'Quadratic Voting lässt dich Intensität ausdrücken, ohne Minderheiten zu überwältigen.\n\nDie Kosten für n Stimmen auf denselben Track betragen n² Credits:\n• 1 Stimme = 1 Credit\n• 2 Stimmen = 4 Credits\n• 3 Stimmen = 9 Credits\n• 5 Stimmen = 25 Credits\n\nDu kannst deine 100 Credits breiter streuen oder intensiv auf einen Track setzen — aber extremes Bündeln wird teuer.',
-}
-
 /**
  * FanVotingPanel — Interactive fan voting UI (Spec §9.1).
  *
@@ -60,6 +57,17 @@ export function FanVotingPanel({
   periodId,
   onSubmit,
 }: FanVotingPanelProps) {
+  const tDraft = useTranslations('voting.draft')
+  const tTour = useTranslations('onboarding.fanTour')
+  const tFan = useTranslations('voting.fanVote')
+
+  const fanTourSteps = useMemo(() => [
+    { title: tTour('welcome'), description: tTour('welcomeDesc') },
+    { title: tTour('budget'), description: tTour('budgetDesc') },
+    { title: tTour('slider'), description: tTour('sliderDesc') },
+    { title: tTour('submit'), description: tTour('submitDesc') },
+  ], [tTour])
+
   // Load draft allocations on first render
   const [allocations, setAllocations] = useState<Record<string, number>>(() => {
     const draft = loadFanVoteDraft(voterId, periodId)
@@ -70,7 +78,6 @@ export function FanVotingPanel({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [draftSaved, setDraftSaved] = useState(false)
 
   const creditsSpent = useMemo(
     () => Object.values(allocations).reduce((sum, v) => sum + quadraticCost(v), 0),
@@ -98,9 +105,10 @@ export function FanVotingPanel({
       allocations,
       savedAt: new Date().toISOString(),
     })
-    setDraftSaved(true)
-    setTimeout(() => setDraftSaved(false), 2000)
-  }, [voterId, periodId, allocations])
+    toast.success(tDraft('saved'), {
+      description: tDraft('savedFanDesc'),
+    })
+  }, [voterId, periodId, allocations, tDraft])
 
   const handleReset = useCallback(() => {
     setAllocations(Object.fromEntries(tracks.map((t) => [t.id, 0])))
@@ -122,22 +130,31 @@ export function FanVotingPanel({
   if (tracks.length === 0) {
     return (
       <Card className="p-8 glassmorphism text-center">
-        <p className="text-muted-foreground">Keine Tracks zur Bewertung verfügbar.</p>
+        <p className="text-muted-foreground">{tFan('noTracks')}</p>
       </Card>
     )
   }
 
   return (
     <div className="space-y-6">
+      {/* Onboarding tour for first-time visitors */}
+      <OnboardingTour
+        storageKey="fan-voting"
+        steps={fanTourSteps}
+        skipLabel={tTour('skip')}
+        nextLabel={tTour('next')}
+        finishLabel={tTour('finish')}
+      />
+
       {/* Budget display */}
       <Card className="p-4 glassmorphism">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Voice Credits</span>
             <HelpButton
-              title={FAN_HELP.title}
-              description={FAN_HELP.description}
-              ariaLabel="Hilfe zu Quadratic Voting"
+              title={tFan('helpTitle')}
+              description={tFan('helpText')}
+              ariaLabel={tFan('helpAriaLabel')}
             />
           </div>
           <div className="flex items-center gap-3">
@@ -150,7 +167,7 @@ export function FanVotingPanel({
               role={isOverBudget ? 'alert' : undefined}
               aria-live="polite"
             >
-              {creditsRemaining >= 0 ? `${creditsRemaining} verbleibend` : 'Budget überschritten!'}
+              {creditsRemaining >= 0 ? tFan('creditsRemaining', { credits: creditsRemaining }) : tFan('budgetExceeded')}
             </Badge>
           </div>
         </div>
@@ -165,7 +182,7 @@ export function FanVotingPanel({
       </Card>
 
       {/* Track sliders */}
-      <div className="space-y-2" role="group" aria-label="Stimmen auf Tracks verteilen">
+      <div className="space-y-2" role="group" aria-label={tFan('trackGroupAriaLabel')}>
         {tracks.map((track) => (
           <VoiceCreditSlider
             key={track.id}
@@ -186,9 +203,9 @@ export function FanVotingPanel({
           size="sm"
           onClick={handleSaveDraft}
           disabled={isSubmitting}
-          aria-label="Entwurf speichern und später fortfahren"
+          aria-label={tFan('saveDraftAriaLabel')}
         >
-          {draftSaved ? '✓ Gespeichert' : 'Entwurf speichern'}
+          {tDraft('save')}
         </Button>
 
         <Button
@@ -196,18 +213,18 @@ export function FanVotingPanel({
           size="sm"
           onClick={() => setResetConfirmOpen(true)}
           disabled={isSubmitting}
-          aria-label="Alle Votes zurücksetzen"
+          aria-label={tFan('resetAriaLabel')}
         >
-          Zurücksetzen
+          {tFan('resetVotes')}
         </Button>
 
         <Button
           onClick={() => setConfirmOpen(true)}
           disabled={isSubmitting || isOverBudget || creditsSpent === 0}
-          aria-label="Votes endgültig einreichen"
+          aria-label={tFan('submitAriaLabel')}
           className="ml-auto"
         >
-          {isSubmitting ? 'Wird eingereicht…' : 'Votes einreichen'}
+          {isSubmitting ? tFan('submitting') : tFan('submitVotes')}
         </Button>
       </div>
 
@@ -215,10 +232,10 @@ export function FanVotingPanel({
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Votes einreichen"
-        description={`Du gibst ${creditsSpent} von ${totalBudget} Credits aus. Diese Aktion kann nicht rückgängig gemacht werden.`}
-        confirmLabel="Ja, einreichen"
-        cancelLabel="Abbrechen"
+        title={tFan('submitVotes')}
+        description={tFan('confirmDescription', { spent: creditsSpent, total: totalBudget })}
+        confirmLabel={tFan('confirmConfirm')}
+        cancelLabel={tFan('confirmCancel')}
         onConfirm={handleConfirmSubmit}
       />
 
@@ -226,10 +243,10 @@ export function FanVotingPanel({
       <ConfirmDialog
         open={resetConfirmOpen}
         onOpenChange={setResetConfirmOpen}
-        title="Alle Votes zurücksetzen?"
-        description="Alle Slider werden auf 0 zurückgesetzt. Der gespeicherte Entwurf wird ebenfalls gelöscht."
-        confirmLabel="Zurücksetzen"
-        cancelLabel="Abbrechen"
+        title={tFan('confirmReset')}
+        description={tFan('resetDescription')}
+        confirmLabel={tFan('resetConfirm')}
+        cancelLabel={tFan('resetCancel')}
         onConfirm={handleReset}
       />
     </div>

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { analyzeVotingPatterns, type VoteRecord } from '@/domain/security/botDetection'
 import { calculateSuspicionScore, type UserBehavior } from '@/domain/security/fingerprintAnalysis'
-import { withAuth } from '@/infrastructure/security/rbac'
+import { withAuth } from '@/infrastructure/security'
 
 const updateAlertSchema = z.object({
   alertId: z.string().uuid(),
@@ -26,9 +26,11 @@ const analyzeBodySchema = z.discriminatedUnion('type', [
 
 /**
  * GET /api/bot-detection
- * Returns bot detection alerts. Restricted to ADMIN role.
+ * Returns bot detection alerts.
+ *
+ * Access control: ADMIN only.
  */
-export const GET = withAuth(['admin'], async () => {
+export const GET = withAuth(['ADMIN'], async () => {
   // In production: fetch vote records from DB and run pattern analysis
   // const votes = await prisma.voteRecord.findMany({ orderBy: { timestamp: 'desc' }, take: 1000 })
   // const alerts = analyzeVotingPatterns(votes as VoteRecord[])
@@ -38,16 +40,18 @@ export const GET = withAuth(['admin'], async () => {
 
 /**
  * PUT /api/bot-detection
- * Updates a bot detection alert status. Restricted to ADMIN role.
+ * Updates a bot detection alert status.
+ *
+ * Access control: ADMIN only.
  */
-export const PUT = withAuth(['admin'], async (request: NextRequest) => {
+export const PUT = withAuth(['ADMIN'], async (request: NextRequest) => {
   const body: unknown = await request.json()
   const parsed = updateAlertSchema.safeParse(body)
 
   if (!parsed.success) {
     return NextResponse.json(
       { error: 'Invalid request body', details: parsed.error.flatten() },
-      { status: 400 },
+      { status: 400 }
     )
   }
 
@@ -57,13 +61,14 @@ export const PUT = withAuth(['admin'], async (request: NextRequest) => {
 /**
  * POST /api/bot-detection
  * Analyses a batch of vote records or a user behaviour fingerprint.
- * Requires authentication (any role).
  *
  * Body format A (fingerprint analysis):
  *   { type: "behavior", data: UserBehavior }
  *
  * Body format B (pattern analysis):
  *   { type: "votes", data: VoteRecord[] }
+ *
+ * Access control: Any authenticated user.
  */
 export const POST = withAuth([], async (request: NextRequest) => {
   const body: unknown = await request.json()
@@ -72,7 +77,7 @@ export const POST = withAuth([], async (request: NextRequest) => {
   if (!parsed.success) {
     return NextResponse.json(
       { error: 'Invalid request body — expected { type: "behavior"|"votes", data: ... }', details: parsed.error.flatten() },
-      { status: 400 },
+      { status: 400 }
     )
   }
 

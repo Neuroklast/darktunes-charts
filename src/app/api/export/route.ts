@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { withAuth } from '@/infrastructure/security/rbac'
+import { withAuth } from '@/infrastructure/security'
 
 /**
  * Escapes a value for safe inclusion in a CSV cell.
@@ -40,18 +40,17 @@ const EXPORT_COLUMNS = [
 
 /**
  * GET /api/export
- * Generates a CSV file with A&R analytics data.
+ * Generates a CSV file with A&R analytics data for the authenticated Label/AR user.
  *
  * Response:
  *   Content-Type: text/csv; charset=utf-8
  *   Content-Disposition: attachment; filename="darktunes-ar-export-{date}.csv"
  *
  * Access control:
- *   Restricted to LABEL, AR, and ADMIN roles.
- *   In production this would query the DB for mandated bands and their scores.
+ *   Only LABEL, AR, or ADMIN roles can access this endpoint.
  */
-export const GET = withAuth(['label', 'ar', 'admin'], async (_request: NextRequest) => {
-  // In production: fetch mandated bands + scores from Prisma using user.id.
+export const GET = withAuth(['LABEL', 'AR', 'ADMIN'], async (_request: NextRequest) => {
+  // In production: fetch mandated bands + scores from Prisma.
   // For now, generate example rows to demonstrate the CSV structure.
   const exampleRows: Record<string, string | number | null>[] = [
     {

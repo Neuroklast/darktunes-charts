@@ -1,55 +1,80 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
 import { ACHIEVEMENT_DEFINITIONS } from '@/domain/achievements/index'
-import { withAuth, type AuthenticatedUser } from '@/infrastructure/security/rbac'
+import type { IAchievementRepository, EarnedAchievementRecord, IUserRepository } from '@/domain/repositories'
+import { PrismaAchievementRepository, PrismaUserRepository } from '@/infrastructure/repositories'
 
-/** Shape of a UserAchievement record returned by Prisma (subset we use). */
-interface EarnedRecord {
-  grantedAt: Date
-  metadata: unknown
-  achievement: { slug: string }
-}
+/** Default repository instance — overridable in tests via `createAchievementsHandler`. */
+const defaultRepo: IAchievementRepository = new PrismaAchievementRepository(prisma)
+const defaultUserRepo: IUserRepository = new PrismaUserRepository(prisma)
 
 /**
  * GET /api/achievements
  *
- * Returns all achievement definitions merged with the authenticated user's
- * earned status. The userId is extracted from the session — never from
- * query parameters — to prevent IDOR attacks (OWASP A01:2021).
+ * Returns all achievement definitions merged with the user's earned status.
+ * Requires authentication. Users can only view their own achievements.
+ * Admin users may pass a `userId` query param to view another user's achievements.
  *
- * Admins may optionally pass `?userId=xxx` to view another user's achievements.
+ * Access control:
+ *   - Authenticated users: own achievements only
+ *   - ADMIN role: may query any user via `userId` param
  */
-export const GET = withAuth([], async (req: NextRequest, user: AuthenticatedUser) => {
-  const requestedUserId = new URL(req.url).searchParams.get('userId')
+export async function GET(req: NextRequest) {
+  return createAchievementsHandler(defaultRepo, defaultUserRepo)(req)
+}
 
-  // Non-admin users can only view their own achievements
-  const targetUserId = (user.role === 'admin' && requestedUserId)
-    ? requestedUserId
-    : user.id
+/**
+ * Factory that creates the GET handler with injected repositories.
+ * Enables unit testing without Prisma by passing in-memory repos.
+ */
+function createAchievementsHandler(repo: IAchievementRepository, userRepo: IUserRepository) {
+  return async function handler(req: NextRequest) {
+    try {
+      const supabase = await createClient()
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
 
-  const earned = await prisma.userAchievement.findMany({
-    where: { userId: targetUserId },
-    include: { achievement: true },
-  }) as EarnedRecord[]
+      if (authError || !authUser) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
 
-  const earnedSlugs = new Set(earned.map((e: EarnedRecord) => e.achievement.slug))
+      const { searchParams } = new URL(req.url)
+      const requestedUserId = searchParams.get('userId')
 
-  const all = ACHIEVEMENT_DEFINITIONS.map((def) => {
-    const record = earned.find((e: EarnedRecord) => e.achievement.slug === def.slug)
-    return {
-      slug: def.slug,
-      pillar: def.pillar,
-      rarity: def.rarity,
-      iconKey: def.iconKey,
-      titleDe: def.titleDe,
-      titleEn: def.titleEn,
-      descDe: def.descDe,
-      descEn: def.descEn,
-      earned: earnedSlugs.has(def.slug),
-      grantedAt: record?.grantedAt ?? null,
-      metadata: record?.metadata ?? null,
+      // Resolve target user: own data by default, admin can query any user
+      const isRequestingOtherUser = requestedUserId && requestedUserId !== authUser.id
+      if (isRequestingOtherUser) {
+        const dbUser = await userRepo.findRoleById(authUser.id)
+        if (!dbUser || dbUser.role !== 'ADMIN') {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+      }
+      const targetUserId = isRequestingOtherUser ? requestedUserId : authUser.id
+
+      const earned = await repo.findEarnedByUserId(targetUserId)
+      const earnedSlugs = new Set(earned.map((e: EarnedAchievementRecord) => e.achievement.slug))
+
+      const all = ACHIEVEMENT_DEFINITIONS.map((def) => {
+        const record = earned.find((e: EarnedAchievementRecord) => e.achievement.slug === def.slug)
+        return {
+          slug: def.slug,
+          pillar: def.pillar,
+          rarity: def.rarity,
+          iconKey: def.iconKey,
+          titleDe: def.titleDe,
+          titleEn: def.titleEn,
+          descDe: def.descDe,
+          descEn: def.descEn,
+          earned: earnedSlugs.has(def.slug),
+          grantedAt: record?.grantedAt ?? null,
+          metadata: record?.metadata ?? null,
+        }
+      })
+
+      return NextResponse.json({ achievements: all })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Internal server error'
+      return NextResponse.json({ error: message }, { status: 500 })
     }
-  })
-
-  return NextResponse.json({ achievements: all })
-})
+  }
+}

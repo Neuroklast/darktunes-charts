@@ -1,22 +1,7 @@
 /**
  * @module infrastructure/security
  *
- * Security infrastructure barrel export.
- * Re-exports RBAC, rate limiting, and CORS utilities.
+ * Barrel export for security infrastructure (RBAC, rate limiting, etc.).
  */
-
-export { withAuth, type AuthenticatedUser } from './rbac'
-export {
-  createRateLimiter,
-  withRateLimit,
-  getRateLimitKey,
-  checkRateLimit,
-  type RateLimitConfig,
-} from './rateLimiter'
-export {
-  VOTE_RATE_LIMIT,
-  PUBLIC_RATE_LIMIT,
-  WRITE_RATE_LIMIT,
-  ADMIN_RATE_LIMIT,
-} from './rateLimitConfig'
-export { withCors, handleCorsOptions } from './cors'
+export { withAuth } from './rbac'
+export type { AuthenticatedUser, AuthenticatedHandler } from './rbac'

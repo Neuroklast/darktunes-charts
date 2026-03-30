@@ -123,6 +123,7 @@ model Track {
   botAlerts        BotDetectionAlert[]
   djFeedback       DJFeedback[]
 
+  @@index([bandId])
   @@map("tracks")
 }
 
@@ -155,6 +156,8 @@ model FanVote {
   period VotingPeriod @relation(fields: [periodId], references: [id])
 
   @@unique([userId, trackId, periodId])
+  @@index([trackId])
+  @@index([periodId])
   @@map("fan_votes")
 }
 
@@ -170,6 +173,7 @@ model DJBallot {
   entries DJBallotEntry[]
 
   @@unique([userId, periodId, genre])
+  @@index([periodId])
   @@map("dj_ballots")
 }
 
@@ -183,6 +187,7 @@ model DJBallotEntry {
   track  Track    @relation(fields: [trackId], references: [id])
 
   @@unique([ballotId, trackId])
+  @@index([trackId])
   @@map("dj_ballot_entries")
 }
 
@@ -201,6 +206,8 @@ model BandVote {
   period    VotingPeriod @relation(fields: [periodId], references: [id])
 
   @@unique([voterId, votedBandId, periodId])
+  @@index([votedBandId])
+  @@index([periodId])
   @@map("band_votes")
 }
 
@@ -255,6 +262,8 @@ model TransparencyLogEntry {
   track Track @relation(fields: [trackId], references: [id])
   user  User  @relation(fields: [userId], references: [id])
 
+  @@index([trackId])
+  @@index([userId])
   @@map("transparency_log")
 }
 
@@ -282,6 +291,8 @@ model BotDetectionAlert {
   track      Track @relation(fields: [trackId], references: [id])
   reviewedBy User? @relation("Reviewer", fields: [reviewedById], references: [id])
 
+  @@index([trackId])
+  @@index([reviewedById])
   @@map("bot_detection_alerts")
 }
 
@@ -332,6 +343,7 @@ model AIPrediction {
 
   band Band @relation(fields: [bandId], references: [id])
 
+  @@index([bandId])
   @@map("ai_predictions")
 }
 
@@ -348,6 +360,7 @@ model LabelBandMandate {
   band  Band @relation("BandMandate", fields: [bandId], references: [id])
 
   @@unique([labelId, bandId])
+  @@index([bandId])
   @@map("label_band_mandates")
 }
 
@@ -382,6 +395,7 @@ model EventIntent {
   user  User  @relation(fields: [userId], references: [id])
 
   @@unique([eventId, userId])
+  @@index([userId])
   @@map("event_intents")
 }
 
@@ -392,6 +406,7 @@ model Spotlight {
 
   band Band @relation(fields: [bandId], references: [id])
 
+  @@index([bandId])
   @@map("spotlights")
 }
 
@@ -408,6 +423,7 @@ model Award {
 
   band Band? @relation(fields: [bandId], references: [id])
 
+  @@index([bandId])
   @@map("awards")
 }
 
@@ -419,6 +435,7 @@ model DJRankingScore {
   totalScore         Float    @default(0)
   computedAt         DateTime @default(now())
 
+  @@index([userId])
   @@map("dj_ranking_scores")
 }
 
@@ -434,6 +451,9 @@ model DJFeedback {
   band  Band  @relation("BandFeedback", fields: [bandId], references: [id])
   track Track? @relation(fields: [trackId], references: [id])
 
+  @@index([djId])
+  @@index([bandId])
+  @@index([trackId])
   @@map("dj_feedback")
 }
 
@@ -469,6 +489,7 @@ model UserAchievement {
 
   @@unique([userId, achievementId])
   @@index([userId])
+  @@index([achievementId])
   @@map("user_achievements")
 }
 
