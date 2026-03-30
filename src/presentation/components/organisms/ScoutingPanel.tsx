@@ -1,6 +1,6 @@
 'use client'
 
-import { Zap } from 'lucide-react'
+import { Zap, AlertTriangle } from 'lucide-react'
 import type { ScoutingSuggestion } from '@/domain/releases/index'
 
 const REASON_LABEL: Record<ScoutingSuggestion['reason'], string> = {
@@ -66,6 +66,7 @@ interface ScoutingPanelProps {
  */
 export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
   const items = suggestions && suggestions.length > 0 ? suggestions : DEMO_SUGGESTIONS
+  const isDemo = !suggestions || suggestions.length === 0
 
   return (
     <section className="space-y-4">
@@ -79,6 +80,17 @@ export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
         </h2>
       </div>
 
+      {isDemo && (
+        <div
+          role="status"
+          className="flex items-center gap-2 px-3 py-2 rounded-sm border border-dashed border-[#F59E0B]/30 bg-[#F59E0B]/5 text-[#F59E0B] text-xs"
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          <AlertTriangle size={14} className="shrink-0" aria-hidden="true" />
+          <span>Demo-Vorschläge — Echte KI-Scout-Ergebnisse erscheinen nach Verbindung.</span>
+        </div>
+      )}
+
       {items.length === 0 ? (
         <p className="text-sm text-white/40">
           Keine neuen Vorschläge — Bots scouten im Hintergrund.
@@ -88,7 +100,7 @@ export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
           {items.map((s) => (
             <div
               key={s.spotifyTrackId}
-              className="bg-[#141414] border border-white/[0.06] rounded-xl p-4 flex flex-col gap-3"
+              className={`bg-[#141414] border rounded-xl p-4 flex flex-col gap-3 ${isDemo ? 'border-dashed border-white/[0.12] opacity-80' : 'border-white/[0.06]'}`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div>

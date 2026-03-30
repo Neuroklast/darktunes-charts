@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useKV } from '@/lib/kv-shim'
-import { CurrencyEur, Tag, TrendUp, Calculator, Sparkle } from '@phosphor-icons/react'
+import { CurrencyEur, Tag, TrendUp, Calculator, Sparkle, ListDashes } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -66,10 +66,6 @@ export function CategoryPricing({ bandId, yearlyDiscountPercent = DEFAULT_YEARLY
   const handleCategoryToggle = (category: Genre) => {
     setSelectedCategories(current => {
       if (current.includes(category)) {
-        if (current.length === 1) {
-          toast.error('At least one category required')
-          return current
-        }
         return current.filter(c => c !== category)
       }
       return [...current, category]
@@ -266,6 +262,16 @@ export function CategoryPricing({ bandId, yearlyDiscountPercent = DEFAULT_YEARLY
           )}
         </div>
 
+        {selectedCategories.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <ListDashes className="w-10 h-10 text-muted-foreground/40" weight="duotone" />
+            <p className="text-sm text-muted-foreground">
+              Select at least one category to see pricing.
+            </p>
+            <span className="text-2xl font-mono font-bold text-muted-foreground">€0.00</span>
+          </div>
+        ) : (
+        <>
         <div className="space-y-2 mb-4">
           {costBreakdown.map((item) => (
             <div key={item.category} className="flex justify-between items-center py-2">
@@ -325,6 +331,8 @@ export function CategoryPricing({ bandId, yearlyDiscountPercent = DEFAULT_YEARLY
               </button>
             </p>
           </div>
+        )}
+        </>
         )}
 
         <div className="mt-4 p-3 bg-secondary/20 rounded text-xs text-muted-foreground">

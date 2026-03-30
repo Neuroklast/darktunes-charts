@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { ThemeProvider } from 'next-themes'
 import { NavigationBar } from '@/presentation/components/organisms/NavigationBar'
 import { AuthProvider } from '@/features/auth/AuthContext'
+import { Toaster } from '@/components/ui/sonner'
 
 export default async function LocaleLayout({
   children,
@@ -29,6 +30,7 @@ export default async function LocaleLayout({
         <AuthProvider>
           <NavigationBar />
           {children}
+          <Toaster />
         </AuthProvider>
       </ThemeProvider>
     </NextIntlClientProvider>

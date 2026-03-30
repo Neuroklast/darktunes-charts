@@ -7,11 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import { VoiceCreditSlider } from '@/presentation/components/molecules/VoiceCreditSlider'
 import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 import { ConfirmDialog } from '@/presentation/components/molecules/ConfirmDialog'
+import { OnboardingTour } from '@/presentation/components/molecules/OnboardingTour'
 import {
   saveFanVoteDraft,
   loadFanVoteDraft,
   clearFanVoteDraft,
 } from '@/domain/voting/draftPersistence'
+import { toast } from 'sonner'
 
 export interface FanTrack {
   id: string
@@ -43,6 +45,13 @@ const FAN_HELP = {
     'Quadratic Voting lässt dich Intensität ausdrücken, ohne Minderheiten zu überwältigen.\n\nDie Kosten für n Stimmen auf denselben Track betragen n² Credits:\n• 1 Stimme = 1 Credit\n• 2 Stimmen = 4 Credits\n• 3 Stimmen = 9 Credits\n• 5 Stimmen = 25 Credits\n\nDu kannst deine 100 Credits breiter streuen oder intensiv auf einen Track setzen — aber extremes Bündeln wird teuer.',
 }
 
+const FAN_TOUR_STEPS = [
+  { title: 'Welcome to Fan Voting!', description: 'Use Quadratic Voting to support your favourite dark music tracks.' },
+  { title: 'Your Voice Credit Budget', description: 'You have 100 credits per month. The cost of n votes = n² credits.' },
+  { title: 'Adjust Your Votes', description: 'Move sliders to allocate credits. Spreading votes is more efficient than concentrating them.' },
+  { title: 'Submit Your Votes', description: 'Save a draft anytime, then submit when ready. Submissions are final.' },
+]
+
 /**
  * FanVotingPanel — Interactive fan voting UI (Spec §9.1).
  *
@@ -70,7 +79,6 @@ export function FanVotingPanel({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [draftSaved, setDraftSaved] = useState(false)
 
   const creditsSpent = useMemo(
     () => Object.values(allocations).reduce((sum, v) => sum + quadraticCost(v), 0),
@@ -98,8 +106,9 @@ export function FanVotingPanel({
       allocations,
       savedAt: new Date().toISOString(),
     })
-    setDraftSaved(true)
-    setTimeout(() => setDraftSaved(false), 2000)
+    toast.success('Entwurf gespeichert', {
+      description: 'Dein Voting-Entwurf wurde gespeichert.',
+    })
   }, [voterId, periodId, allocations])
 
   const handleReset = useCallback(() => {
@@ -129,6 +138,15 @@ export function FanVotingPanel({
 
   return (
     <div className="space-y-6">
+      {/* Onboarding tour for first-time visitors */}
+      <OnboardingTour
+        storageKey="fan-voting"
+        steps={FAN_TOUR_STEPS}
+        skipLabel="Skip Tour"
+        nextLabel="Next"
+        finishLabel="Got it!"
+      />
+
       {/* Budget display */}
       <Card className="p-4 glassmorphism">
         <div className="flex items-center justify-between">
@@ -188,7 +206,7 @@ export function FanVotingPanel({
           disabled={isSubmitting}
           aria-label="Entwurf speichern und später fortfahren"
         >
-          {draftSaved ? '✓ Gespeichert' : 'Entwurf speichern'}
+          Entwurf speichern
         </Button>
 
         <Button

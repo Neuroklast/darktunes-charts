@@ -26,11 +26,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 import { ConfirmDialog } from '@/presentation/components/molecules/ConfirmDialog'
+import { AlbumArtFallback } from '@/presentation/components/atoms/AlbumArtFallback'
+import { OnboardingTour } from '@/presentation/components/molecules/OnboardingTour'
 import {
   saveDJBallotDraft,
   loadDJBallotDraft,
   clearDJBallotDraft,
 } from '@/domain/voting/draftPersistence'
+import { toast } from 'sonner'
 
 export interface DJTrack {
   id: string
@@ -88,12 +91,7 @@ function SortableTrackItem({ track, position }: SortableTrackItemProps) {
           className="w-10 h-10 rounded object-cover shrink-0"
         />
       ) : (
-        <div
-          className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0"
-          aria-hidden="true"
-        >
-          🎵
-        </div>
+        <AlbumArtFallback size="w-10 h-10" />
       )}
 
       {/* Track info */}
@@ -121,6 +119,13 @@ const DJ_HELP = {
   description:
     'Die Schulze-Methode (Beatpath) findet den Condorcet-Sieger: den Track, der in Paarvergleichen gegen alle anderen gewinnt.\n\nDurch Ranglisten statt Punkten ist strategisches Burial unmöglich:\n• Du kannst einen Favoriten nicht durch taktisches Niedrigvoten eines Konkurrenten schaden.\n• Der Algorithmus bewertet alle Paarvergleiche und findet den stärksten Pfad.\n\nEinfach gesagt: Deine ehrliche Reihenfolge ist immer die beste Strategie.',
 }
+
+const DJ_TOUR_STEPS = [
+  { title: 'Welcome to DJ Voting!', description: 'Rank tracks using drag & drop. The Schulze method finds the fairest winner.' },
+  { title: 'Drag to Rank', description: 'Drag tracks into your preferred order. Position 1 is your top pick.' },
+  { title: 'Schulze Method', description: 'Your honest ranking is always the best strategy — strategic burial is impossible.' },
+  { title: 'Submit Your Ballot', description: 'Save a draft anytime. Once submitted, your ballot cannot be changed.' },
+]
 
 /**
  * DJBallotDnD — Drag-and-drop ballot for DJ ranked-choice voting (Spec §5.2).
@@ -151,7 +156,6 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
 
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [draftSaved, setDraftSaved] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -178,8 +182,9 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
       rankedTrackIds: orderedTracks.map((t) => t.id),
       savedAt: new Date().toISOString(),
     })
-    setDraftSaved(true)
-    setTimeout(() => setDraftSaved(false), 2000)
+    toast.success('Entwurf gespeichert', {
+      description: 'Dein DJ-Ballot-Entwurf wurde gespeichert.',
+    })
   }, [voterId, periodId, orderedTracks])
 
   const handleConfirmSubmit = useCallback(async () => {
@@ -203,6 +208,15 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
 
   return (
     <div className="space-y-4">
+      {/* Onboarding tour for first-time visitors */}
+      <OnboardingTour
+        storageKey="dj-voting"
+        steps={DJ_TOUR_STEPS}
+        skipLabel="Skip Tour"
+        nextLabel="Next"
+        finishLabel="Got it!"
+      />
+
       {/* Header */}
       <div className="flex items-center gap-2 mb-2">
         <p className="text-sm text-muted-foreground">
@@ -247,7 +261,7 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
           disabled={isSubmitting}
           aria-label="Entwurf speichern und später fortfahren"
         >
-          {draftSaved ? '✓ Gespeichert' : 'Entwurf speichern'}
+          Entwurf speichern
         </Button>
 
         <Button
