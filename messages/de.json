@@ -155,7 +155,12 @@
         "characters": "{count}/2000 Zeichen",
         "unknownError": "Unbekannter Fehler",
         "sending": "Wird gesendet …"
-      }
+      },
+      "submitBallotLink": "Ballot einreichen",
+      "scoreDescription": "Predictive Accuracy × Participation",
+      "thisMonth": "Diesen Monat",
+      "vsFinalResult": "vs. finalem Chart-Ergebnis",
+      "noBallots": "Keine Ballots für diesen Monat eingereicht. Reiche dein DJ Ballot ein, um zu starten."
     },
     "band": {
       "title": "Band Dashboard",
@@ -163,7 +168,25 @@
       "chartPosition": "Chart-Platz",
       "superListeners": "Super Listener",
       "djFeedback": "DJ Feedback",
-      "feedbackEmpty": "Noch kein DJ-Feedback vorhanden."
+      "feedbackEmpty": "Noch kein DJ-Feedback vorhanden.",
+      "followerRange": "0–10.000 Follower",
+      "combined": "Kombiniert",
+      "superListenerHelpTitle": "Super Listener",
+      "superListenerHelpDescription": "Super Listener sind Fans, die in mindestens 3 aufeinanderfolgenden Monaten für deine Band gestimmt haben und dabei ihr QV-Budget zu mehr als 50% eingesetzt haben. Sie sind deine treuesten Unterstützer.",
+      "superListenerHelpAriaLabel": "Hilfe zu Super Listener",
+      "superListenerCriteria": "≥3 Monate, >50% Budget",
+      "newComments": "Neue Kommentare",
+      "voterStructure": "Voter-Struktur",
+      "voterStructureHelpTitle": "Voter-Struktur erklärt",
+      "voterStructureHelpDescription": "Die Voter-Struktur zeigt, welche Gruppen für deine Band gestimmt haben:\n\n• Fan Votes: Quadratic Voting, 100 Credits/Monat\n• DJ Ballots: Schulze-Methode, Ranglisten-Ballots\n• Peer Reviews: Band-Peer-Review mit Anti-Kollusions-Algorithmus\n\nDie Combined Charts gewichten alle drei Gruppen gleich (je 33,3 %).",
+      "voterStructureHelpAriaLabel": "Hilfe zur Voter-Struktur",
+      "chartTrend": "Chart-Position Trend",
+      "chartTrendHelpTitle": "Chart-Position Trend",
+      "chartTrendHelpDescription": "Zeigt deine kombinierten Chart-Platzierungen der letzten 6 Monate. Niedrigere Werte = bessere Platzierung. Ein sinkender Trend bedeutet, dass du dich verbesserst.",
+      "chartTrendHelpAriaLabel": "Hilfe zum Chart-Trend",
+      "noChartData": "Keine Chart-Daten verfügbar. Registriere deine Band und reiche Tracks ein.",
+      "registerPrompt": "Registriere deine Band und reiche Tracks ein, um im Dashboard zu erscheinen.",
+      "votes": "Votes"
     },
     "label": {
       "title": "Label Dashboard",

@@ -155,7 +155,12 @@
         "characters": "{count}/2000 characters",
         "unknownError": "Unknown error",
         "sending": "Sending…"
-      }
+      },
+      "submitBallotLink": "Submit ballot",
+      "scoreDescription": "Predictive Accuracy × Participation",
+      "thisMonth": "This month",
+      "vsFinalResult": "vs. final chart result",
+      "noBallots": "No ballots submitted this month. Submit your DJ ballot to get started."
     },
     "band": {
       "title": "Band Dashboard",
@@ -163,7 +168,25 @@
       "chartPosition": "Chart Position",
       "superListeners": "Super Listeners",
       "djFeedback": "DJ Feedback",
-      "feedbackEmpty": "No DJ feedback yet."
+      "feedbackEmpty": "No DJ feedback yet.",
+      "followerRange": "0–10,000 followers",
+      "combined": "Combined",
+      "superListenerHelpTitle": "Super Listener",
+      "superListenerHelpDescription": "Super Listeners are fans who have voted for your band in at least 3 consecutive months and used more than 50% of their QV budget. They are your most loyal supporters.",
+      "superListenerHelpAriaLabel": "Help for Super Listener",
+      "superListenerCriteria": "≥3 months, >50% budget",
+      "newComments": "New comments",
+      "voterStructure": "Voter Structure",
+      "voterStructureHelpTitle": "Voter Structure explained",
+      "voterStructureHelpDescription": "The voter structure shows which groups voted for your band:\n\n• Fan Votes: Quadratic Voting, 100 credits/month\n• DJ Ballots: Schulze method, ranked-choice ballots\n• Peer Reviews: Band peer review with anti-collusion algorithm\n\nThe Combined Charts weight all three groups equally (33.3% each).",
+      "voterStructureHelpAriaLabel": "Help for voter structure",
+      "chartTrend": "Chart Position Trend",
+      "chartTrendHelpTitle": "Chart Position Trend",
+      "chartTrendHelpDescription": "Shows your combined chart positions over the last 6 months. Lower values = better placement. A declining trend means you are improving.",
+      "chartTrendHelpAriaLabel": "Help for chart trend",
+      "noChartData": "No chart data available. Register your band and submit tracks.",
+      "registerPrompt": "Register your band and submit tracks to appear in the dashboard.",
+      "votes": "Votes"
     },
     "label": {
       "title": "Label Dashboard",
