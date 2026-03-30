@@ -1,4 +1,5 @@
 import type { Tier } from '@/lib/types'
+import { TIER_PRICING_EUR } from '@/domain/tiers'
 
 /** Billing cycle options for category subscriptions. */
 export type BillingCycle = 'monthly' | 'yearly'
@@ -10,19 +11,12 @@ export type BillingCycle = 'monthly' | 'yearly'
 export const DEFAULT_YEARLY_DISCOUNT_PERCENT = 15
 
 /**
- * Tier pricing constants (EUR per month per additional category).
- * First category is always free (freemium model, Spec §3.1).
+ * Re-export the canonical tier pricing constant for backward compatibility.
  *
- * CRITICAL: These prices govern access/participation only.
- * They have ZERO influence on chart ranking scores (Spec §3.2).
+ * Consumers that previously imported `TIER_MONTHLY_PRICE_EUR` from this module
+ * will continue to work. New code should import from `@/domain/tiers` directly.
  */
-export const TIER_MONTHLY_PRICE_EUR: Record<Tier, number> = {
-  Micro: 5,
-  Emerging: 15,
-  Established: 35,
-  International: 75,
-  Macro: 150,
-}
+export const TIER_MONTHLY_PRICE_EUR = TIER_PRICING_EUR
 
 export interface TierPricingResult {
   /** Total cost in EUR cents for the selected billing cycle. */

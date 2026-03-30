@@ -5,25 +5,19 @@ import {
   CreateProfileSchema,
   prismaRoleToUserRole,
   userRoleToPrismaRole,
-  type PrismaUserRole,
 } from '@/domain/auth/profile'
 import type { UserProfile } from '@/domain/auth/profile'
+import type { IUserRepository, IBandRepository, UserRecord } from '@/domain/repositories'
+import { PrismaUserRepository, PrismaBandRepository } from '@/infrastructure/repositories'
+
+// ─── Default repository instances ─────────────────────────────────────────────
+
+const defaultUserRepo: IUserRepository = new PrismaUserRepository(prisma)
+const defaultBandRepo: IBandRepository = new PrismaBandRepository(prisma)
 
 // ─── Shape helpers ────────────────────────────────────────────────────────────
 
-type DbUser = {
-  id: string
-  role: PrismaUserRole
-  name: string
-  email: string
-  credits: number
-  avatarUrl: string | null
-  isDJVerified: boolean
-  createdAt: Date
-  band: { id: string } | null
-}
-
-function mapDbUserToProfile(dbUser: DbUser): UserProfile {
+function mapDbUserToProfile(dbUser: UserRecord): UserProfile {
   return {
     id: dbUser.id,
     role: prismaRoleToUserRole(dbUser.role),
@@ -36,18 +30,6 @@ function mapDbUserToProfile(dbUser: DbUser): UserProfile {
     createdAt: dbUser.createdAt.toISOString(),
   }
 }
-
-const USER_SELECT = {
-  id: true,
-  role: true,
-  name: true,
-  email: true,
-  credits: true,
-  avatarUrl: true,
-  isDJVerified: true,
-  createdAt: true,
-  band: { select: { id: true } },
-} as const
 
 /** Default genre assigned to a new band profile when none is selected during onboarding. */
 const DEFAULT_BAND_GENRE = 'GOTH' as const
@@ -77,10 +59,7 @@ export async function GET(): Promise<NextResponse> {
   }
 
   try {
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: USER_SELECT,
-    })
+    const dbUser = await defaultUserRepo.findById(user.id)
 
     if (!dbUser) {
       return NextResponse.json({ profile: null })
@@ -140,9 +119,9 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     // Upsert the user profile row
-    const dbUser = await prisma.user.upsert({
-      where: { id: user.id },
-      create: {
+    const dbUser = await defaultUserRepo.upsert(
+      user.id,
+      {
         id: user.id,
         email,
         name,
@@ -150,26 +129,25 @@ export async function POST(req: Request): Promise<NextResponse> {
         avatarUrl,
         credits: 100,
       },
-      update: {
+      {
         name,
         role: prismaRole,
         avatarUrl,
       },
-      select: USER_SELECT,
-    })
+    )
 
     // If the user chose "band" and supplied a name, also upsert the band record
     if (role === 'band' && bandName) {
-      await prisma.band.upsert({
-        where: { ownerId: user.id },
-        create: {
+      await defaultBandRepo.upsertByOwnerId(
+        user.id,
+        {
           ownerId: user.id,
           name: bandName,
           genre: DEFAULT_BAND_GENRE,
           tier: 'MICRO',
         },
-        update: { name: bandName },
-      })
+        { name: bandName },
+      )
     }
 
     return NextResponse.json({ profile: mapDbUserToProfile(dbUser) }, { status: 201 })
