@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useKV } from '@/lib/kv-shim'
 import { Eye, Heart, Disc, UsersThree, Calculator, Check, MagnifyingGlass } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
@@ -22,19 +22,20 @@ export function TransparencyLog({ userId }: TransparencyLogProps) {
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
 
-  const getTrackDetails = (trackId: string) => {
+  const getTrackDetails = useCallback((trackId: string) => {
     const track = tracks?.find(t => t.id === trackId)
     if (!track) return { trackTitle: 'Unknown Track', bandName: 'Unknown Band' }
-    
+
     const band = bands?.find(b => b.id === track.bandId)
     return {
       trackTitle: track.title,
       bandName: band?.name || 'Unknown Band'
     }
-  }
+  }, [tracks, bands])
 
-  const allEntries = (transparencyLog || [])
-  const filteredEntries = allEntries.filter(entry => {
+  const allEntries = useMemo(() => (transparencyLog || []), [transparencyLog])
+
+  const filteredEntries = useMemo(() => allEntries.filter(entry => {
     if (userId && entry.userId !== userId) return false
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
@@ -45,8 +46,12 @@ export function TransparencyLog({ userId }: TransparencyLogProps) {
       trackTitle.toLowerCase().includes(q) ||
       bandName.toLowerCase().includes(q)
     )
-  })
-  const sortedEntries = [...filteredEntries].sort((a, b) => b.timestamp - a.timestamp)
+  }), [allEntries, userId, searchQuery, getTrackDetails])
+
+  const sortedEntries = useMemo(
+    () => [...filteredEntries].sort((a, b) => b.timestamp - a.timestamp),
+    [filteredEntries],
+  )
 
   const toggleEntry = (id: string) => {
     setExpandedEntries(prev => {
