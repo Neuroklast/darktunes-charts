@@ -2,10 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { ACHIEVEMENT_DEFINITIONS } from '@/domain/achievements/index'
-import type { IAchievementRepository, EarnedAchievementRecord } from '@/domain/repositories'
-import { PrismaAchievementRepository } from '@/infrastructure/repositories'
-import { PrismaUserRepository } from '@/infrastructure/repositories'
-import type { IUserRepository } from '@/domain/repositories'
+import type { IAchievementRepository, EarnedAchievementRecord, IUserRepository } from '@/domain/repositories'
+import { PrismaAchievementRepository, PrismaUserRepository } from '@/infrastructure/repositories'
 
 /** Default repository instance — overridable in tests via `createAchievementsHandler`. */
 const defaultRepo: IAchievementRepository = new PrismaAchievementRepository(prisma)
@@ -43,17 +41,15 @@ function createAchievementsHandler(repo: IAchievementRepository, userRepo: IUser
       const { searchParams } = new URL(req.url)
       const requestedUserId = searchParams.get('userId')
 
-      // Determine which user's achievements to return
-      let targetUserId = authUser.id
-
-      if (requestedUserId && requestedUserId !== authUser.id) {
-        // Only admins may view another user's achievements
+      // Resolve target user: own data by default, admin can query any user
+      const isRequestingOtherUser = requestedUserId && requestedUserId !== authUser.id
+      if (isRequestingOtherUser) {
         const dbUser = await userRepo.findRoleById(authUser.id)
         if (!dbUser || dbUser.role !== 'ADMIN') {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
-        targetUserId = requestedUserId
       }
+      const targetUserId = isRequestingOtherUser ? requestedUserId : authUser.id
 
       const earned = await repo.findEarnedByUserId(targetUserId)
       const earnedSlugs = new Set(earned.map((e: EarnedAchievementRecord) => e.achievement.slug))
