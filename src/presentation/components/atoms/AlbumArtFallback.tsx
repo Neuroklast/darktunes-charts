@@ -27,7 +27,7 @@ export function AlbumArtFallback({ size = 'w-10 h-10', className }: AlbumArtFall
       )}
       aria-hidden="true"
     >
-      <Music2 className="text-white/30" size={Math.min(20, 20)} />
+      <Music2 className="text-white/30" size={20} />
     </div>
   )
 }

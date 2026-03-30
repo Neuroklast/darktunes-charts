@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -45,13 +46,6 @@ const FAN_HELP = {
     'Quadratic Voting lässt dich Intensität ausdrücken, ohne Minderheiten zu überwältigen.\n\nDie Kosten für n Stimmen auf denselben Track betragen n² Credits:\n• 1 Stimme = 1 Credit\n• 2 Stimmen = 4 Credits\n• 3 Stimmen = 9 Credits\n• 5 Stimmen = 25 Credits\n\nDu kannst deine 100 Credits breiter streuen oder intensiv auf einen Track setzen — aber extremes Bündeln wird teuer.',
 }
 
-const FAN_TOUR_STEPS = [
-  { title: 'Welcome to Fan Voting!', description: 'Use Quadratic Voting to support your favourite dark music tracks.' },
-  { title: 'Your Voice Credit Budget', description: 'You have 100 credits per month. The cost of n votes = n² credits.' },
-  { title: 'Adjust Your Votes', description: 'Move sliders to allocate credits. Spreading votes is more efficient than concentrating them.' },
-  { title: 'Submit Your Votes', description: 'Save a draft anytime, then submit when ready. Submissions are final.' },
-]
-
 /**
  * FanVotingPanel — Interactive fan voting UI (Spec §9.1).
  *
@@ -69,6 +63,16 @@ export function FanVotingPanel({
   periodId,
   onSubmit,
 }: FanVotingPanelProps) {
+  const tDraft = useTranslations('voting.draft')
+  const tTour = useTranslations('onboarding.fanTour')
+
+  const fanTourSteps = useMemo(() => [
+    { title: tTour('welcome'), description: tTour('welcomeDesc') },
+    { title: tTour('budget'), description: tTour('budgetDesc') },
+    { title: tTour('slider'), description: tTour('sliderDesc') },
+    { title: tTour('submit'), description: tTour('submitDesc') },
+  ], [tTour])
+
   // Load draft allocations on first render
   const [allocations, setAllocations] = useState<Record<string, number>>(() => {
     const draft = loadFanVoteDraft(voterId, periodId)
@@ -106,10 +110,10 @@ export function FanVotingPanel({
       allocations,
       savedAt: new Date().toISOString(),
     })
-    toast.success('Entwurf gespeichert', {
-      description: 'Dein Voting-Entwurf wurde gespeichert.',
+    toast.success(tDraft('saved'), {
+      description: tDraft('savedFanDesc'),
     })
-  }, [voterId, periodId, allocations])
+  }, [voterId, periodId, allocations, tDraft])
 
   const handleReset = useCallback(() => {
     setAllocations(Object.fromEntries(tracks.map((t) => [t.id, 0])))
@@ -141,10 +145,10 @@ export function FanVotingPanel({
       {/* Onboarding tour for first-time visitors */}
       <OnboardingTour
         storageKey="fan-voting"
-        steps={FAN_TOUR_STEPS}
-        skipLabel="Skip Tour"
-        nextLabel="Next"
-        finishLabel="Got it!"
+        steps={fanTourSteps}
+        skipLabel={tTour('skip')}
+        nextLabel={tTour('next')}
+        finishLabel={tTour('finish')}
       />
 
       {/* Budget display */}

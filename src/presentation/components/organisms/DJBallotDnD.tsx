@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback, useId } from 'react'
+import { useState, useCallback, useId, useMemo } from 'react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import {
   DndContext,
   closestCenter,
@@ -120,13 +121,6 @@ const DJ_HELP = {
     'Die Schulze-Methode (Beatpath) findet den Condorcet-Sieger: den Track, der in Paarvergleichen gegen alle anderen gewinnt.\n\nDurch Ranglisten statt Punkten ist strategisches Burial unmöglich:\n• Du kannst einen Favoriten nicht durch taktisches Niedrigvoten eines Konkurrenten schaden.\n• Der Algorithmus bewertet alle Paarvergleiche und findet den stärksten Pfad.\n\nEinfach gesagt: Deine ehrliche Reihenfolge ist immer die beste Strategie.',
 }
 
-const DJ_TOUR_STEPS = [
-  { title: 'Welcome to DJ Voting!', description: 'Rank tracks using drag & drop. The Schulze method finds the fairest winner.' },
-  { title: 'Drag to Rank', description: 'Drag tracks into your preferred order. Position 1 is your top pick.' },
-  { title: 'Schulze Method', description: 'Your honest ranking is always the best strategy — strategic burial is impossible.' },
-  { title: 'Submit Your Ballot', description: 'Save a draft anytime. Once submitted, your ballot cannot be changed.' },
-]
-
 /**
  * DJBallotDnD — Drag-and-drop ballot for DJ ranked-choice voting (Spec §5.2).
  *
@@ -140,6 +134,15 @@ const DJ_TOUR_STEPS = [
  */
 export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnDProps) {
   const dndContextId = useId()
+  const tDraft = useTranslations('voting.draft')
+  const tTour = useTranslations('onboarding.djTour')
+
+  const djTourSteps = useMemo(() => [
+    { title: tTour('welcome'), description: tTour('welcomeDesc') },
+    { title: tTour('dragDrop'), description: tTour('dragDropDesc') },
+    { title: tTour('schulze'), description: tTour('schulzeDesc') },
+    { title: tTour('submit'), description: tTour('submitDesc') },
+  ], [tTour])
 
   // Load draft on first render if one exists
   const [orderedTracks, setOrderedTracks] = useState<DJTrack[]>(() => {
@@ -182,10 +185,10 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
       rankedTrackIds: orderedTracks.map((t) => t.id),
       savedAt: new Date().toISOString(),
     })
-    toast.success('Entwurf gespeichert', {
-      description: 'Dein DJ-Ballot-Entwurf wurde gespeichert.',
+    toast.success(tDraft('saved'), {
+      description: tDraft('savedDjDesc'),
     })
-  }, [voterId, periodId, orderedTracks])
+  }, [voterId, periodId, orderedTracks, tDraft])
 
   const handleConfirmSubmit = useCallback(async () => {
     setIsSubmitting(true)
@@ -211,10 +214,10 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
       {/* Onboarding tour for first-time visitors */}
       <OnboardingTour
         storageKey="dj-voting"
-        steps={DJ_TOUR_STEPS}
-        skipLabel="Skip Tour"
-        nextLabel="Next"
-        finishLabel="Got it!"
+        steps={djTourSteps}
+        skipLabel={tTour('skip')}
+        nextLabel={tTour('next')}
+        finishLabel={tTour('finish')}
       />
 
       {/* Header */}

@@ -45,6 +45,8 @@
       "save": "Save draft",
       "load": "Load draft",
       "saved": "Draft saved",
+      "savedFanDesc": "Your voting draft has been saved.",
+      "savedDjDesc": "Your DJ ballot draft has been saved.",
       "loaded": "Draft loaded",
       "discarded": "Draft discarded"
     },

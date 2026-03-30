@@ -33,6 +33,32 @@ describe('UI/UX i18n – demo banner messages', () => {
   })
 })
 
+describe('UI/UX i18n – draft toast messages', () => {
+  const REQUIRED_DRAFT_KEYS = ['save', 'load', 'saved', 'savedFanDesc', 'savedDjDesc', 'loaded', 'discarded'] as const
+
+  it.each(REQUIRED_DRAFT_KEYS)(
+    'de.json voting.draft contains key "%s"',
+    (key) => {
+      expect(deMessages.voting.draft).toHaveProperty(key)
+      expect(deMessages.voting.draft[key as keyof typeof deMessages.voting.draft]).toBeTruthy()
+    },
+  )
+
+  it.each(REQUIRED_DRAFT_KEYS)(
+    'en.json voting.draft contains key "%s"',
+    (key) => {
+      expect(enMessages.voting.draft).toHaveProperty(key)
+      expect(enMessages.voting.draft[key as keyof typeof enMessages.voting.draft]).toBeTruthy()
+    },
+  )
+
+  it('de.json and en.json have the same voting.draft keys', () => {
+    const deKeys = Object.keys(deMessages.voting.draft).sort()
+    const enKeys = Object.keys(enMessages.voting.draft).sort()
+    expect(deKeys).toEqual(enKeys)
+  })
+})
+
 describe('UI/UX i18n – category pricing messages', () => {
   const REQUIRED_KEYS = ['emptyState', 'emptyStateCost'] as const
 

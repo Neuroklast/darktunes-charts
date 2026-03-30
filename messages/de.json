@@ -45,6 +45,8 @@
       "save": "Entwurf speichern",
       "load": "Entwurf laden",
       "saved": "Entwurf gespeichert",
+      "savedFanDesc": "Dein Voting-Entwurf wurde gespeichert.",
+      "savedDjDesc": "Dein DJ-Ballot-Entwurf wurde gespeichert.",
       "loaded": "Entwurf geladen",
       "discarded": "Entwurf gelöscht"
     },

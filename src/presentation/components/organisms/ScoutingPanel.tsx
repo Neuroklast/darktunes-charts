@@ -1,6 +1,7 @@
 'use client'
 
 import { Zap, AlertTriangle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import type { ScoutingSuggestion } from '@/domain/releases/index'
 
 const REASON_LABEL: Record<ScoutingSuggestion['reason'], string> = {
@@ -67,6 +68,7 @@ interface ScoutingPanelProps {
 export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
   const items = suggestions && suggestions.length > 0 ? suggestions : DEMO_SUGGESTIONS
   const isDemo = !suggestions || suggestions.length === 0
+  const tDemo = useTranslations('demo')
 
   return (
     <section className="space-y-4">
@@ -87,7 +89,7 @@ export function ScoutingPanel({ suggestions }: ScoutingPanelProps) {
           style={{ fontFamily: 'var(--font-body)' }}
         >
           <AlertTriangle size={14} className="shrink-0" aria-hidden="true" />
-          <span>Demo-Vorschläge — Echte KI-Scout-Ergebnisse erscheinen nach Verbindung.</span>
+          <span>{tDemo('scoutingBanner')}</span>
         </div>
       )}
 
