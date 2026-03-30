@@ -6,6 +6,7 @@ import { seededRandom, GENRE_GRADIENTS } from '@/lib/utils'
 import { getCachedImageUrl } from '@/lib/imageCache'
 import type { Band, Track } from '@/lib/types'
 import PillarCards from './_components/PillarCards'
+import GenreFilteredTop5 from './_components/GenreFilteredTop5'
 
 /** DJ and Peer score range constants — mirror those in ChartsView. */
 const DJ_SCORE_MULTIPLIER   = 30
@@ -14,12 +15,12 @@ const PEER_SCORE_MULTIPLIER = 20
 const PEER_SCORE_BASE       = 3
 const PILLAR_WEIGHT         = 0.333
 
-/** Build a mini top-5 preview from seed data (mirrors buildChartRows logic). */
-function buildTop5Preview(): Array<{ band: Band; track: Track; compositeScore: number }> {
+/** Compute the featured #1 track from seed data for the hero card. */
+function buildHeroEntry(): { band: Band; track: Track; compositeScore: number } | null {
   const tracks = SEED_TRACKS as Track[]
   const bands  = SEED_BANDS  as Band[]
 
-  return tracks
+  const entries = tracks
     .slice(0, 15)
     .map((track, idx) => {
       const band = bands.find(b => b.id === track.bandId)
@@ -31,12 +32,13 @@ function buildTop5Preview(): Array<{ band: Band; track: Track; compositeScore: n
     })
     .filter((r): r is { band: Band; track: Track; compositeScore: number } => r !== null)
     .sort((a, b) => b.compositeScore - a.compositeScore)
-    .slice(0, 5)
+
+  return entries[0] ?? null
 }
 
 export default function HomePage() {
-  const top5    = buildTop5Preview()
-  const topEntry = top5[0]
+  const topEntry = buildHeroEntry()
+  const heroCoverArtUrl = topEntry?.track.coverArtUrl ?? topEntry?.band.coverArtUrl ?? null
 
   return (
     <main className="min-h-screen gradient-mesh">
@@ -76,9 +78,9 @@ export default function HomePage() {
           {topEntry && (
             <div className="relative group">
               <div className="relative rounded-lg overflow-hidden border border-white/[0.08] aspect-square max-w-sm mx-auto">
-                {topEntry.band.coverArtUrl ? (
+                {heroCoverArtUrl ? (
                   <Image
-                    src={getCachedImageUrl(topEntry.band.coverArtUrl, { width: 400, height: 400, fit: 'cover' }) ?? topEntry.band.coverArtUrl}
+                    src={getCachedImageUrl(heroCoverArtUrl, { width: 400, height: 400, fit: 'cover' }) ?? heroCoverArtUrl}
                     alt={`${topEntry.track.title} artwork`}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-700"
@@ -107,20 +109,16 @@ export default function HomePage() {
         />
       </section>
 
-      {/* ── Live Top-5 Preview ── */}
+      {/* ── Live Top-5 Preview with Genre Filter ── */}
       <section className="py-12 px-4 border-t border-white/[0.05]">
         <div className="max-w-[1440px] mx-auto">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-display text-white tracking-wide">Aktuelle Charts</h2>
             <Link href="/charts" className="text-sm text-accent hover:text-accent/80 transition-colors">
               Alle ansehen →
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {top5.map((entry, i) => (
-              <TopChartCard key={entry.track.id} entry={entry} rank={i} />
-            ))}
-          </div>
+          <GenreFilteredTop5 bands={SEED_BANDS} tracks={SEED_TRACKS} />
         </div>
       </section>
 
@@ -161,41 +159,3 @@ export default function HomePage() {
     </main>
   )
 }
-
-/* ── Sub-components ── */
-
-function TopChartCard({
-  entry,
-  rank,
-}: {
-  entry: { band: Band; track: Track; compositeScore: number }
-  rank: number
-}) {
-  const artworkSrc = entry.band.coverArtUrl ?? entry.band.logoUrl ?? null
-  return (
-    <Link href="/charts" className="group relative block rounded-md overflow-hidden aspect-square border border-white/[0.07] hover:border-white/20 transition-colors">
-      {artworkSrc ? (
-        <Image
-          src={getCachedImageUrl(artworkSrc, { width: 200, height: 200, fit: 'cover' }) ?? artworkSrc}
-          alt={`${entry.track.title} artwork`}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-        />
-      ) : (
-        <div className={`absolute inset-0 bg-gradient-to-br ${GENRE_GRADIENTS[entry.band.genre] ?? 'from-gray-900 to-black'}`} />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-      {/* Rank badge */}
-      <div className="absolute top-2 left-2 w-6 h-6 rounded-sm flex items-center justify-center text-xs font-display font-bold bg-primary/80 text-white">
-        {rank + 1}
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 p-2">
-        <p className="text-[10px] font-display text-white leading-tight truncate">{entry.track.title}</p>
-        <p className="text-[9px] text-white/50 truncate">{entry.band.name}</p>
-      </div>
-    </Link>
-  )
-}
-
-
