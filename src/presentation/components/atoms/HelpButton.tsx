@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { HelpPanel } from '@/presentation/components/molecules/HelpPanel'
 
@@ -9,7 +10,7 @@ interface HelpButtonProps {
   title: string
   /** Full explanation text shown in the panel body. */
   description: string
-  /** Optional ARIA label for the (?) button; defaults to "Hilfe". */
+  /** Optional ARIA label for the (?) button; falls back to i18n default. */
   ariaLabel?: string
 }
 
@@ -24,7 +25,9 @@ interface HelpButtonProps {
  *   - HelpPanel uses role="dialog" + aria-modal + aria-label
  *   - The trigger button has an aria-label with the section name
  */
-export function HelpButton({ title, description, ariaLabel = 'Hilfe' }: HelpButtonProps) {
+export function HelpButton({ title, description, ariaLabel }: HelpButtonProps) {
+  const t = useTranslations('help')
+  const resolvedAriaLabel = ariaLabel ?? t('defaultAriaLabel')
   const [open, setOpen] = useState(false)
 
   return (
@@ -34,7 +37,7 @@ export function HelpButton({ title, description, ariaLabel = 'Hilfe' }: HelpButt
         size="icon"
         className="h-5 w-5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted text-xs font-bold p-0 leading-none"
         onClick={() => setOpen(true)}
-        aria-label={ariaLabel}
+        aria-label={resolvedAriaLabel}
       >
         ?
       </Button>
