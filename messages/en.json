@@ -15,7 +15,13 @@
     "logout": "Log out",
     "security": "Security",
     "tagline": "Fair · Transparent · Innovative",
-    "switchLanguage": "Switch language"
+    "switchLanguage": "Switch language",
+    "openMenu": "Open menu",
+    "homeLink": "DarkTunes Home"
+  },
+  "help": {
+    "defaultAriaLabel": "Help",
+    "closePanel": "Close panel"
   },
   "home": {
     "title": "DarkTunes Charts",
@@ -78,7 +84,22 @@
       "submitVotes": "Submit votes",
       "resetVotes": "Reset",
       "confirmSubmit": "Are you sure you want to submit these votes?",
-      "confirmReset": "Reset all votes?"
+      "confirmReset": "Reset all votes?",
+      "noTracks": "No tracks available for voting.",
+      "helpAriaLabel": "Help for Quadratic Voting",
+      "creditsRemaining": "{credits} remaining",
+      "budgetExceeded": "Budget exceeded!",
+      "trackGroupAriaLabel": "Allocate votes to tracks",
+      "saveDraftAriaLabel": "Save draft and continue later",
+      "resetAriaLabel": "Reset all votes",
+      "submitAriaLabel": "Submit votes permanently",
+      "submitting": "Submitting…",
+      "confirmDescription": "You are spending {spent} of {total} credits. This action cannot be undone.",
+      "confirmConfirm": "Yes, submit",
+      "confirmCancel": "Cancel",
+      "resetDescription": "All sliders will be reset to 0. The saved draft will also be deleted.",
+      "resetConfirm": "Reset",
+      "resetCancel": "Cancel"
     },
     "djVote": {
       "title": "DJ Ballot",
@@ -86,7 +107,19 @@
       "dragToRank": "Drag tracks into your preferred order",
       "submitBallot": "Submit ballot",
       "helpTitle": "Why drag & drop instead of points?",
-      "helpText": "The Schulze Method (Beatpath) finds the Condorcet winner: the track that wins all pairwise comparisons.\n\nRankings instead of points make strategic burial impossible:\n• You cannot harm a competitor by tactically rating a rival low.\n• The algorithm evaluates all pairwise comparisons and finds the strongest path.\n\nSimply put: your honest order is always the best strategy."
+      "helpText": "The Schulze Method (Beatpath) finds the Condorcet winner: the track that wins all pairwise comparisons.\n\nRankings instead of points make strategic burial impossible:\n• You cannot harm a competitor by tactically rating a rival low.\n• The algorithm evaluates all pairwise comparisons and finds the strongest path.\n\nSimply put: your honest order is always the best strategy.",
+      "noTracks": "No tracks available for voting.",
+      "dragInstruction": "Drag tracks into your preferred order. Position 1 is your top pick.",
+      "helpAriaLabel": "Help for Schulze method",
+      "dragAriaLabel": "Drag {title} to change position",
+      "albumArtAlt": "Album cover for {title}",
+      "rankingAriaLabel": "Track ranking",
+      "saveDraftAriaLabel": "Save draft and continue later",
+      "submitAriaLabel": "Submit ballot permanently",
+      "submitting": "Submitting…",
+      "confirmDescription": "Are you sure? Your DJ ballot cannot be changed afterwards. The Schulze method calculates your pairwise comparisons automatically.",
+      "confirmConfirm": "Yes, submit",
+      "confirmCancel": "Cancel"
     },
     "peerVote": {
       "title": "Band Peer Review",
@@ -117,7 +150,11 @@
         "placeholder": "e.g. Improve bass mix for club systems …",
         "submit": "Send feedback",
         "success": "Feedback sent successfully",
-        "error": "Error sending feedback"
+        "error": "Error sending feedback",
+        "feedbackTo": "Feedback for {bandName}",
+        "characters": "{count}/2000 characters",
+        "unknownError": "Unknown error",
+        "sending": "Sending…"
       }
     },
     "band": {
@@ -134,7 +171,25 @@
       "undergroundFinder": "Underground Finder",
       "djBeatpathTrends": "DJ Beatpath Trends",
       "exportCsv": "Export data (CSV)",
-      "exportLoading": "Creating export …"
+      "exportLoading": "Creating export …",
+      "arAnalytics": "A&R Analytics",
+      "conversionRate": "Conversion Rate",
+      "conversionHelpAriaLabel": "Help for conversion rate",
+      "conversionSubtext": "Fan Voters → Label Bands",
+      "highQvConversion": "High QV conversion rate",
+      "trendScouting": "Trend Scouting — Vote Velocity",
+      "trendHelpAriaLabel": "Help for vote velocity",
+      "trending": "🔥 Trending",
+      "peerReview": "Peer Review Analysis",
+      "peerHelpAriaLabel": "Help for peer review analysis",
+      "peerDescription": "A&R Predictive Analytics: Discover underground artists with high QV conversion rates and DJ beatpath momentum before they go mainstream.",
+      "trendHelpTitle": "Vote Velocity explained",
+      "trendHelpDescription": "Vote Velocity measures how quickly a band gains new votes compared to the previous month. Bands with high velocity have momentum — they are being discovered right now. Based on the AI Prediction module (Spec §9.4).",
+      "conversionHelpTitle": "Conversion Rate explained",
+      "conversionHelpDescription": "Conversion rate = proportion of all fan voters who voted for at least one of your mandated bands. High = your bands attract many fans.",
+      "peerHelpTitle": "Peer Review Analysis explained",
+      "peerHelpDescription": "Shows how other bands rated your label's artists in peer review. High peer scores signal recognition in the music community — a strong indicator of sustainability.",
+      "voteVelocityAriaLabel": "Vote velocity: {velocity}"
     }
   },
   "algorithms": {
@@ -159,9 +214,32 @@
     "scoutingBanner": "Demo Suggestions — Real AI scout results will appear when connected.",
     "dismiss": "Dismiss"
   },
+  "scouting": {
+    "title": "Discovery Scouting",
+    "emptyState": "No new suggestions — Bots are scouting in the background.",
+    "confidence": "Confidence",
+    "nominate": "Nominate",
+    "reasonNewRelease": "New Release",
+    "reasonVelocitySpike": "Velocity ↑",
+    "reasonGenreMatch": "Genre Match"
+  },
   "categoryPricing": {
     "emptyState": "Select at least one category to see pricing.",
     "emptyStateCost": "€0.00"
+  },
+  "trackSubmission": {
+    "titleLabel": "Track Title *",
+    "titlePlaceholder": "e.g. Dark Heart",
+    "genreLabel": "Genre *",
+    "genreSelect": "Select genre…",
+    "isrcLabel": "ISRC (optional)",
+    "isrcPlaceholder": "e.g. DEA712345678",
+    "spotifyLabel": "Spotify Track ID (optional)",
+    "spotifyPlaceholder": "e.g. 4uLU6hMCjMI75M1A2tKUQC",
+    "submitting": "Submitting…",
+    "submit": "Submit track",
+    "enriching": "Metadata Bot running…",
+    "success": "Track submitted successfully."
   },
   "onboarding": {
     "fanTour": {
