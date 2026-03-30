@@ -45,6 +45,8 @@
       "save": "Entwurf speichern",
       "load": "Entwurf laden",
       "saved": "Entwurf gespeichert",
+      "savedFanDesc": "Dein Voting-Entwurf wurde gespeichert.",
+      "savedDjDesc": "Dein DJ-Ballot-Entwurf wurde gespeichert.",
       "loaded": "Entwurf geladen",
       "discarded": "Entwurf gelöscht"
     },
@@ -150,6 +152,43 @@
       "title": "Peer Voting (Anti-Kollusion)",
       "badge": "Band Voting",
       "summary": "Bands bewerten sich gegenseitig, Voting-Ringe werden abgewertet."
+    }
+  },
+  "demo": {
+    "chartsBanner": "Demo-Daten — Echte Charts werden nach dem ersten Voting-Zeitraum angezeigt.",
+    "scoutingBanner": "Demo-Vorschläge — Echte KI-Scout-Ergebnisse erscheinen nach Verbindung.",
+    "dismiss": "Schließen"
+  },
+  "categoryPricing": {
+    "emptyState": "Wähle mindestens eine Kategorie, um die Preise zu sehen.",
+    "emptyStateCost": "0,00 €"
+  },
+  "onboarding": {
+    "fanTour": {
+      "welcome": "Willkommen beim Fan-Voting!",
+      "welcomeDesc": "Nutze Quadratic Voting, um deine liebsten Dark-Music-Tracks zu unterstützen.",
+      "budget": "Dein Voice-Credit-Budget",
+      "budgetDesc": "Du hast 100 Credits pro Monat. Die Kosten für n Stimmen = n² Credits.",
+      "slider": "Stimmen verteilen",
+      "sliderDesc": "Bewege die Slider, um Credits zu verteilen. Breit streuen ist effizienter als konzentrieren.",
+      "submit": "Votes einreichen",
+      "submitDesc": "Speichere jederzeit einen Entwurf und reiche ein, wenn du bereit bist. Einreichungen sind endgültig.",
+      "skip": "Tour überspringen",
+      "next": "Weiter",
+      "finish": "Verstanden!"
+    },
+    "djTour": {
+      "welcome": "Willkommen beim DJ-Voting!",
+      "welcomeDesc": "Ordne Tracks per Drag & Drop. Die Schulze-Methode findet den fairsten Gewinner.",
+      "dragDrop": "Ziehen zum Sortieren",
+      "dragDropDesc": "Ziehe Tracks in deine bevorzugte Reihenfolge. Position 1 ist dein Favorit.",
+      "schulze": "Schulze-Methode",
+      "schulzeDesc": "Deine ehrliche Reihenfolge ist immer die beste Strategie — strategisches Burial ist unmöglich.",
+      "submit": "Ballot einreichen",
+      "submitDesc": "Speichere jederzeit einen Entwurf. Nach dem Einreichen kann das Ballot nicht mehr geändert werden.",
+      "skip": "Tour überspringen",
+      "next": "Weiter",
+      "finish": "Verstanden!"
     }
   },
   "errors": {

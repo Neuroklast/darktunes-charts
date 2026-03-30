@@ -8,7 +8,7 @@ export function ClientArtwork({ src, alt }: { src: string; alt: string }) {
   const [error, setError] = useState(false)
 
   return (
-    <div className={`shrink-0 w-12 h-12 mt-1 rounded-sm overflow-hidden bg-white/5 relative ${error ? 'flex items-center justify-center' : ''}`}>
+    <div className={`shrink-0 w-12 h-12 mt-1 rounded-sm overflow-hidden relative ${error ? 'flex items-center justify-center bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]' : 'bg-white/5'}`}>
       {!error ? (
         <Image
           src={src}
@@ -18,7 +18,7 @@ export function ClientArtwork({ src, alt }: { src: string; alt: string }) {
           onError={() => setError(true)}
         />
       ) : (
-        <Music2 size={20} className="text-white/20" />
+        <Music2 size={20} className="text-white/30" />
       )}
     </div>
   )

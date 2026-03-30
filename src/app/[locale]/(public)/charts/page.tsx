@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 import { ClientArtwork } from './ClientArtwork'
+import { DemoBannerWrapper } from './DemoBannerWrapper'
 import {
   TrendingUp,
   TrendingDown,
@@ -180,6 +181,9 @@ export default function ChartsPage() {
   return (
     <main className="min-h-screen gradient-mesh">
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-8">
+
+        {/* ── Demo Data Banner ── */}
+        <DemoBannerWrapper />
 
         {/* ── Page Header ── */}
         <div className="mb-6">

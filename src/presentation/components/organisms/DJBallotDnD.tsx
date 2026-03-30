@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback, useId } from 'react'
+import { useState, useCallback, useId, useMemo } from 'react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import {
   DndContext,
   closestCenter,
@@ -26,11 +27,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 import { ConfirmDialog } from '@/presentation/components/molecules/ConfirmDialog'
+import { AlbumArtFallback } from '@/presentation/components/atoms/AlbumArtFallback'
+import { OnboardingTour } from '@/presentation/components/molecules/OnboardingTour'
 import {
   saveDJBallotDraft,
   loadDJBallotDraft,
   clearDJBallotDraft,
 } from '@/domain/voting/draftPersistence'
+import { toast } from 'sonner'
 
 export interface DJTrack {
   id: string
@@ -88,12 +92,7 @@ function SortableTrackItem({ track, position }: SortableTrackItemProps) {
           className="w-10 h-10 rounded object-cover shrink-0"
         />
       ) : (
-        <div
-          className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0"
-          aria-hidden="true"
-        >
-          🎵
-        </div>
+        <AlbumArtFallback size="w-10 h-10" />
       )}
 
       {/* Track info */}
@@ -135,6 +134,15 @@ const DJ_HELP = {
  */
 export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnDProps) {
   const dndContextId = useId()
+  const tDraft = useTranslations('voting.draft')
+  const tTour = useTranslations('onboarding.djTour')
+
+  const djTourSteps = useMemo(() => [
+    { title: tTour('welcome'), description: tTour('welcomeDesc') },
+    { title: tTour('dragDrop'), description: tTour('dragDropDesc') },
+    { title: tTour('schulze'), description: tTour('schulzeDesc') },
+    { title: tTour('submit'), description: tTour('submitDesc') },
+  ], [tTour])
 
   // Load draft on first render if one exists
   const [orderedTracks, setOrderedTracks] = useState<DJTrack[]>(() => {
@@ -151,7 +159,6 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
 
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [draftSaved, setDraftSaved] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -178,9 +185,10 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
       rankedTrackIds: orderedTracks.map((t) => t.id),
       savedAt: new Date().toISOString(),
     })
-    setDraftSaved(true)
-    setTimeout(() => setDraftSaved(false), 2000)
-  }, [voterId, periodId, orderedTracks])
+    toast.success(tDraft('saved'), {
+      description: tDraft('savedDjDesc'),
+    })
+  }, [voterId, periodId, orderedTracks, tDraft])
 
   const handleConfirmSubmit = useCallback(async () => {
     setIsSubmitting(true)
@@ -203,6 +211,15 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
 
   return (
     <div className="space-y-4">
+      {/* Onboarding tour for first-time visitors */}
+      <OnboardingTour
+        storageKey="dj-voting"
+        steps={djTourSteps}
+        skipLabel={tTour('skip')}
+        nextLabel={tTour('next')}
+        finishLabel={tTour('finish')}
+      />
+
       {/* Header */}
       <div className="flex items-center gap-2 mb-2">
         <p className="text-sm text-muted-foreground">
@@ -247,7 +264,7 @@ export function DJBallotDnD({ tracks, voterId, periodId, onSubmit }: DJBallotDnD
           disabled={isSubmitting}
           aria-label="Entwurf speichern und später fortfahren"
         >
-          {draftSaved ? '✓ Gespeichert' : 'Entwurf speichern'}
+          Entwurf speichern
         </Button>
 
         <Button

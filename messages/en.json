@@ -45,6 +45,8 @@
       "save": "Save draft",
       "load": "Load draft",
       "saved": "Draft saved",
+      "savedFanDesc": "Your voting draft has been saved.",
+      "savedDjDesc": "Your DJ ballot draft has been saved.",
       "loaded": "Draft loaded",
       "discarded": "Draft discarded"
     },
@@ -150,6 +152,43 @@
       "title": "Peer Voting (Anti-Collusion)",
       "badge": "Band Voting",
       "summary": "Bands rate each other; voting rings are downweighted."
+    }
+  },
+  "demo": {
+    "chartsBanner": "Demo Data — Real charts will appear after the first voting period.",
+    "scoutingBanner": "Demo Suggestions — Real AI scout results will appear when connected.",
+    "dismiss": "Dismiss"
+  },
+  "categoryPricing": {
+    "emptyState": "Select at least one category to see pricing.",
+    "emptyStateCost": "€0.00"
+  },
+  "onboarding": {
+    "fanTour": {
+      "welcome": "Welcome to Fan Voting!",
+      "welcomeDesc": "Use Quadratic Voting to support your favourite dark music tracks.",
+      "budget": "Your Voice Credit Budget",
+      "budgetDesc": "You have 100 credits per month. The cost of n votes = n² credits.",
+      "slider": "Adjust Your Votes",
+      "sliderDesc": "Move sliders to allocate credits. Spreading votes is more efficient than concentrating them.",
+      "submit": "Submit Your Votes",
+      "submitDesc": "Save a draft anytime, then submit when ready. Submissions are final.",
+      "skip": "Skip Tour",
+      "next": "Next",
+      "finish": "Got it!"
+    },
+    "djTour": {
+      "welcome": "Welcome to DJ Voting!",
+      "welcomeDesc": "Rank tracks using drag & drop. The Schulze method finds the fairest winner.",
+      "dragDrop": "Drag to Rank",
+      "dragDropDesc": "Drag tracks into your preferred order. Position 1 is your top pick.",
+      "schulze": "Schulze Method",
+      "schulzeDesc": "Your honest ranking is always the best strategy — strategic burial is impossible.",
+      "submit": "Submit Your Ballot",
+      "submitDesc": "Save a draft anytime. Once submitted, your ballot cannot be changed.",
+      "skip": "Skip Tour",
+      "next": "Next",
+      "finish": "Got it!"
     }
   },
   "errors": {

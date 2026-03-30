@@ -1,17 +1,20 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { VoiceCreditSlider } from '@/presentation/components/molecules/VoiceCreditSlider'
 import { HelpButton } from '@/presentation/components/atoms/HelpButton'
 import { ConfirmDialog } from '@/presentation/components/molecules/ConfirmDialog'
+import { OnboardingTour } from '@/presentation/components/molecules/OnboardingTour'
 import {
   saveFanVoteDraft,
   loadFanVoteDraft,
   clearFanVoteDraft,
 } from '@/domain/voting/draftPersistence'
+import { toast } from 'sonner'
 
 export interface FanTrack {
   id: string
@@ -60,6 +63,16 @@ export function FanVotingPanel({
   periodId,
   onSubmit,
 }: FanVotingPanelProps) {
+  const tDraft = useTranslations('voting.draft')
+  const tTour = useTranslations('onboarding.fanTour')
+
+  const fanTourSteps = useMemo(() => [
+    { title: tTour('welcome'), description: tTour('welcomeDesc') },
+    { title: tTour('budget'), description: tTour('budgetDesc') },
+    { title: tTour('slider'), description: tTour('sliderDesc') },
+    { title: tTour('submit'), description: tTour('submitDesc') },
+  ], [tTour])
+
   // Load draft allocations on first render
   const [allocations, setAllocations] = useState<Record<string, number>>(() => {
     const draft = loadFanVoteDraft(voterId, periodId)
@@ -70,7 +83,6 @@ export function FanVotingPanel({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [draftSaved, setDraftSaved] = useState(false)
 
   const creditsSpent = useMemo(
     () => Object.values(allocations).reduce((sum, v) => sum + quadraticCost(v), 0),
@@ -98,9 +110,10 @@ export function FanVotingPanel({
       allocations,
       savedAt: new Date().toISOString(),
     })
-    setDraftSaved(true)
-    setTimeout(() => setDraftSaved(false), 2000)
-  }, [voterId, periodId, allocations])
+    toast.success(tDraft('saved'), {
+      description: tDraft('savedFanDesc'),
+    })
+  }, [voterId, periodId, allocations, tDraft])
 
   const handleReset = useCallback(() => {
     setAllocations(Object.fromEntries(tracks.map((t) => [t.id, 0])))
@@ -129,6 +142,15 @@ export function FanVotingPanel({
 
   return (
     <div className="space-y-6">
+      {/* Onboarding tour for first-time visitors */}
+      <OnboardingTour
+        storageKey="fan-voting"
+        steps={fanTourSteps}
+        skipLabel={tTour('skip')}
+        nextLabel={tTour('next')}
+        finishLabel={tTour('finish')}
+      />
+
       {/* Budget display */}
       <Card className="p-4 glassmorphism">
         <div className="flex items-center justify-between">
@@ -188,7 +210,7 @@ export function FanVotingPanel({
           disabled={isSubmitting}
           aria-label="Entwurf speichern und später fortfahren"
         >
-          {draftSaved ? '✓ Gespeichert' : 'Entwurf speichern'}
+          Entwurf speichern
         </Button>
 
         <Button
