@@ -18,10 +18,8 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
   BarChart2,
-  LayoutGrid,
   Heart,
-  Music2,
-  TrendingUp,
+  Info,
   ScrollText,
   Shield,
   LogOut,
@@ -36,11 +34,9 @@ interface NavLink {
 }
 
 const NAV_LINKS: NavLink[] = [
-  { href: '/charts',       labelKey: 'charts',      icon: <BarChart2  size={14} /> },
-  { href: '/categories',   labelKey: 'categories',  icon: <LayoutGrid size={14} /> },
-  { href: '/vote/fan',     labelKey: 'fanVote',     icon: <Heart      size={14} /> },
-  { href: '/vote/dj',      labelKey: 'djVote',      icon: <Music2     size={14} /> },
-  { href: '/how-it-works', labelKey: 'anr',         icon: <TrendingUp size={14} /> },
+  { href: '/charts',       labelKey: 'charts',       icon: <BarChart2  size={14} /> },
+  { href: '/vote',         labelKey: 'vote',         icon: <Heart      size={14} /> },
+  { href: '/how-it-works', labelKey: 'howItWorks',   icon: <Info       size={14} /> },
   { href: '/transparency', labelKey: 'transparency', icon: <ScrollText size={14} /> },
 ]
 

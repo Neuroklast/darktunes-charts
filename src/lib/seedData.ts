@@ -143,6 +143,7 @@ function buildSeedBands(): Band[] {
     genre: artist.genre,
     spotifyMonthlyListeners: artist.spotifyMonthlyListeners,
     tier: getTierFromListeners(artist.spotifyMonthlyListeners),
+    country: artist.country,
   }))
 }
 
