@@ -1,44 +1,65 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import {
-  BarChart2,
-  Zap,
-  RotateCcw,
-  LayersIcon,
-  Bot,
-  Eye,
-} from 'lucide-react'
+import { SEED_BANDS, SEED_TRACKS } from '@/lib/seedData'
+import { seededRandom, GENRE_GRADIENTS } from '@/lib/utils'
+import { getCachedImageUrl } from '@/lib/imageCache'
+import type { Band, Track } from '@/lib/types'
+import PillarCards from './_components/PillarCards'
+
+/** DJ and Peer score range constants — mirror those in ChartsView. */
+const DJ_SCORE_MULTIPLIER   = 30
+const DJ_SCORE_BASE         = 5
+const PEER_SCORE_MULTIPLIER = 20
+const PEER_SCORE_BASE       = 3
+const PILLAR_WEIGHT         = 0.333
+
+/** Build a mini top-5 preview from seed data (mirrors buildChartRows logic). */
+function buildTop5Preview(): Array<{ band: Band; track: Track; compositeScore: number }> {
+  const tracks = SEED_TRACKS as Track[]
+  const bands  = SEED_BANDS  as Band[]
+
+  return tracks
+    .slice(0, 15)
+    .map((track, idx) => {
+      const band = bands.find(b => b.id === track.bandId)
+      if (!band) return null
+      const djScore   = Math.floor(seededRandom(idx * 3 + 1) * DJ_SCORE_MULTIPLIER + idx * DJ_SCORE_BASE)
+      const peerScore = Math.floor(seededRandom(idx * 3 + 2) * PEER_SCORE_MULTIPLIER + idx * PEER_SCORE_BASE)
+      const compositeScore = (djScore * PILLAR_WEIGHT) + (peerScore * PILLAR_WEIGHT)
+      return { band, track, compositeScore }
+    })
+    .filter((r): r is { band: Band; track: Track; compositeScore: number } => r !== null)
+    .sort((a, b) => b.compositeScore - a.compositeScore)
+    .slice(0, 5)
+}
 
 export default function HomePage() {
+  const top5    = buildTop5Preview()
+  const topEntry = top5[0]
+
   return (
     <main className="min-h-screen gradient-mesh">
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden py-28 px-4">
-        <div className="max-w-[1440px] mx-auto">
-          <div className="max-w-3xl">
-            <p
-              className="text-[11px] text-[#7C3AED] tracking-[0.3em] uppercase mb-4 font-medium"
-              style={{ fontFamily: 'var(--font-body)' }}
-            >
-              Quadratic Voting · Schulze-Methode · Anti-Kollusion
+      <section className="relative overflow-hidden py-20 sm:py-28 px-4">
+        <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-12 items-center">
+
+          {/* Left: Brand + CTA */}
+          <div>
+            <p className="text-[11px] text-accent tracking-[0.3em] uppercase mb-4 font-medium">
+              Fair Voting · Keine Pay-to-Win · Transparente Algorithmen
             </p>
-            <h1
-              className="text-6xl md:text-8xl font-display text-white leading-none mb-6"
-              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
-            >
+            <h1 className="text-5xl md:text-7xl font-display text-white leading-none mb-6">
               DarkTunes<br />
-              <span className="text-[#D30000]">Charts</span>
+              <span className="text-primary">Charts</span>
             </h1>
-            <p className="text-base text-white/45 max-w-xl mb-8 leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
-              Die fairsten Dark-Musik Charts der Welt. Powered by mathematisch
-              bewiesenen Voting-Algorithmen, die strategische Manipulation ausschließen.
+            <p className="text-base text-muted-foreground max-w-xl mb-8 leading-relaxed">
+              Die fairsten Dark-Musik Charts der Welt. Fan-Stimmen, DJ-Expertise und Peer-Respekt
+              bestimmen gemeinsam, wer die Szene anführt.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button
-                asChild
-                className="h-10 px-6 text-[12px] uppercase tracking-widest bg-[#D30000] hover:bg-[#B00000] text-white border-0 rounded-sm font-medium"
-              >
+              <Button asChild className="h-10 px-6 text-[12px] uppercase tracking-widest rounded-sm">
                 <Link href="/charts">Charts ansehen</Link>
               </Button>
               <Button
@@ -46,82 +67,77 @@ export default function HomePage() {
                 variant="outline"
                 className="h-10 px-6 text-[12px] uppercase tracking-widest border-white/15 text-white/70 hover:text-white hover:bg-white/5 rounded-sm"
               >
-                <Link href="/how-it-works">Wie funktioniert es?</Link>
+                <Link href="/vote">Jetzt abstimmen</Link>
               </Button>
             </div>
           </div>
+
+          {/* Right: Featured #1 Preview Card */}
+          {topEntry && (
+            <div className="relative group">
+              <div className="relative rounded-lg overflow-hidden border border-white/[0.08] aspect-square max-w-sm mx-auto">
+                {topEntry.band.coverArtUrl ? (
+                  <Image
+                    src={getCachedImageUrl(topEntry.band.coverArtUrl, { width: 400, height: 400, fit: 'cover' }) ?? topEntry.band.coverArtUrl}
+                    alt={`${topEntry.track.title} artwork`}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    priority
+                  />
+                ) : (
+                  <div className={`absolute inset-0 bg-gradient-to-br ${GENRE_GRADIENTS[topEntry.band.genre] ?? 'from-gray-900 to-black'}`} />
+                )}
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <p className="text-[10px] text-primary uppercase tracking-widest font-medium mb-1">#1 Charts</p>
+                  <h3 className="font-display text-xl text-white leading-tight">{topEntry.track.title}</h3>
+                  <p className="text-sm text-white/60">{topEntry.band.name}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Background accent */}
         <div
           aria-hidden
           className="pointer-events-none absolute right-0 top-0 w-1/2 h-full opacity-20"
-          style={{
-            background: 'radial-gradient(ellipse at 80% 40%, #7C3AED 0%, transparent 70%)',
-          }}
+          style={{ background: 'radial-gradient(ellipse at 80% 40%, var(--dt-violet) 0%, transparent 70%)' }}
         />
       </section>
 
-      {/* ── System Features Bento Grid ── */}
-      <section className="py-16 px-4">
+      {/* ── Live Top-5 Preview ── */}
+      <section className="py-12 px-4 border-t border-white/[0.05]">
         <div className="max-w-[1440px] mx-auto">
-          <h2
-            className="text-2xl font-display text-white mb-8"
-            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.08em' }}
-          >
-            Das System
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <FeatureCard
-              icon={<BarChart2 size={20} />}
-              accentColor="#D30000"
-              title="Quadratic Voting"
-              description="Fans erhalten 100 Voice Credits pro Monat. Mehr Stimmen für einen Track kosten exponentiell mehr Credits — faire Meinungsverteilung garantiert."
-            />
-            <FeatureCard
-              icon={<Zap size={20} />}
-              accentColor="#7C3AED"
-              title="Schulze-Methode"
-              description="DJs reichen Ranked-Choice Ballots ein. Der Condorcet-Sieger wird durch den Beatpath-Algorithmus ermittelt — strategisches Burial ist unmöglich."
-            />
-            <FeatureCard
-              icon={<RotateCcw size={20} />}
-              accentColor="#00F0FF"
-              title="Peer Review"
-              description="Bands bewerten sich gegenseitig. Kliquen-Erkennung durch Mahalanobis-Distanz und Triadic Census verhindert Voting-Rings."
-            />
-            <FeatureCard
-              icon={<LayersIcon size={20} />}
-              accentColor="#00FF66"
-              title="Combined Charts (33/33/33)"
-              description="Fan-Score, DJ-Score und Peer-Score werden gleichgewichtet aggregiert. Min-Max-Normalisierung verhindert Dominanz einer Gruppe."
-            />
-            <FeatureCard
-              icon={<Bot size={20} />}
-              accentColor="#F59E0B"
-              title="AI Prediction"
-              description="Machine Learning analysiert Vote-Velocity, Genre-Momentum und Stream-Wachstum um aufsteigende Künstler zu identifizieren."
-            />
-            <FeatureCard
-              icon={<Eye size={20} />}
-              accentColor="#7C3AED"
-              title="Algorithmische Transparenz"
-              description="Jeder Vote-Gewichtungsschritt wird im Transparenz-Log dokumentiert. Vollständige Nachvollziehbarkeit für alle Beteiligten."
-            />
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-display text-white tracking-wide">Aktuelle Charts</h2>
+            <Link href="/charts" className="text-sm text-accent hover:text-accent/80 transition-colors">
+              Alle ansehen →
+            </Link>
           </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {top5.map((entry, i) => (
+              <TopChartCard key={entry.track.id} entry={entry} rank={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 3 Emotional Pillars ── */}
+      <section className="py-16 px-4 border-t border-white/[0.05]">
+        <div className="max-w-[1440px] mx-auto">
+          <h2 className="text-2xl font-display text-white mb-2 tracking-wide">3 Stimmen. 1 Chart. Null Pay-to-Win.</h2>
+          <p className="text-sm text-muted-foreground mb-8">Jede Stimme zählt — unabhängig vom Budget.</p>
+          <PillarCards />
         </div>
       </section>
 
       {/* ── CTA ── */}
       <section className="py-16 px-4 border-t border-white/[0.05]">
         <div className="max-w-[1440px] mx-auto">
-          <h2
-            className="text-2xl font-display text-white mb-3"
-            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.08em' }}
-          >
-            Mitmachen
-          </h2>
-          <p className="text-sm text-white/40 mb-6" style={{ fontFamily: 'var(--font-body)' }}>
+          <h2 className="text-2xl font-display text-white mb-3 tracking-wide">Mitmachen</h2>
+          <p className="text-sm text-muted-foreground mb-6">
             Als Fan abstimmen, als DJ Ballots einreichen, oder als Band registrieren.
           </p>
           <div className="flex flex-wrap gap-3">
@@ -130,14 +146,7 @@ export default function HomePage() {
               variant="outline"
               className="h-9 px-5 text-[11px] uppercase tracking-widest border-white/12 text-white/60 hover:text-white hover:bg-white/5 rounded-sm"
             >
-              <Link href="/vote/fan">Als Fan abstimmen</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-9 px-5 text-[11px] uppercase tracking-widest border-white/12 text-white/60 hover:text-white hover:bg-white/5 rounded-sm"
-            >
-              <Link href="/vote/dj">DJ Ballot einreichen</Link>
+              <Link href="/vote">Als Fan abstimmen</Link>
             </Button>
             <Button
               asChild
@@ -153,37 +162,40 @@ export default function HomePage() {
   )
 }
 
-function FeatureCard({
-  icon,
-  accentColor,
-  title,
-  description,
+/* ── Sub-components ── */
+
+function TopChartCard({
+  entry,
+  rank,
 }: {
-  icon: React.ReactNode
-  accentColor: string
-  title: string
-  description: string
+  entry: { band: Band; track: Track; compositeScore: number }
+  rank: number
 }) {
+  const artworkSrc = entry.band.coverArtUrl ?? entry.band.logoUrl ?? null
   return (
-    <div
-      className="bg-[#141414] border border-white/[0.06] rounded-sm p-5 card-hover"
-    >
-      <div
-        className="w-8 h-8 flex items-center justify-center rounded-sm mb-4"
-        style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
-      >
-        {icon}
+    <Link href="/charts" className="group relative block rounded-md overflow-hidden aspect-square border border-white/[0.07] hover:border-white/20 transition-colors">
+      {artworkSrc ? (
+        <Image
+          src={getCachedImageUrl(artworkSrc, { width: 200, height: 200, fit: 'cover' }) ?? artworkSrc}
+          alt={`${entry.track.title} artwork`}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+        />
+      ) : (
+        <div className={`absolute inset-0 bg-gradient-to-br ${GENRE_GRADIENTS[entry.band.genre] ?? 'from-gray-900 to-black'}`} />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+      {/* Rank badge */}
+      <div className="absolute top-2 left-2 w-6 h-6 rounded-sm flex items-center justify-center text-xs font-display font-bold bg-primary/80 text-white">
+        {rank + 1}
       </div>
-      <h3
-        className="text-sm font-display text-white mb-2"
-        style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
-      >
-        {title}
-      </h3>
-      <p className="text-xs text-white/40 leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
-        {description}
-      </p>
-    </div>
+      <div className="absolute bottom-0 left-0 right-0 p-2">
+        <p className="text-[10px] font-display text-white leading-tight truncate">{entry.track.title}</p>
+        <p className="text-[9px] text-white/50 truncate">{entry.band.name}</p>
+      </div>
+    </Link>
   )
 }
+
 
