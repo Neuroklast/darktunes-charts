@@ -88,6 +88,11 @@ describe('calculateTemporalWeight', () => {
     expect(calculateTemporalWeight(voteMs, endMs)).toBe(0.9)
   })
 
+  it('throws RangeError for invalid date strings', () => {
+    expect(() => calculateTemporalWeight('not-a-date', periodEnd)).toThrow(RangeError)
+    expect(() => calculateTemporalWeight(periodEnd, 'invalid')).toThrow(RangeError)
+  })
+
   // -----------------------------------------------------------------------
   // Custom windows
   // -----------------------------------------------------------------------

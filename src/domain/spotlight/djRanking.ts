@@ -122,6 +122,7 @@ export function computeBallotCoverage(
   rankedCount: number,
   totalEligible: number
 ): number {
+  // When no tracks are eligible there is nothing to rank — no penalty applies.
   if (totalEligible <= 0) return 1
   return Math.min(1, Math.max(0, rankedCount / totalEligible))
 }
@@ -187,7 +188,7 @@ export function computeDJRankings(
       outcome.finalRankings.length
     )
 
-    const predictiveAccuracy = computeAdjustedAccuracy(rawAccuracy, ballotCoverage)
+    const adjustedAccuracy = computeAdjustedAccuracy(rawAccuracy, ballotCoverage)
 
     const participation = participationMap.get(outcome.userId) ?? {
       userId: outcome.userId,
@@ -196,11 +197,11 @@ export function computeDJRankings(
     }
 
     const participationRate = computeParticipationRate(participation)
-    const totalScore = predictiveAccuracy * participationRate
+    const totalScore = adjustedAccuracy * participationRate
 
     return {
       userId: outcome.userId,
-      predictiveAccuracy,
+      predictiveAccuracy: adjustedAccuracy,
       ballotCoverage,
       participationRate,
       totalScore,

@@ -78,6 +78,14 @@ export function calculateTemporalWeight(
 ): number {
   const voteMs = new Date(voteDate).getTime()
   const endMs = new Date(periodEnd).getTime()
+
+  // Guard against invalid date inputs (e.g. malformed strings).
+  if (Number.isNaN(voteMs) || Number.isNaN(endMs)) {
+    throw new RangeError(
+      `[temporalDecay] Invalid date argument: voteDate=${String(voteDate)}, periodEnd=${String(periodEnd)}`
+    )
+  }
+
   const daysBeforeEnd = (endMs - voteMs) / MS_PER_DAY
 
   // Votes cast after the period end are treated as the most recent window.
