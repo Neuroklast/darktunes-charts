@@ -22,7 +22,7 @@ export async function GET(req: Request) {
  * Factory that creates the GET handler with an injected repository.
  * Enables unit testing without Prisma by passing an in-memory repo.
  */
-export function createAchievementsHandler(repo: IAchievementRepository) {
+function createAchievementsHandler(repo: IAchievementRepository) {
   return async function handler(req: Request) {
     const { searchParams } = new URL(req.url)
     const userId = searchParams.get('userId')
