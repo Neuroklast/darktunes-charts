@@ -15,7 +15,13 @@
     "logout": "Abmelden",
     "security": "Sicherheit",
     "tagline": "Fair · Transparent · Innovativ",
-    "switchLanguage": "Sprache wechseln"
+    "switchLanguage": "Sprache wechseln",
+    "openMenu": "Menü öffnen",
+    "homeLink": "DarkTunes Startseite"
+  },
+  "help": {
+    "defaultAriaLabel": "Hilfe",
+    "closePanel": "Panel schließen"
   },
   "home": {
     "title": "DarkTunes Charts",
@@ -78,7 +84,22 @@
       "submitVotes": "Votes einreichen",
       "resetVotes": "Zurücksetzen",
       "confirmSubmit": "Bist du sicher, dass du diese Votes einreichen möchtest?",
-      "confirmReset": "Alle Votes zurücksetzen?"
+      "confirmReset": "Alle Votes zurücksetzen?",
+      "noTracks": "Keine Tracks zur Bewertung verfügbar.",
+      "helpAriaLabel": "Hilfe zu Quadratic Voting",
+      "creditsRemaining": "{credits} verbleibend",
+      "budgetExceeded": "Budget überschritten!",
+      "trackGroupAriaLabel": "Stimmen auf Tracks verteilen",
+      "saveDraftAriaLabel": "Entwurf speichern und später fortfahren",
+      "resetAriaLabel": "Alle Votes zurücksetzen",
+      "submitAriaLabel": "Votes endgültig einreichen",
+      "submitting": "Wird eingereicht…",
+      "confirmDescription": "Du gibst {spent} von {total} Credits aus. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "confirmConfirm": "Ja, einreichen",
+      "confirmCancel": "Abbrechen",
+      "resetDescription": "Alle Slider werden auf 0 zurückgesetzt. Der gespeicherte Entwurf wird ebenfalls gelöscht.",
+      "resetConfirm": "Zurücksetzen",
+      "resetCancel": "Abbrechen"
     },
     "djVote": {
       "title": "DJ Ballot",
@@ -86,7 +107,19 @@
       "dragToRank": "Ziehe Tracks in deine bevorzugte Reihenfolge",
       "submitBallot": "Ballot einreichen",
       "helpTitle": "Warum Drag & Drop statt Punkte?",
-      "helpText": "Die Schulze-Methode (Beatpath) findet den Condorcet-Sieger: den Track, der in Paarvergleichen gegen alle anderen gewinnt.\n\nDurch Ranglisten statt Punkten ist strategisches Burial unmöglich:\n• Du kannst einen Favoriten nicht durch taktisches Niedrigvoten eines Konkurrenten schaden.\n• Der Algorithmus bewertet alle Paarvergleiche und findet den stärksten Pfad.\n\nEinfach gesagt: Deine ehrliche Reihenfolge ist immer die beste Strategie."
+      "helpText": "Die Schulze-Methode (Beatpath) findet den Condorcet-Sieger: den Track, der in Paarvergleichen gegen alle anderen gewinnt.\n\nDurch Ranglisten statt Punkten ist strategisches Burial unmöglich:\n• Du kannst einen Favoriten nicht durch taktisches Niedrigvoten eines Konkurrenten schaden.\n• Der Algorithmus bewertet alle Paarvergleiche und findet den stärksten Pfad.\n\nEinfach gesagt: Deine ehrliche Reihenfolge ist immer die beste Strategie.",
+      "noTracks": "Keine Tracks zur Bewertung verfügbar.",
+      "dragInstruction": "Ziehe Tracks in deine bevorzugte Reihenfolge. Platz 1 ist dein Favorit.",
+      "helpAriaLabel": "Hilfe zur Schulze-Methode",
+      "dragAriaLabel": "{title} ziehen, um die Position zu ändern",
+      "albumArtAlt": "Album-Cover für {title}",
+      "rankingAriaLabel": "Rangliste der Tracks",
+      "saveDraftAriaLabel": "Entwurf speichern und später fortfahren",
+      "submitAriaLabel": "Ballot endgültig einreichen",
+      "submitting": "Wird eingereicht…",
+      "confirmDescription": "Bist du sicher? Dein DJ-Ballot kann danach nicht mehr geändert werden. Die Schulze-Methode berechnet deine Paarvergleiche automatisch.",
+      "confirmConfirm": "Ja, einreichen",
+      "confirmCancel": "Abbrechen"
     },
     "peerVote": {
       "title": "Band Peer Review",
@@ -117,7 +150,11 @@
         "placeholder": "z. B. Bassmischung für Clubanlagen verbessern …",
         "submit": "Feedback senden",
         "success": "Feedback erfolgreich gesendet",
-        "error": "Fehler beim Senden"
+        "error": "Fehler beim Senden",
+        "feedbackTo": "Feedback an {bandName}",
+        "characters": "{count}/2000 Zeichen",
+        "unknownError": "Unbekannter Fehler",
+        "sending": "Wird gesendet …"
       }
     },
     "band": {
@@ -134,7 +171,25 @@
       "undergroundFinder": "Underground Finder",
       "djBeatpathTrends": "DJ Beatpath Trends",
       "exportCsv": "Daten exportieren (CSV)",
-      "exportLoading": "Export wird erstellt …"
+      "exportLoading": "Export wird erstellt …",
+      "arAnalytics": "A&R Analytics",
+      "conversionRate": "Konversionsrate",
+      "conversionHelpAriaLabel": "Hilfe zur Konversionsrate",
+      "conversionSubtext": "Fan-Voter → Label-Bands",
+      "highQvConversion": "Hohe QV-Konversionsrate",
+      "trendScouting": "Trend Scouting — Vote Velocity",
+      "trendHelpAriaLabel": "Hilfe zur Vote-Velocity",
+      "trending": "🔥 Trending",
+      "peerReview": "Peer-Review-Analyse",
+      "peerHelpAriaLabel": "Hilfe zur Peer-Review-Analyse",
+      "peerDescription": "A&R Predictive Analytics: Entdecke Underground-Künstler mit hohen QV-Konversionsraten und DJ Beatpath-Momentum, bevor sie mainstream werden.",
+      "trendHelpTitle": "Vote-Velocity erklärt",
+      "trendHelpDescription": "Vote-Velocity misst, wie schnell eine Band neue Votes gewinnt im Vergleich zum Vormonat. Bands mit hoher Velocity haben Momentum — sie werden gerade entdeckt. Basiert auf dem AI-Prediction-Modul (Spec §9.4).",
+      "conversionHelpTitle": "Konversionsrate erklärt",
+      "conversionHelpDescription": "Konversionsrate = Anteil aller Fan-Voter, die für mindestens eine deiner mandatierten Bands gestimmt haben. Hoch = deine Bands ziehen viele Fans an.",
+      "peerHelpTitle": "Peer-Review-Analyse erklärt",
+      "peerHelpDescription": "Zeigt, wie andere Bands die Artists deines Labels im Peer-Review bewertet haben. Hohe Peer-Scores signalisieren Anerkennung in der Musikergemeinschaft — ein starker Indikator für Nachhaltigkeit.",
+      "voteVelocityAriaLabel": "Vote-Velocity: {velocity}"
     }
   },
   "algorithms": {
@@ -159,9 +214,32 @@
     "scoutingBanner": "Demo-Vorschläge — Echte KI-Scout-Ergebnisse erscheinen nach Verbindung.",
     "dismiss": "Schließen"
   },
+  "scouting": {
+    "title": "Discovery Scouting",
+    "emptyState": "Keine neuen Vorschläge — Bots scouten im Hintergrund.",
+    "confidence": "Konfidenz",
+    "nominate": "Nominieren",
+    "reasonNewRelease": "Neue Veröffentlichung",
+    "reasonVelocitySpike": "Velocity ↑",
+    "reasonGenreMatch": "Genre Match"
+  },
   "categoryPricing": {
     "emptyState": "Wähle mindestens eine Kategorie, um die Preise zu sehen.",
     "emptyStateCost": "0,00 €"
+  },
+  "trackSubmission": {
+    "titleLabel": "Track-Titel *",
+    "titlePlaceholder": "z.B. Schwarzes Herz",
+    "genreLabel": "Genre *",
+    "genreSelect": "Genre wählen…",
+    "isrcLabel": "ISRC (optional)",
+    "isrcPlaceholder": "z.B. DEA712345678",
+    "spotifyLabel": "Spotify Track-ID (optional)",
+    "spotifyPlaceholder": "z.B. 4uLU6hMCjMI75M1A2tKUQC",
+    "submitting": "Einreichen…",
+    "submit": "Track einreichen",
+    "enriching": "Metadata Bot wird ausgeführt…",
+    "success": "Track erfolgreich eingereicht."
   },
   "onboarding": {
     "fanTour": {
