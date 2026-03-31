@@ -45,6 +45,8 @@ export interface Band {
   genre: Genre
   spotifyMonthlyListeners: number
   tier: Tier
+  /** Record label this band is primarily associated with. */
+  label?: string
   logoUrl?: string
   coverArtUrl?: string
   spotifyUrl?: string

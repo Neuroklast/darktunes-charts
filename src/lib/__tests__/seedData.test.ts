@@ -4,8 +4,9 @@ import { SEED_BANDS, SEED_TRACKS } from '../seedData'
 const VALID_TIERS = ['Micro', 'Emerging', 'Established', 'International', 'Macro']
 
 describe('SEED_BANDS', () => {
-  it('has 76 entries', () => {
-    expect(SEED_BANDS).toHaveLength(76)
+  it('has the expected number of entries', () => {
+    // 10 Out of Line + 11 Trisol (incl. Extize) + 68 DarkTunes/independent = 89
+    expect(SEED_BANDS).toHaveLength(89)
   })
 
   it('all bands have valid tiers', () => {
