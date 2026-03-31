@@ -8,10 +8,14 @@
  */
 export type { CategoryMetadata } from '@/domain/categories'
 export {
+  MAX_CATEGORIES_PER_BAND,
   CATEGORY_DEFINITIONS,
   CATEGORY_GROUPS,
   getCategoryMetadata,
   getCategoriesByGroup,
+  getChartEligibleCategories,
+  getCommunityAwardCategories,
   canBandCompeteInCategory,
   calculateCategoryScore,
+  validateCategorySelection,
 } from '@/domain/categories'

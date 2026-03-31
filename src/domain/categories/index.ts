@@ -8,7 +8,16 @@
  * `src/lib/categories.ts` is a backward-compatibility shim that re-exports
  * from this module.
  */
-import type { AllCategory, CategoryGroup, Tier } from '@/lib/types'
+import type { AllCategory, CategoryGroup, Tier, Band } from '@/lib/types'
+
+/**
+ * Maximum number of chart categories a single band may enter per voting period.
+ *
+ * This cap prevents wealthy bands from gaining disproportionate platform visibility
+ * by submitting to all 13 categories simultaneously (Anti-Pay2Win protection).
+ * Five categories provide ample creative exposure while keeping competition fair.
+ */
+export const MAX_CATEGORIES_PER_BAND = 5
 
 /** Metadata describing a single chart category and its voting weight configuration. */
 export interface CategoryMetadata {
@@ -20,6 +29,13 @@ export interface CategoryMetadata {
   fanWeight: number
   djWeight: number
   peerWeight: number
+  /**
+   * Whether this category appears in music charts.
+   * - `true`  for music, visuals, and newcomer categories (directly tied to music releases).
+   * - `false` for community categories (podcasts, social engagement, lyricists) which are
+   *           recognised separately in the Community Awards section.
+   */
+  chartEligible: boolean
   tierRestriction?: Tier[]
   maxListeners?: number
 }
@@ -33,7 +49,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'Disc',
     fanWeight: 0.4,
     djWeight: 0.3,
-    peerWeight: 0.3
+    peerWeight: 0.3,
+    chartEligible: true,
   },
   'album': {
     id: 'album',
@@ -43,7 +60,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'Vinyl',
     fanWeight: 0.4,
     djWeight: 0.3,
-    peerWeight: 0.3
+    peerWeight: 0.3,
+    chartEligible: true,
   },
   'voice-of-void': {
     id: 'voice-of-void',
@@ -53,7 +71,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'Microphone',
     fanWeight: 0.2,
     djWeight: 0.2,
-    peerWeight: 0.6
+    peerWeight: 0.6,
+    chartEligible: true,
   },
   'riff-architect': {
     id: 'riff-architect',
@@ -63,7 +82,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'GuitarPick',
     fanWeight: 0.2,
     djWeight: 0.2,
-    peerWeight: 0.6
+    peerWeight: 0.6,
+    chartEligible: true,
   },
   'synthesis-steel': {
     id: 'synthesis-steel',
@@ -73,7 +93,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'Waveform',
     fanWeight: 0.3,
     djWeight: 0.4,
-    peerWeight: 0.3
+    peerWeight: 0.3,
+    chartEligible: true,
   },
   'best-cover-art': {
     id: 'best-cover-art',
@@ -83,7 +104,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'Package',
     fanWeight: 0.7,
     djWeight: 0.15,
-    peerWeight: 0.15
+    peerWeight: 0.15,
+    chartEligible: true,
   },
   'best-merch': {
     id: 'best-merch',
@@ -93,7 +115,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'TShirt',
     fanWeight: 0.7,
     djWeight: 0.15,
-    peerWeight: 0.15
+    peerWeight: 0.15,
+    chartEligible: true,
   },
   'best-music-video': {
     id: 'best-music-video',
@@ -103,7 +126,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'FilmSlate',
     fanWeight: 0.5,
     djWeight: 0.25,
-    peerWeight: 0.25
+    peerWeight: 0.25,
+    chartEligible: true,
   },
   'chronicler-night': {
     id: 'chronicler-night',
@@ -113,7 +137,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'Newspaper',
     fanWeight: 0.6,
     djWeight: 0.2,
-    peerWeight: 0.2
+    peerWeight: 0.2,
+    chartEligible: false,
   },
   'dark-integrity': {
     id: 'dark-integrity',
@@ -123,7 +148,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'HandHeart',
     fanWeight: 0.5,
     djWeight: 0.25,
-    peerWeight: 0.25
+    peerWeight: 0.25,
+    chartEligible: false,
   },
   'lyricist-shadows': {
     id: 'lyricist-shadows',
@@ -133,7 +159,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'PenNib',
     fanWeight: 0.3,
     djWeight: 0.2,
-    peerWeight: 0.5
+    peerWeight: 0.5,
+    chartEligible: false,
   },
   'underground-anthem': {
     id: 'underground-anthem',
@@ -144,6 +171,7 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     fanWeight: 0.5,
     djWeight: 0.25,
     peerWeight: 0.25,
+    chartEligible: true,
     tierRestriction: ['Micro', 'Emerging'],
     maxListeners: 10000
   },
@@ -155,7 +183,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     icon: 'Book',
     fanWeight: 0.4,
     djWeight: 0.3,
-    peerWeight: 0.3
+    peerWeight: 0.3,
+    chartEligible: true,
   }
 }
 
@@ -255,4 +284,103 @@ export function calculateCategoryScore(
     normalizedDJ   * meta.djWeight +
     normalizedPeer * meta.peerWeight
   ) * 100
+}
+
+/**
+ * Returns all categories that are eligible to appear in music charts.
+ *
+ * Filters out community award categories (podcasts, social engagement, lyricists)
+ * which are recognised in a separate Community Awards section and must not
+ * distort the music chart rankings.
+ *
+ * @returns Array of chart-eligible category metadata objects.
+ */
+export function getChartEligibleCategories(): CategoryMetadata[] {
+  return (Object.values(CATEGORY_DEFINITIONS) as CategoryMetadata[]).filter(
+    meta => meta.chartEligible,
+  )
+}
+
+/**
+ * Returns all community award categories that are NOT chart-eligible.
+ *
+ * These categories recognise non-musical contributions such as scene media,
+ * social engagement, and lyrical craft. They are presented separately from
+ * music rankings to avoid mixing incompatible competition criteria.
+ *
+ * @returns Array of community category metadata objects.
+ */
+export function getCommunityAwardCategories(): CategoryMetadata[] {
+  return (Object.values(CATEGORY_DEFINITIONS) as CategoryMetadata[]).filter(
+    meta => !meta.chartEligible,
+  )
+}
+
+/** Validation result for a band's category selection. */
+export interface CategorySelectionValidation {
+  valid: boolean
+  error?: string
+  eligibleCategories: AllCategory[]
+  ineligibleCategories: Array<{ id: AllCategory; reason: string }>
+}
+
+/**
+ * Validates a band's category selection for a voting period submission.
+ *
+ * Enforces three rules:
+ * 1. Maximum of MAX_CATEGORIES_PER_BAND (5) categories per period.
+ * 2. Only chart-eligible categories may be submitted (community awards are excluded).
+ * 3. Tier and listener-count restrictions per category (e.g. Underground Anthem).
+ *
+ * @param selectedCategories - The category IDs the band wishes to enter.
+ * @param band               - The band submitting the entries.
+ * @returns Validation result with eligible/ineligible breakdown and an error message when invalid.
+ */
+export function validateCategorySelection(
+  selectedCategories: AllCategory[],
+  band: Band,
+): CategorySelectionValidation {
+  const ineligibleCategories: Array<{ id: AllCategory; reason: string }> = []
+  const eligibleCategories: AllCategory[] = []
+
+  for (const categoryId of selectedCategories) {
+    const meta = CATEGORY_DEFINITIONS[categoryId]
+
+    if (!meta.chartEligible) {
+      ineligibleCategories.push({ id: categoryId, reason: 'Community award categories cannot be submitted as chart entries.' })
+      continue
+    }
+
+    if (meta.tierRestriction && !meta.tierRestriction.includes(band.tier)) {
+      ineligibleCategories.push({ id: categoryId, reason: `Category "${meta.name}" is restricted to tiers: ${meta.tierRestriction.join(', ')}.` })
+      continue
+    }
+
+    if (meta.maxListeners && band.spotifyMonthlyListeners > meta.maxListeners) {
+      ineligibleCategories.push({ id: categoryId, reason: `Category "${meta.name}" requires fewer than ${meta.maxListeners.toLocaleString()} monthly listeners.` })
+      continue
+    }
+
+    eligibleCategories.push(categoryId)
+  }
+
+  if (selectedCategories.length > MAX_CATEGORIES_PER_BAND) {
+    return {
+      valid: false,
+      error: `A band may enter at most ${MAX_CATEGORIES_PER_BAND} categories per period. ${selectedCategories.length} were selected.`,
+      eligibleCategories,
+      ineligibleCategories,
+    }
+  }
+
+  if (ineligibleCategories.length > 0) {
+    return {
+      valid: false,
+      error: `${ineligibleCategories.length} category(s) cannot be entered: ${ineligibleCategories.map(c => c.id).join(', ')}.`,
+      eligibleCategories,
+      ineligibleCategories,
+    }
+  }
+
+  return { valid: true, eligibleCategories, ineligibleCategories }
 }
