@@ -11,6 +11,7 @@ import { cn, seededRandom, getCountryFlag, getTierBadgeVariant, GENRE_GRADIENTS 
 import { getCachedImageUrl } from '@/lib/imageCache'
 import { ArtistSpotlight } from '@/features/spotlight/ArtistSpotlight'
 import { SpecialAwards } from '@/features/charts/SpecialAwards'
+import { calculateWeightedScore, resolveWeights } from '@/domain/voting/combined'
 
 type ChartFilter = 'overall' | Genre
 
@@ -60,9 +61,8 @@ const DJ_SCORE_RANGE = 30
 const DJ_SCORE_BASE = 5
 const PEER_SCORE_RANGE = 20
 const PEER_SCORE_BASE = 3
-const PILLAR_WEIGHT = 0.333
 
-/** Fallback percentage when total score is zero — equal thirds for all pillars. */
+/** Equal weight in percent for display when all pillars carry the same share. */
 const EQUAL_PILLAR_PERCENT = 100 / 3
 
 function buildChartRows(
@@ -71,6 +71,11 @@ function buildChartRows(
   fanVotes: Record<string, FanVote>,
   genreFilter: ChartFilter,
 ): ChartRow[] {
+  // Overall chart uses equal 1/3 weights; genre sub-tabs also use equal weights
+  // since genre ≠ AllCategory. Category-specific weights are applied when the
+  // platform exposes a per-category chart view in a future iteration.
+  const weights = resolveWeights()
+
   const filtered = genreFilter === 'overall'
     ? tracks
     : tracks.filter(t => {
@@ -86,7 +91,7 @@ function buildChartRows(
       const fanCredits = fanVotes[track.id]?.creditsSpent ?? 0
       const djScore = Math.floor(seededRandom(idx * 3 + 1) * DJ_SCORE_RANGE + idx * DJ_SCORE_BASE)
       const peerScore = Math.floor(seededRandom(idx * 3 + 2) * PEER_SCORE_RANGE + idx * PEER_SCORE_BASE)
-      const compositeScore = (fanCredits * PILLAR_WEIGHT) + (djScore * PILLAR_WEIGHT) + (peerScore * PILLAR_WEIGHT)
+      const compositeScore = calculateWeightedScore(fanCredits, djScore, peerScore, weights)
 
       return { track, band, fanCredits, djScore, peerScore, compositeScore }
     })
@@ -119,6 +124,12 @@ export function ChartsView({ bands, tracks, fanVotes }: ChartsViewProps) {
     [tracks, bands, fanVotes, activeFilter],
   )
 
+  // Weights for the subtitle — overall/genre tabs always use equal thirds
+  const activeWeights = resolveWeights()
+  const fanWeightPct = Math.round(activeWeights.fan * 100)
+  const djWeightPct  = Math.round(activeWeights.dj  * 100)
+  const peerWeightPct = Math.round(activeWeights.peer * 100)
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -128,7 +139,7 @@ export function ChartsView({ bands, tracks, fanVotes }: ChartsViewProps) {
             {activeFilter === 'overall' ? 'OVERALL CHARTS' : `${activeFilter.toUpperCase()} CHARTS`}
           </h2>
           <p className="text-muted-foreground text-sm">
-            Kombination aller drei Voting-Säulen · Fan 33,3 % · DJ 33,3 % · Peer 33,3 %
+            Kombination aller drei Voting-Säulen · Fan {fanWeightPct} % · DJ {djWeightPct} % · Peer {peerWeightPct} %
           </p>
         </div>
         {/* View mode toggle */}
@@ -222,7 +233,8 @@ function RankMovement({ rank, seed }: { rank: number; seed: number }) {
 }
 
 function ChartCard({ track, band, fanCredits, djScore, peerScore, rank }: ChartCardProps) {
-  const compositeScore = (fanCredits * PILLAR_WEIGHT) + (djScore * PILLAR_WEIGHT) + (peerScore * PILLAR_WEIGHT)
+  const weights = resolveWeights()
+  const compositeScore = calculateWeightedScore(fanCredits, djScore, peerScore, weights)
   const totalScore = fanCredits + djScore + peerScore
   const fanPercent  = totalScore > 0 ? (fanCredits / totalScore) * 100 : EQUAL_PILLAR_PERCENT
   const djPercent   = totalScore > 0 ? (djScore   / totalScore) * 100 : EQUAL_PILLAR_PERCENT
