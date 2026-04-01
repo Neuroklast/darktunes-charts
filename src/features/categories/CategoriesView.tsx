@@ -65,8 +65,7 @@ export function CategoriesView({
         const band = bands.find(b => b.id === track.bandId)!
         const fanCredits = fanVotes[track.id]?.creditsSpent ?? 0
         const djScore = Math.floor(seededRandom(idx * 7 + 1) * 100)
-        const peerScore = Math.floor(seededRandom(idx * 7 + 2) * 100)
-        const compositeScore = calculateCategoryScore(selectedCategory as AllCategory, fanCredits, djScore, peerScore)
+        const compositeScore = calculateCategoryScore(selectedCategory as AllCategory, fanCredits, djScore)
         return { track, band, fanCredits, compositeScore }
       })
       .sort((a, b) => b.compositeScore - a.compositeScore)

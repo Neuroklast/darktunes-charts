@@ -32,32 +32,32 @@ const TIER_HELP = {
 const PLACEHOLDER_ENTRIES: ChartEntry[] = [
   {
     rank: 1, prev: 1, title: 'The Iron Testament', artist: 'Xordia',
-    tier: 'Micro', genre: 'Metal', fanScore: 0, djScore: 766, peerScore: 462,
+    tier: 'Micro', genre: 'Metal', fanScore: 0, djScore: 766,
     total: 488.9, trend: 'up',
   },
   {
     rank: 2, prev: 2, title: 'Nocturnal Requiem', artist: 'Vioflesh',
-    tier: 'Micro', genre: 'Goth', fanScore: 0, djScore: 752, peerScore: 468,
+    tier: 'Micro', genre: 'Goth', fanScore: 0, djScore: 752,
     total: 483.6, trend: 'down',
   },
   {
     rank: 3, prev: 4, title: 'System Override', artist: 'X-Rx',
-    tier: 'Emerging', genre: 'Dark Electro', fanScore: 0, djScore: 756, peerScore: 451,
+    tier: 'Emerging', genre: 'Dark Electro', fanScore: 0, djScore: 756,
     total: 481.9, trend: 'up',
   },
   {
     rank: 4, prev: 3, title: 'Siege of Eternity', artist: 'White Ritual',
-    tier: 'Micro', genre: 'Metal', fanScore: 0, djScore: 751, peerScore: 459,
+    tier: 'Micro', genre: 'Metal', fanScore: 0, djScore: 751,
     total: 399.9, trend: 'down',
   },
   {
     rank: 5, prev: 5, title: 'The Pale Archive', artist: 'TOAL',
-    tier: 'Micro', genre: 'Goth', fanScore: 0, djScore: 756, peerScore: 444,
+    tier: 'Micro', genre: 'Goth', fanScore: 0, djScore: 756,
     total: 399.6, trend: 'neutral',
   },
   {
     rank: 6, prev: 8, title: "Titan's Wrath", artist: 'The Silverblack',
-    tier: 'Emerging', genre: 'Metal', fanScore: 0, djScore: 749, peerScore: 441,
+    tier: 'Emerging', genre: 'Metal', fanScore: 0, djScore: 749,
     total: 381.2, trend: 'up',
   },
 ]
@@ -146,7 +146,6 @@ interface ChartEntry {
   genre: string
   fanScore: number
   djScore: number
-  peerScore: number
   total: number
   trend: 'up' | 'down' | 'neutral'
   artworkUrl?: string
@@ -309,7 +308,6 @@ function ChartEntryCard({ entry }: { entry: ChartEntry }) {
           <div className="flex items-center gap-6 mb-3">
             <ScoreCell icon={<Users size={12} className="text-white/30" />} label="Fan" value={entry.fanScore} />
             <ScoreCell icon={<Music2 size={12} className="text-[#00F0FF]/70" />} label="DJ" value={entry.djScore} />
-            <ScoreCell icon={<Star   size={12} className="text-[#D30000]/70" />} label="Peer" value={entry.peerScore} />
           </div>
 
           {/* Progress + total */}

@@ -26,7 +26,7 @@ export interface VoteSubmittedEvent {
   readonly type: 'VoteSubmitted'
   readonly trackId: string
   readonly userId: string
-  readonly voteType: 'fan' | 'dj' | 'peer'
+  readonly voteType: 'fan' | 'dj'
   readonly timestamp: Date
 }
 

@@ -97,7 +97,7 @@ export function CategorySelector({
                       Fan {Math.round(catMeta.fanWeight * 100)}%
                     </Badge>
                     <Badge variant="outline" className="text-xs">
-                      Peer {Math.round(catMeta.peerWeight * 100)}%
+                      DJ {Math.round(catMeta.djWeight * 100)}%
                     </Badge>
                     {catMeta.maxListeners && (
                       <Badge variant="secondary" className="text-xs">

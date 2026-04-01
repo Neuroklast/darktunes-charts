@@ -3,30 +3,29 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Heart, Disc, UsersThree } from '@phosphor-icons/react'
+import { Heart, Disc } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
-type VoteTab = 'fan' | 'dj' | 'peer'
+type VoteTab = 'fan' | 'dj'
 
-const VALID_VOTE_TABS = ['fan', 'dj', 'peer'] as const
+const VALID_VOTE_TABS = ['fan', 'dj'] as const
 
 const TABS: { id: VoteTab; label: string; icon: React.ReactNode; protectedHref: string }[] = [
   { id: 'fan',  label: 'Fan Voting',  icon: <Heart      className="w-5 h-5" weight="fill" />, protectedHref: '/vote/fan'  },
   { id: 'dj',   label: 'DJ Ballot',  icon: <Disc       className="w-5 h-5" weight="fill" />, protectedHref: '/vote/dj'   },
-  { id: 'peer', label: 'Peer Review', icon: <UsersThree className="w-5 h-5" weight="fill" />, protectedHref: '/vote/band' },
 ]
 
 const TAB_CONTENT: Record<VoteTab, { title: string; subtitle: string; description: string; pillars: string[]; cta: string }> = {
   fan: {
     title:       'Fan Voting',
-    subtitle:    'Quadratic Voting — 100 Voice Credits pro Monat',
-    description: 'Als Fan bekommst du 100 Voice Credits pro Monat. Du kannst sie frei auf Tracks verteilen. Je mehr Stimmen du auf EINEN Track setzt, desto teurer wird es — das verhindert, dass Einzelne das Ergebnis dominieren.',
+    subtitle:    'Quadratic Voting — 150 Voice Credits pro Monat',
+    description: 'Als Fan bekommst du 150 Voice Credits pro Monat. Du kannst sie frei auf Tracks verteilen. Je mehr Stimmen du auf EINEN Track setzt, desto teurer wird es — das verhindert, dass Einzelne das Ergebnis dominieren.',
     pillars: [
-      '100 Voice Credits pro Monat',
+      '150 Voice Credits pro Monat',
       'Kosten = Stimmen² (Quadratic Voting)',
       'Kredit-Budget wird jeden Monat zurückgesetzt',
-      'Dein Voting beeinflusst zu 33,3 % den Gesamt-Score',
+      'Dein Voting beeinflusst zu 50 % den Gesamt-Score',
     ],
     cta: 'Fan-Voting starten',
   },
@@ -38,21 +37,9 @@ const TAB_CONTENT: Record<VoteTab, { title: string; subtitle: string; descriptio
       'Drag & Drop Rangliste per Ballot',
       'Schulze-Methode: Condorcet-Sieger',
       'Burial-sicher: ehrliche Reihenfolge gewinnt immer',
-      'DJ-Ballots beeinflussen zu 33,3 % den Gesamt-Score',
+      'DJ-Ballots beeinflussen zu 50 % den Gesamt-Score',
     ],
     cta: 'DJ Ballot einreichen',
-  },
-  peer: {
-    title:       'Peer Review',
-    subtitle:    'Band-zu-Band Bewertung · Anti-Kollusions-Algorithmus',
-    description: 'Bands bewerten sich gegenseitig anonym. Kliquen-Erkennung durch statistische Analyse (Mahalanobis-Distanz) und Netzwerk-Topologie (Triadic Census) verhindert koordinierte Voting-Ringe automatisch.',
-    pillars: [
-      'Nur Bands können am Peer Review teilnehmen',
-      'Anonyme Bewertungen — keine gegenseitige Absprache',
-      'Kliquen-Erkennung verhindert Voting-Ringe',
-      'Peer-Scores beeinflussen zu 33,3 % den Gesamt-Score',
-    ],
-    cta: 'Band registrieren & teilnehmen',
   },
 }
 

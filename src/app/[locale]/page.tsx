@@ -8,12 +8,10 @@ import type { Band, Track } from '@/lib/types'
 import PillarCards from './_components/PillarCards'
 import GenreFilteredTop5 from './_components/GenreFilteredTop5'
 
-/** DJ and Peer score range constants — mirror those in ChartsView. */
+/** DJ score range constants — mirror those in ChartsView. */
 const DJ_SCORE_MULTIPLIER   = 30
 const DJ_SCORE_BASE         = 5
-const PEER_SCORE_MULTIPLIER = 20
-const PEER_SCORE_BASE       = 3
-const PILLAR_WEIGHT         = 0.333
+const PILLAR_WEIGHT         = 0.5
 
 /** Compute the featured #1 track from seed data for the hero card. */
 function buildHeroEntry(): { band: Band; track: Track; compositeScore: number } | null {
@@ -26,8 +24,7 @@ function buildHeroEntry(): { band: Band; track: Track; compositeScore: number } 
       const band = bands.find(b => b.id === track.bandId)
       if (!band) return null
       const djScore   = Math.floor(seededRandom(idx * 3 + 1) * DJ_SCORE_MULTIPLIER + idx * DJ_SCORE_BASE)
-      const peerScore = Math.floor(seededRandom(idx * 3 + 2) * PEER_SCORE_MULTIPLIER + idx * PEER_SCORE_BASE)
-      const compositeScore = (djScore * PILLAR_WEIGHT) + (peerScore * PILLAR_WEIGHT)
+      const compositeScore = djScore * PILLAR_WEIGHT
       return { band, track, compositeScore }
     })
     .filter((r): r is { band: Band; track: Track; compositeScore: number } => r !== null)

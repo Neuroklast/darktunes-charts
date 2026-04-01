@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useKV } from '@/lib/kv-shim'
-import { Eye, Heart, Disc, UsersThree, Calculator, Check, MagnifyingGlass } from '@phosphor-icons/react'
+import { Eye, Heart, Disc, Calculator, Check, MagnifyingGlass } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -68,25 +68,21 @@ export function TransparencyLog({ userId }: TransparencyLogProps) {
     })
   }
 
-  const getVoteTypeIcon = (type: 'fan' | 'dj' | 'peer') => {
+  const getVoteTypeIcon = (type: 'fan' | 'dj') => {
     switch (type) {
       case 'fan':
         return <Heart className="w-4 h-4 text-primary" weight="duotone" />
       case 'dj':
         return <Disc className="w-4 h-4 text-accent" weight="duotone" />
-      case 'peer':
-        return <UsersThree className="w-4 h-4 text-destructive" weight="duotone" />
     }
   }
 
-  const getVoteTypeName = (type: 'fan' | 'dj' | 'peer') => {
+  const getVoteTypeName = (type: 'fan' | 'dj') => {
     switch (type) {
       case 'fan':
         return 'Fan Vote'
       case 'dj':
         return 'DJ Choice'
-      case 'peer':
-        return 'Peer Vote'
     }
   }
 
