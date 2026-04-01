@@ -19,12 +19,6 @@ export {
   calculateSchulzeWinner,
 } from '@/domain/voting/schulze'
 
-// Peer / Anti-Collusion
-export {
-  calculateCliqueCoefficient,
-  applyCliqueWeighting,
-} from '@/domain/voting/peer'
-
 // Tier Classification & Pricing
 export {
   getTierFromListeners,

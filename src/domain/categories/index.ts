@@ -28,7 +28,6 @@ export interface CategoryMetadata {
   icon: string
   fanWeight: number
   djWeight: number
-  peerWeight: number
   /**
    * Whether this category appears in music charts.
    * - `true`  for music, visuals, and newcomer categories (directly tied to music releases).
@@ -47,9 +46,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Track of the Month',
     description: 'Best single track across all genres',
     icon: 'Disc',
-    fanWeight: 0.4,
-    djWeight: 0.3,
-    peerWeight: 0.3,
+    fanWeight: 0.55,
+    djWeight: 0.45,
     chartEligible: true,
   },
   'album': {
@@ -58,9 +56,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Album of the Month',
     description: 'Best full-length release',
     icon: 'Vinyl',
-    fanWeight: 0.4,
-    djWeight: 0.3,
-    peerWeight: 0.3,
+    fanWeight: 0.40,
+    djWeight: 0.60,
     chartEligible: true,
   },
   'voice-of-void': {
@@ -69,9 +66,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Voice of the Void',
     description: 'Best vocal performance (from operatic soprano to deep growls)',
     icon: 'Microphone',
-    fanWeight: 0.2,
-    djWeight: 0.2,
-    peerWeight: 0.6,
+    fanWeight: 0.35,
+    djWeight: 0.65,
     chartEligible: true,
   },
   'riff-architect': {
@@ -80,9 +76,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Riff Architect',
     description: 'Best guitar riff of the month',
     icon: 'GuitarPick',
-    fanWeight: 0.2,
-    djWeight: 0.2,
-    peerWeight: 0.6,
+    fanWeight: 0.35,
+    djWeight: 0.65,
     chartEligible: true,
   },
   'synthesis-steel': {
@@ -91,9 +86,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Synthesis & Steel',
     description: 'Best genre fusion of Metal and Dark Electro',
     icon: 'Waveform',
-    fanWeight: 0.3,
-    djWeight: 0.4,
-    peerWeight: 0.3,
+    fanWeight: 0.30,
+    djWeight: 0.70,
     chartEligible: true,
   },
   'best-cover-art': {
@@ -102,9 +96,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Best Cover Art',
     description: 'Best physical design (vinyl color, boxset, digipak, limited edition packaging)',
     icon: 'Package',
-    fanWeight: 0.7,
-    djWeight: 0.15,
-    peerWeight: 0.15,
+    fanWeight: 0.80,
+    djWeight: 0.20,
     chartEligible: true,
   },
   'best-merch': {
@@ -113,9 +106,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Best Merch',
     description: 'Best merchandise design — apparel, accessories, and collector items',
     icon: 'TShirt',
-    fanWeight: 0.7,
+    fanWeight: 0.85,
     djWeight: 0.15,
-    peerWeight: 0.15,
     chartEligible: true,
   },
   'best-music-video': {
@@ -124,9 +116,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Best Music Video',
     description: 'Best music video, official visualizer, or short film',
     icon: 'FilmSlate',
-    fanWeight: 0.5,
-    djWeight: 0.25,
-    peerWeight: 0.25,
+    fanWeight: 0.60,
+    djWeight: 0.40,
     chartEligible: true,
   },
   'chronicler-night': {
@@ -135,9 +126,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Chronicler of the Night',
     description: 'Best scene channel (podcasts, YouTube reviewers, zines)',
     icon: 'Newspaper',
-    fanWeight: 0.6,
-    djWeight: 0.2,
-    peerWeight: 0.2,
+    fanWeight: 0.70,
+    djWeight: 0.30,
     chartEligible: false,
   },
   'dark-integrity': {
@@ -146,9 +136,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Dark Integrity Award',
     description: 'For bands/actors with social engagement (anti-mobbing, mental health)',
     icon: 'HandHeart',
-    fanWeight: 0.5,
-    djWeight: 0.25,
-    peerWeight: 0.25,
+    fanWeight: 0.65,
+    djWeight: 0.35,
     chartEligible: false,
   },
   'lyricist-shadows': {
@@ -157,9 +146,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Lyricist of the Shadows',
     description: 'Best songwriting and lyrical content',
     icon: 'PenNib',
-    fanWeight: 0.3,
-    djWeight: 0.2,
-    peerWeight: 0.5,
+    fanWeight: 0.40,
+    djWeight: 0.60,
     chartEligible: false,
   },
   'underground-anthem': {
@@ -168,9 +156,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'Underground Anthem',
     description: 'Best track from bands with <10k monthly listeners',
     icon: 'FlameSimple',
-    fanWeight: 0.5,
-    djWeight: 0.25,
-    peerWeight: 0.25,
+    fanWeight: 0.45,
+    djWeight: 0.55,
     chartEligible: true,
     tierRestriction: ['Micro', 'Emerging'],
     maxListeners: 10000
@@ -181,9 +168,8 @@ export const CATEGORY_DEFINITIONS: Record<AllCategory, CategoryMetadata> = {
     name: 'The Dark Concept',
     description: 'Best concept album with cohesive storytelling',
     icon: 'Book',
-    fanWeight: 0.4,
-    djWeight: 0.3,
-    peerWeight: 0.3,
+    fanWeight: 0.40,
+    djWeight: 0.60,
     chartEligible: true,
   }
 }
@@ -257,32 +243,28 @@ export function canBandCompeteInCategory(category: AllCategory, tier: Tier, mont
 /**
  * Calculates the weighted composite score for a track in a given category.
  *
- * Normalises raw vote counts from all three pillars (Fan, DJ, Peer) and applies
+ * Normalises raw vote counts from both pillars (Fan, DJ) and applies
  * category-specific weights to derive a final score on a 0–100 scale.
  * The weights for each category are defined in CATEGORY_DEFINITIONS.
  *
  * @param categoryId - The category for which to calculate the score.
  * @param fanVotes - Raw fan quadratic vote count (normalised against 100 credits).
  * @param djScore - DJ Schulze-method score (normalised 0–100).
- * @param peerVotes - Peer review clique-adjusted score (normalised 0–100).
  * @returns Composite score in the range 0–100.
  */
 export function calculateCategoryScore(
   categoryId: AllCategory,
   fanVotes: number,
   djScore: number,
-  peerVotes: number
 ): number {
   const meta = CATEGORY_DEFINITIONS[categoryId]
 
-  const normalizedFan  = fanVotes  / 100
-  const normalizedDJ   = djScore   / 100
-  const normalizedPeer = peerVotes / 100
+  const normalizedFan = fanVotes / 100
+  const normalizedDJ  = djScore  / 100
 
   return (
-    normalizedFan  * meta.fanWeight +
-    normalizedDJ   * meta.djWeight +
-    normalizedPeer * meta.peerWeight
+    normalizedFan * meta.fanWeight +
+    normalizedDJ  * meta.djWeight
   ) * 100
 }
 

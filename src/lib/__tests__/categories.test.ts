@@ -6,7 +6,7 @@ describe('getCategoryMetadata', () => {
     const meta = getCategoryMetadata('track')
     expect(meta.id).toBe('track')
     expect(meta.name).toBe('Track of the Month')
-    expect(meta.fanWeight + meta.djWeight + meta.peerWeight).toBeCloseTo(1.0)
+    expect(meta.fanWeight + meta.djWeight).toBeCloseTo(1.0)
   })
 
   it('returns underground-anthem with tier restriction', () => {

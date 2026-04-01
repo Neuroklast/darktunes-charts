@@ -1,7 +1,7 @@
 import type { FanVote } from '@/lib/types'
 
 /** Maximum voice credits allocated to each fan per monthly voting cycle. */
-export const MONTHLY_CREDIT_BUDGET = 100
+export const MONTHLY_CREDIT_BUDGET = 150
 
 /**
  * Calculates the voice credit cost for casting a given number of quadratic votes.
@@ -42,7 +42,7 @@ export function calculateMaxVotesForCredits(credits: number): number {
  *
  * This validation is executed both client-side (real-time UI feedback) and
  * server-side (POST /api/votes/fan) to prevent any budget bypass attempts.
- * The 100-credit limit resets on the first day of each calendar month.
+ * The 150-credit limit resets on the first day of each calendar month.
  *
  * @param votes - Array of all fan votes across tracks for the current period.
  * @returns `valid` flag and `totalCredits` spent so the UI can render the remaining balance.

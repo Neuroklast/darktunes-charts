@@ -8,13 +8,13 @@ import type { PillarWeights } from '../voting/combined'
 
 /** Sums pillar weights and checks they total 1.0 (within floating-point tolerance). */
 function weightsSum(w: PillarWeights): number {
-  return w.fan + w.dj + w.peer
+  return w.fan + w.dj
 }
 
 describe('evaluateQuorum', () => {
-  const equalWeights: PillarWeights = { fan: 1 / 3, dj: 1 / 3, peer: 1 / 3 }
-  const coverArtWeights: PillarWeights = { fan: 0.7, dj: 0.15, peer: 0.15 }
-  const trackWeights: PillarWeights = { fan: 0.4, dj: 0.3, peer: 0.3 }
+  const equalWeights: PillarWeights = { fan: 0.5, dj: 0.5 }
+  const coverArtWeights: PillarWeights = { fan: 0.80, dj: 0.20 }
+  const trackWeights: PillarWeights = { fan: 0.55, dj: 0.45 }
 
   // --- Quorum levels ---
 
@@ -102,34 +102,31 @@ describe('evaluateQuorum', () => {
 
   // --- Correct redistribution with various base weights ---
 
-  it('redistributes DJ weight to fan+peer in original ratio at "partial" level with trackWeights', () => {
-    // trackWeights: fan=0.4, dj=0.3, peer=0.3
-    // partial: dj *= 0.5 → effectiveDJ=0.15, displaced=0.15
-    // fan ratio = 0.4/0.6 = 2/3, peer ratio = 0.3/0.6 = 1/2 → wait: (0.4+0.3)=0.7, no fan+peer=0.4+0.3=0.7
-    // fan share = 0.4/0.7, peer share = 0.3/0.7
+  it('redistributes DJ weight entirely to fan at "partial" level with trackWeights', () => {
+    // trackWeights: fan=0.55, dj=0.45
+    // partial: dj *= 0.5 → effectiveDJ=0.225, displaced=0.225
+    // all displaced goes to fan → adjustedFan = 0.55 + 0.225 = 0.775
     const result = evaluateQuorum(7, trackWeights)
-    expect(result.adjustedWeights.dj).toBeCloseTo(0.15)
+    expect(result.adjustedWeights.dj).toBeCloseTo(0.225)
+    expect(result.adjustedWeights.fan).toBeCloseTo(0.775)
     expect(weightsSum(result.adjustedWeights)).toBeCloseTo(1.0)
-    // Fan should receive more than peer (fan 0.4 > peer 0.3 in original)
-    expect(result.adjustedWeights.fan).toBeGreaterThan(result.adjustedWeights.peer)
   })
 
-  it('redistributes DJ weight correctly at "insufficient" level with cover-art weights (70/15/15)', () => {
-    // coverArtWeights: fan=0.7, dj=0.15, peer=0.15
-    // insufficient: effectiveDJ=0, displaced=0.15
-    // fan ratio = 0.7/0.85, peer ratio = 0.15/0.85
+  it('redistributes DJ weight entirely to fan at "insufficient" level with cover-art weights (80/20)', () => {
+    // coverArtWeights: fan=0.80, dj=0.20
+    // insufficient: effectiveDJ=0, displaced=0.20
+    // all displaced goes to fan → adjustedFan = 0.80 + 0.20 = 1.0
     const result = evaluateQuorum(0, coverArtWeights)
     expect(result.adjustedWeights.dj).toBeCloseTo(0)
+    expect(result.adjustedWeights.fan).toBeCloseTo(1.0)
     expect(weightsSum(result.adjustedWeights)).toBeCloseTo(1.0)
-    // Fan should dominate after redistribution
-    expect(result.adjustedWeights.fan).toBeGreaterThan(0.8)
   })
 
-  it('produces valid proportional fan/peer split when DJ weight is 0 at insufficient quorum', () => {
+  it('fan gets all weight when DJ is zeroed at insufficient quorum', () => {
     const result = evaluateQuorum(0, equalWeights)
-    // equal weights: fan and peer each started at 1/3, DJ at 1/3
-    // After DJ=0: displaced = 1/3. fan share = (1/3)/(2/3) = 0.5, peer share = 0.5
-    expect(result.adjustedWeights.fan).toBeCloseTo(result.adjustedWeights.peer, 5)
+    // equal weights: fan=0.5, dj=0.5
+    // After DJ=0: displaced = 0.5 → all to fan → fan = 1.0
+    expect(result.adjustedWeights.fan).toBeCloseTo(1.0)
     expect(result.adjustedWeights.dj).toBe(0)
   })
 
