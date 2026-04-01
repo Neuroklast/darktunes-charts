@@ -77,6 +77,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const entries: TrendEntry[] = Array.from(allPeriodIds).map((periodId) => ({
       period: periodId,
       fanVotes: periodVotes.get(periodId) ?? 0,
+      // djMentions aggregation requires cross-ballot analysis; populated as 0 until that pipeline is available
       djMentions: 0,
       chartPosition: periodChartPosition.get(periodId) ?? null,
     }))

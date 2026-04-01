@@ -110,8 +110,10 @@ function seededShuffle<T>(array: T[], seed: number): T[] {
  * - Sorted by rank ascending (rank 1 = best).
  * - Max 2 tracks per band (by bandName).
  * - At least 3 different genres must be represented across the selection.
- * - If genre diversity cannot be met with fewer tracks, the function attempts
- *   to swap lower-priority tracks with genre-diverse alternatives.
+ * - Genre diversity is achieved by the iterative greedy selection: lower-ranked
+ *   tracks are still included if they add a new genre (up to the count cap).
+ *   If the available chart data does not contain 3 distinct genres, the function
+ *   returns the best available set without error.
  *
  * @param chartResults - Flat list of chart result entries (may span categories).
  * @param count - Maximum number of tracks to include.

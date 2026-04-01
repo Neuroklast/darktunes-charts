@@ -82,14 +82,21 @@ export const POST = withAuth(
         orderBy: { rank: 'asc' },
       })
 
-      const chartEntries: ChartResultEntry[] = rawResults.map((r) => ({
-        releaseId: r.releaseId,
-        rank: r.rank,
-        categoryId: r.categoryId,
-        bandName: r.release.band?.name ?? 'Unknown',
-        trackTitle: r.release.title,
-        genres: r.release.genres,
-      }))
+      const chartEntries: ChartResultEntry[] = []
+      for (const r of rawResults) {
+        if (!r.release.band?.name) {
+          // Skip releases with missing band data to avoid polluting diversity constraints
+          continue
+        }
+        chartEntries.push({
+          releaseId: r.releaseId,
+          rank: r.rank,
+          categoryId: r.categoryId,
+          bandName: r.release.band.name,
+          trackTitle: r.release.title,
+          genres: r.release.genres,
+        })
+      }
 
       const selectedTracks = selectChartTracks(chartEntries, count)
 

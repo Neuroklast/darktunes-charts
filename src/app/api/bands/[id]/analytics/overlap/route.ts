@@ -51,7 +51,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const otherBandData: OtherBandData[] = []
     const overlap = calculateGenreOverlap(band.genres, otherBandData)
 
-    return NextResponse.json({ overlap })
+    return NextResponse.json({ overlap, isPending: otherBandData.length === 0 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

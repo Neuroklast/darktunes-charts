@@ -30,7 +30,7 @@ type CuratorRow = {
 
 type CompilationDb = {
   compilation: {
-    findUnique: (args: unknown) => Promise<CompilationRow | null>
+    findFirst: (args: unknown) => Promise<CompilationRow | null>
   }
 }
 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const pathSegments = new URL(request.url).pathname.split('/')
     const id = pathSegments[pathSegments.length - 1]
 
-    const compilation = await getDb().compilation.findUnique({
+    const compilation = await getDb().compilation.findFirst({
       where: { id, status: 'PUBLISHED' },
       include: {
         tracks: { orderBy: { position: 'asc' } },

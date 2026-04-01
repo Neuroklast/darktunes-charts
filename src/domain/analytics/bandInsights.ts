@@ -98,7 +98,7 @@ export interface BandInsightsInput {
 /** Default k-anonymity threshold: minimum voters per region for inclusion. */
 const DEFAULT_K_ANONYMITY_MIN = 10
 /** Used to round percentages to 2 decimal places: multiply by 100 for %, by 100 again for rounding. */
-const PERCENTAGE_PRECISION_MULTIPLIER = 10000
+const PERCENTAGE_ROUNDING_FACTOR = 10000
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -226,6 +226,6 @@ export function calculateRegionalBreakdown(
   return qualifying.map((r) => ({
     region: r.region,
     voterCount: r.count,
-    percentage: total > 0 ? Math.round((r.count / total) * PERCENTAGE_PRECISION_MULTIPLIER) / 100 : 0,
+    percentage: total > 0 ? Math.round((r.count / total) * PERCENTAGE_ROUNDING_FACTOR) / 100 : 0,
   }))
 }
