@@ -12,7 +12,7 @@ const addCuratorPickSchema = z.object({
 
 type CompilationDb = {
   compilationCuratorEntry: {
-    findFirst: (args: unknown) => Promise<{ userId: string; picks: number } | null>
+    findFirst: (args: unknown) => Promise<{ id: string; userId: string; picks: number } | null>
     update: (args: unknown) => Promise<unknown>
   }
   compilationTrackEntry: {
@@ -101,7 +101,7 @@ export const POST = withAuth(
       })
 
       await getDb().compilationCuratorEntry.update({
-        where: { id: (curatorEntry as unknown as { id: string }).id },
+        where: { id: curatorEntry.id },
         data: { picks: curatorEntry.picks + 1 },
       })
 

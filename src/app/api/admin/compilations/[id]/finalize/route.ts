@@ -62,6 +62,13 @@ function mapStatus(status: string): Compilation['status'] {
   return map[status] ?? 'draft'
 }
 
+const domainStatusToDb: Record<Compilation['status'], string> = {
+  draft: 'DRAFT',
+  curating: 'CURATING',
+  finalized: 'FINALIZED',
+  published: 'PUBLISHED',
+}
+
 function mapSource(source: string): CompilationTrack['source'] {
   return source === 'CURATOR_PICK' ? 'curator-pick' : 'chart'
 }
@@ -128,7 +135,7 @@ export const POST = withAuth(
 
       await getDb().compilation.update({
         where: { id: compilationId },
-        data: { status: finalized.status.toUpperCase() },
+        data: { status: domainStatusToDb[finalized.status] },
       })
 
       await createAuditLog(

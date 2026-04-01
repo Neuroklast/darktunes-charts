@@ -26,10 +26,6 @@ type ChartResultRow = {
   rank: number
 }
 
-type _DJBallotRow = {
-  id: string
-}
-
 type AnalyticsDb = {
   band: {
     findUnique: (args: unknown) => Promise<BandRow | null>
@@ -111,7 +107,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         where: { release: { bandId } },
         select: { categoryId: true, rank: true },
       }),
-      getDb().dJBallot.count({ where: {} }),
+      getDb().dJBallot.count({ where: { entries: { some: { track: { bandId } } } } }),
     ])
 
     const fanVoteData: FanVoteData[] = fanVotes.map((v) => ({
