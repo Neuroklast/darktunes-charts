@@ -304,6 +304,7 @@ model Release {
   categorySubmissions  CategorySubmission[]
   fanVotes             FanVote[]
   chartResults         ChartResult[]
+  compilationTracks    CompilationTrackEntry[]
 
   @@index([bandId])
   @@map("releases")
@@ -671,4 +672,152 @@ enum AchievementRarity {
   RARE
   EPIC
   LEGENDARY
+}
+
+// ─── Phase 3 Models ───────────────────────────────────────────────────────────
+
+model Compilation {
+  id          String            @id @default(uuid())
+  title       String
+  period      String
+  status      CompilationStatus @default(DRAFT)
+  coverArtUrl String?
+  description String?
+  createdAt   DateTime          @default(now())
+  publishedAt DateTime?
+
+  tracks   CompilationTrackEntry[]
+  curators CompilationCuratorEntry[]
+
+  @@map("compilations")
+}
+
+enum CompilationStatus {
+  DRAFT
+  CURATING
+  FINALIZED
+  PUBLISHED
+}
+
+model CompilationTrackEntry {
+  id            String      @id @default(uuid())
+  compilationId String
+  position      Int
+  releaseId     String
+  trackTitle    String
+  bandName      String
+  source        TrackSource
+  chartRank     Int?
+  curatorId     String?
+  curatorNote   String?
+
+  compilation Compilation @relation(fields: [compilationId], references: [id], onDelete: Cascade)
+  release     Release     @relation(fields: [releaseId], references: [id])
+
+  @@unique([compilationId, position])
+  @@index([compilationId])
+  @@map("compilation_tracks")
+}
+
+enum TrackSource {
+  CHART
+  CURATOR_PICK
+}
+
+model CompilationCuratorEntry {
+  id                String  @id @default(uuid())
+  compilationId     String
+  userId            String
+  djName            String
+  picks             Int     @default(0)
+  lastCuratedPeriod String?
+
+  compilation Compilation @relation(fields: [compilationId], references: [id], onDelete: Cascade)
+
+  @@unique([compilationId, userId])
+  @@index([compilationId])
+  @@map("compilation_curators")
+}
+
+model CommunityAward {
+  id              String        @id @default(uuid())
+  category        AwardCategory
+  year            Int
+  votingOpen      Boolean       @default(false)
+  votingStartDate DateTime
+  votingEndDate   DateTime
+  winnerId        String?
+
+  nominees AwardNominee[]
+  votes    AwardVote[]
+
+  @@unique([category, year])
+  @@map("community_awards")
+}
+
+enum AwardCategory {
+  CHRONICLER_OF_THE_NIGHT
+  DARK_INTEGRITY
+  NEWCOMER_OF_THE_YEAR
+  COMPILATION_TRACK_OF_YEAR
+  DJ_OF_THE_YEAR
+}
+
+model AwardNominee {
+  id               String  @id @default(uuid())
+  awardId          String
+  name             String
+  description      String
+  nominatedBy      String
+  endorsementCount Int     @default(0)
+  isFinalNominee   Boolean @default(false)
+
+  award        CommunityAward    @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  endorsements AwardEndorsement[]
+  votes        AwardVote[]
+
+  @@index([awardId])
+  @@map("award_nominees")
+}
+
+model AwardEndorsement {
+  id        String @id @default(uuid())
+  nomineeId String
+  userId    String
+
+  nominee AwardNominee @relation(fields: [nomineeId], references: [id], onDelete: Cascade)
+
+  @@unique([nomineeId, userId])
+  @@map("award_endorsements")
+}
+
+model AwardVote {
+  id        String @id @default(uuid())
+  awardId   String
+  nomineeId String
+  userId    String
+  credits   Int
+
+  award   CommunityAward @relation(fields: [awardId], references: [id])
+  nominee AwardNominee   @relation(fields: [nomineeId], references: [id])
+
+  @@unique([awardId, userId, nomineeId])
+  @@index([awardId])
+  @@map("award_votes")
+}
+
+// ─── Phase 3e: Public API ────────────────────────────────────────────────────
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  keyHash     String    @unique
+  name        String
+  partnerId   String
+  permissions Json      @default("[]")
+  rateLimit   Int       @default(1000)
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  @@index([partnerId])
+  @@map("api_keys")
 }

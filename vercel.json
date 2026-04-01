@@ -12,8 +12,8 @@
       "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/tier-refresh",
-      "schedule": "0 3 * * 0"
+      "path": "/api/cron/refresh-tiers",
+      "schedule": "0 3 * * *"
     }
   ],
   "headers": [
