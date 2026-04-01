@@ -23,6 +23,15 @@ export type AuditAction =
   | 'user_registered'
   | 'subscription_created'
   | 'subscription_cancelled'
+  | 'compilation_created'
+  | 'compilation_chart_tracks_selected'
+  | 'compilation_curators_selected'
+  | 'compilation_finalized'
+  | 'compilation_published'
+  | 'community_award_created'
+  | 'award_nominations_closed'
+  | 'award_winner_computed'
+  | 'award_published'
 
 /**
  * Creates an audit log entry.
