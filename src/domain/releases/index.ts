@@ -68,3 +68,123 @@ export interface ScoutingSuggestion {
   reason: 'new_release' | 'velocity_spike' | 'genre_match'
   confidenceScore: number
 }
+
+// ─── Release Domain Model (ADR-016) ──────────────────────────────────────────
+
+import type { AllCategory } from '@/lib/types'
+import type { GenreTag } from '@/domain/genres'
+import { CATEGORY_DEFINITIONS } from '@/domain/categories'
+
+/** Supported streaming/distribution platforms. */
+export type PlatformName =
+  | 'spotify'
+  | 'apple-music'
+  | 'youtube-music'
+  | 'bandcamp'
+  | 'tidal'
+  | 'deezer'
+
+/** A link to a release on a specific streaming platform. */
+export interface PlatformLink {
+  platform: PlatformName
+  url: string
+}
+
+/** Release type — full album, extended play, or single. */
+export type ReleaseType = 'album' | 'ep' | 'single'
+
+/**
+ * A music release submitted to the darkTunes Charts platform.
+ * DJs vote on releases (not individual tracks) for the Schulze ranked-choice ballot.
+ */
+export interface Release {
+  id: string
+  bandId: string
+  title: string
+  type: ReleaseType
+  releaseDate: Date
+  trackCount: number
+  genres: GenreTag[]
+  streamingLinks: PlatformLink[]
+  coverArtUrl: string
+  submittedToCategories: AllCategory[]
+}
+
+/**
+ * Validates a release before it is persisted or submitted.
+ *
+ * Rules:
+ * - `id`, `bandId`, `title`, `coverArtUrl` must be non-empty strings.
+ * - `trackCount` must be a positive integer.
+ * - `genres` must have 1–3 entries.
+ * - `submittedToCategories` must be non-empty.
+ * - `releaseDate` must be a valid Date.
+ *
+ * @param release - The release to validate.
+ * @returns Validation result with `valid` flag and `errors` array.
+ */
+export function validateRelease(release: Release): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+
+  if (!release.id || release.id.trim().length === 0) {
+    errors.push('Release ID is required.')
+  }
+  if (!release.bandId || release.bandId.trim().length === 0) {
+    errors.push('Band ID is required.')
+  }
+  if (!release.title || release.title.trim().length === 0) {
+    errors.push('Title is required.')
+  }
+  if (!release.coverArtUrl || release.coverArtUrl.trim().length === 0) {
+    errors.push('Cover art URL is required.')
+  }
+  if (!Number.isInteger(release.trackCount) || release.trackCount < 1) {
+    errors.push('Track count must be a positive integer.')
+  }
+  if (release.genres.length === 0) {
+    errors.push('At least one genre is required.')
+  }
+  if (release.genres.length > 3) {
+    errors.push('A release may have at most 3 genres.')
+  }
+  if (release.submittedToCategories.length === 0) {
+    errors.push('At least one chart category must be selected.')
+  }
+  if (!(release.releaseDate instanceof Date) || isNaN(release.releaseDate.getTime())) {
+    errors.push('Release date must be a valid date.')
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+/**
+ * Determines whether a release may be submitted to a specific chart category.
+ *
+ * Category eligibility depends on release type:
+ * - Albums/EPs → album-oriented and general categories.
+ * - Singles → track-oriented and general categories.
+ * - Community/open categories accept any release type.
+ *
+ * @param release  - The release to check.
+ * @param category - The target chart category.
+ * @returns `true` if the release type is compatible with the category.
+ */
+export function canSubmitToCategory(release: Release, category: AllCategory): boolean {
+  const meta = CATEGORY_DEFINITIONS[category]
+
+  // Community categories are open to all release types
+  if (meta.group === 'community') return true
+
+  // Album-specific categories require album or EP
+  if (category === 'album' || category === 'dark-concept') {
+    return release.type === 'album' || release.type === 'ep'
+  }
+
+  // Track-specific categories require single
+  if (category === 'track' || category === 'underground-anthem') {
+    return release.type === 'single'
+  }
+
+  // All other categories (visuals, music performance, etc.) accept any type
+  return true
+}

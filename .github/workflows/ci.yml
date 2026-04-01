@@ -7,64 +7,104 @@ on:
     branches: [main]
 
 jobs:
-  ci:
-    name: Lint, Test & Build Check
+  lint:
+    name: ESLint
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
       - name: Lint
         run: npx eslint .
 
-      - name: Unit tests
-        run: npx vitest run
-
-      - name: Prisma generate (schema validation)
+  type-check:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Prisma generate
         run: npx prisma generate
-
       - name: TypeScript type check
         run: npx tsc --noEmit
 
-  e2e:
-    name: Playwright E2E Tests
+  test:
+    name: Unit Tests (Vitest)
     runs-on: ubuntu-latest
-    needs: ci
     permissions:
       contents: read
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
+      - name: Run unit tests
+        run: npx vitest run
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
+  build:
+    name: Next.js Build
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, test]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Prisma generate
+        run: npx prisma generate
       - name: Build
         run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
 
+  e2e:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
       - name: Run E2E tests
         run: npm run test:e2e
         env:
