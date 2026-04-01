@@ -131,7 +131,7 @@ export class VoteRepository {
    * @throws Error if DJ already submitted a ballot for this category in this period.
    */
   async createDJBallot(data: CreateDJBallotData): Promise<DJBallotRecord> {
-    const existing = await this.db.djBallot.findFirst({
+    const existing = await this.db.dJBallot.findFirst({
       where: {
         userId: data.userId,
         periodId: data.periodId,
@@ -145,7 +145,7 @@ export class VoteRepository {
       )
     }
 
-    return this.db.djBallot.create({
+    return this.db.dJBallot.create({
       data: {
         userId: data.userId,
         periodId: data.periodId,
@@ -174,7 +174,7 @@ export class VoteRepository {
     categoryId: string,
     periodId: string,
   ): Promise<DJBallotRecord[]> {
-    return this.db.djBallot.findMany({
+    return this.db.dJBallot.findMany({
       where: { categoryId, periodId },
       select: {
         id: true,
@@ -195,7 +195,7 @@ export class VoteRepository {
    * @returns Array of DJ ballot records.
    */
   async getUserBallotsForPeriod(userId: string, periodId: string): Promise<DJBallotRecord[]> {
-    return this.db.djBallot.findMany({
+    return this.db.dJBallot.findMany({
       where: { userId, periodId, categoryId: { not: null } },
       select: {
         id: true,

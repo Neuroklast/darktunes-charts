@@ -25,7 +25,7 @@ const mockPrisma = {
     findMany: mockFanVoteFindMany,
     aggregate: mockFanVoteAggregate,
   },
-  djBallot: {
+  dJBallot: {
     create: mockDJBallotCreate,
     findFirst: mockDJBallotFindFirst,
     findMany: mockDJBallotFindMany,

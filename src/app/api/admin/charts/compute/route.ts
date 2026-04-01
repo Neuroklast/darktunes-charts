@@ -80,7 +80,7 @@ export const POST = withAuth(
 
         // Fetch all DJ ballots for this period
         const rawDjBallots = await (prisma as unknown as {
-          djBallot: {
+          dJBallot: {
             findMany: (args: unknown) => Promise<Array<{
               userId: string
               categoryId: string | null
@@ -88,7 +88,7 @@ export const POST = withAuth(
               createdAt: Date
             }>>
           }
-        }).djBallot.findMany({
+        }).dJBallot.findMany({
           where: {
             periodId: votingPeriodId,
             categoryId: { not: null },
