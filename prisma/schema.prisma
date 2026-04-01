@@ -7,19 +7,23 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  name            String
-  role            UserRole  @default(FAN)
-  avatarUrl       String?
-  credits         Int       @default(100)
-  isDJVerified    Boolean   @default(false)
-  kycDocumentUrl  String?
-  kycStatus       KYCStatus @default(PENDING)
-  kycReviewedBy   String?
-  kycReviewedAt   DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                    String    @id @default(uuid())
+  email                 String    @unique
+  name                  String
+  displayName           String?
+  role                  UserRole  @default(FAN)
+  avatarUrl             String?
+  credits               Int       @default(150)
+  isDJVerified          Boolean   @default(false)
+  kycDocumentUrl        String?
+  kycStatus             KYCStatus @default(PENDING)
+  kycReviewedBy         String?
+  kycReviewedAt         DateTime?
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  region                String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   band                 Band?              @relation("BandOwner")
   fanVotes             FanVote[]
@@ -30,6 +34,8 @@ model User {
   eventIntents         EventIntent[]
   labelMandatesAsLabel LabelBandMandate[] @relation("LabelMandate")
   djFeedbackGiven      DJFeedback[]       @relation("DJFeedbackGiver")
+  djVerification       DJVerification?
+  auditLogs            AuditLog[]
 
   @@map("users")
 }
@@ -52,28 +58,38 @@ enum KYCStatus {
 }
 
 model Band {
-  id                    String   @id @default(uuid())
-  name                  String
-  genre                 Genre
-  spotifyMonthlyListeners Int    @default(0)
-  tier                  Tier     @default(MICRO)
-  logoUrl               String?
-  coverArtUrl           String?
-  spotifyUrl            String?
-  bandcampUrl           String?
-  spotifyArtistId       String?
-  country               String?
-  formedYear            Int?
-  bio                   String?
-  isVerified            Boolean  @default(false)
-  ownerId               String   @unique
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                      String            @id @default(uuid())
+  name                    String
+  slug                    String?           @unique
+  genre                   Genre             @default(GOTH)
+  genres                  String[]
+  spotifyMonthlyListeners Int               @default(0)
+  tier                    Tier              @default(MICRO)
+  logoUrl                 String?
+  coverArtUrl             String?
+  imageUrl                String?
+  spotifyUrl              String?
+  spotifyUri              String?
+  bandcampUrl             String?
+  spotifyArtistId         String?
+  country                 String?
+  formedYear              Int?
+  bio                     String?
+  isVerified              Boolean           @default(false)
+  verified                Boolean           @default(false)
+  ownerId                 String            @unique
+  stripeCustomerId        String?
+  stripeSubscriptionId    String?
+  subscriptionTier        SubscriptionTier  @default(FREE)
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 
   owner                User                 @relation("BandOwner", fields: [ownerId], references: [id])
   tracks               Track[]
+  releases             Release[]
   bandVotesReceived    BandVote[]           @relation("VotedBand")
   submissions          BandSubmission[]
+  categorySubmissions  CategorySubmission[]
   aiPredictions        AIPrediction[]
   labelMandates        LabelBandMandate[]   @relation("BandMandate")
   awards               Award[]
@@ -81,6 +97,12 @@ model Band {
   djFeedbackReceived   DJFeedback[]         @relation("BandFeedback")
 
   @@map("bands")
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  PRO_PLUS
 }
 
 enum Genre {
@@ -144,35 +166,42 @@ model TrackStreamingLink {
 model FanVote {
   id           String   @id @default(uuid())
   userId       String
-  trackId      String
+  trackId      String?
+  releaseId    String?
+  categoryId   String?
   periodId     String
   votes        Int
+  credits      Int      @default(0)
   creditsSpent Int
   weight       Float    @default(1.0)
   createdAt    DateTime @default(now())
 
-  user   User         @relation(fields: [userId], references: [id])
-  track  Track        @relation(fields: [trackId], references: [id])
-  period VotingPeriod @relation(fields: [periodId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  track         Track?        @relation(fields: [trackId], references: [id])
+  release       Release?      @relation(fields: [releaseId], references: [id])
+  period        VotingPeriod  @relation(fields: [periodId], references: [id])
 
-  @@unique([userId, trackId, periodId])
   @@index([trackId])
+  @@index([releaseId])
   @@index([periodId])
+  @@index([userId, periodId])
   @@map("fan_votes")
 }
 
 model DJBallot {
-  id        String   @id @default(uuid())
-  userId    String
-  periodId  String
-  genre     Genre
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  userId     String
+  periodId   String
+  genre      String?
+  categoryId String?
+  rankings   Json?
+  createdAt  DateTime @default(now())
 
   user    User            @relation(fields: [userId], references: [id])
   period  VotingPeriod    @relation(fields: [periodId], references: [id])
   entries DJBallotEntry[]
 
-  @@unique([userId, periodId, genre])
+  @@unique([userId, periodId, categoryId])
   @@index([periodId])
   @@map("dj_ballots")
 }
@@ -212,18 +241,28 @@ model BandVote {
 }
 
 model VotingPeriod {
-  id        String   @id @default(uuid())
+  id        String              @id @default(uuid())
+  name      String?
   startDate DateTime
   endDate   DateTime
-  isActive  Boolean  @default(false)
-  createdAt DateTime @default(now())
+  isActive  Boolean             @default(false)
+  status    VotingPeriodStatus  @default(OPEN)
+  createdAt DateTime            @default(now())
 
   fanVotes       FanVote[]
   djBallots      DJBallot[]
   bandVotes      BandVote[]
   chartSnapshots ChartSnapshot[]
+  chartResults   ChartResult[]
 
   @@map("voting_periods")
+}
+
+enum VotingPeriodStatus {
+  OPEN
+  CLOSED
+  COMPUTING
+  PUBLISHED
 }
 
 model ChartSnapshot {
@@ -245,6 +284,133 @@ model ChartSnapshot {
 
   @@unique([periodId, trackId])
   @@map("chart_snapshots")
+}
+
+// ─── Phase 2 Models ──────────────────────────────────────────────────────────
+
+model Release {
+  id           String       @id @default(uuid())
+  bandId       String
+  title        String
+  type         ReleaseType  @default(SINGLE)
+  releaseDate  DateTime
+  trackCount   Int          @default(1)
+  genres       String[]
+  coverArtUrl  String?
+  createdAt    DateTime     @default(now())
+
+  band                 Band                 @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  streamingLinks       StreamingLink[]
+  categorySubmissions  CategorySubmission[]
+  fanVotes             FanVote[]
+  chartResults         ChartResult[]
+
+  @@index([bandId])
+  @@map("releases")
+}
+
+enum ReleaseType {
+  ALBUM
+  EP
+  SINGLE
+}
+
+model StreamingLink {
+  id         String           @id @default(uuid())
+  releaseId  String
+  platform   StreamingPlatform
+  url        String
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@unique([releaseId, platform])
+  @@map("streaming_links")
+}
+
+enum StreamingPlatform {
+  SPOTIFY
+  APPLE_MUSIC
+  YOUTUBE_MUSIC
+  BANDCAMP
+  TIDAL
+  DEEZER
+}
+
+model CategorySubmission {
+  id         String   @id @default(uuid())
+  bandId     String
+  releaseId  String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  band    Band    @relation(fields: [bandId], references: [id])
+  release Release @relation(fields: [releaseId], references: [id])
+
+  @@unique([releaseId, categoryId])
+  @@index([categoryId])
+  @@map("category_submissions")
+}
+
+model ChartResult {
+  id                String       @id @default(uuid())
+  votingPeriodId    String
+  categoryId        String
+  releaseId         String
+  rank              Int
+  fanScore          Float        @default(0)
+  djScore           Float        @default(0)
+  combinedScore     Float        @default(0)
+  appliedFanWeight  Float        @default(0.5)
+  appliedDjWeight   Float        @default(0.5)
+  totalFanVotes     Int          @default(0)
+  totalDJBallots    Int          @default(0)
+  quorumMet         Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+
+  votingPeriod  VotingPeriod  @relation(fields: [votingPeriodId], references: [id])
+  release       Release       @relation(fields: [releaseId], references: [id])
+
+  @@unique([votingPeriodId, categoryId, releaseId])
+  @@index([votingPeriodId, categoryId])
+  @@map("chart_results")
+}
+
+model DJVerification {
+  id           String                  @id @default(uuid())
+  userId       String                  @unique
+  djName       String
+  realName     String
+  status       DJVerificationStatus    @default(PENDING)
+  eventHistory Json
+  submittedAt  DateTime                @default(now())
+  reviewedAt   DateTime?
+  reviewedBy   String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("dj_verifications")
+}
+
+enum DJVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityType String
+  entityId   String
+  userId     String?
+  metadata   Json
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@map("audit_logs")
 }
 
 model TransparencyLogEntry {

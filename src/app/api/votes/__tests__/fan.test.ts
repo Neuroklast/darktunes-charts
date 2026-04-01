@@ -13,6 +13,33 @@ vi.mock('@/lib/supabase/server', () => ({
   })),
 }))
 
+// Mock the new persistence dependencies so tests stay in-memory
+vi.mock('@/infrastructure/repositories/voteRepository', () => ({
+  voteRepository: {
+    getRemainingCredits: vi.fn().mockResolvedValue(150),
+    createFanVote: vi.fn().mockResolvedValue({ id: 'vote-id-mock' }),
+    getUserVotesForPeriod: vi.fn().mockResolvedValue([]),
+  },
+}))
+
+vi.mock('@/infrastructure/repositories/votingPeriodRepository', () => ({
+  votingPeriodRepository: {
+    findActive: vi.fn().mockResolvedValue({ id: 'period-id-mock' }),
+  },
+}))
+
+vi.mock('@/infrastructure/audit', () => ({
+  createAuditLog: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/infrastructure/rateLimiter', () => ({
+  rateLimiter: {
+    check: vi.fn().mockReturnValue({ allowed: true, remaining: 59, resetAt: Date.now() + 60_000 }),
+  },
+  VOTE_RATE_LIMIT: 60,
+  VOTE_RATE_WINDOW_MS: 60_000,
+}))
+
 import { POST } from '../fan/route'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
