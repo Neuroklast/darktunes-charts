@@ -805,3 +805,19 @@ model AwardVote {
   @@index([awardId])
   @@map("award_votes")
 }
+
+// ─── Phase 3e: Public API ────────────────────────────────────────────────────
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  keyHash     String    @unique
+  name        String
+  partnerId   String
+  permissions Json      @default("[]")
+  rateLimit   Int       @default(1000)
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  @@index([partnerId])
+  @@map("api_keys")
+}
