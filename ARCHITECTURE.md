@@ -282,3 +282,48 @@ Bands may select 1–3 genre tags (1 primary + up to 2 secondary). The `validate
 The `resolveWeights()` function in `combined.ts` returns these per-category weights; the overall chart fallback is 0.5/0.5.
 
 **Consequences:** Visual/fan-preference categories remain fan-dominated. Technical/craft categories give DJs majority influence. The weights are transparent and published in `CATEGORY_DEFINITIONS`, visible in the UI via `appliedWeights` in every `CombinedScore`.
+
+---
+
+## Phase 4: Production-Ready & Community Growth (ADR-018 to ADR-024)
+
+*See `DECISIONS.md` for the full ADR entries for Phase 4.*
+
+### New Modules & Pages (Phase 4)
+
+#### Frontend Pages
+| Route | Description |
+|---|---|
+| `/compilations` | Compilation browser |
+| `/bands/[slug]` | Band profile (slug-based, JSON-LD structured data) |
+| `/bands/[slug]/analytics` | Analytics dashboard (tier-gated: Free/Pro/Pro+) |
+| `/awards` | Public community awards page |
+| `/privacy` | DSGVO/GDPR privacy policy |
+| `/imprint` | German §5 TMG imprint |
+| `/embed/charts` | Embeddable chart widget (iframe) |
+| `/embed/band/[slug]` | Embeddable band card (iframe) |
+
+#### Infrastructure Modules
+| Module | Description |
+|---|---|
+| `src/infrastructure/email/service.ts` | Resend email service (4 templates) |
+| `src/infrastructure/discord/webhook.ts` | Discord webhook client |
+| `src/infrastructure/spotify/playlistSync.ts` | Spotify playlist sync (Auth Code Flow) |
+
+#### API Routes
+| Route | Description |
+|---|---|
+| `GET /api/health` | Health check (DB + uptime) |
+| `DELETE /api/auth/me` | GDPR account deletion (anonymises votes) |
+| `GET /api/auth/me/data-export` | GDPR data portability export |
+| `GET /api/feed/charts` | RSS 2.0 chart feed |
+| `GET /api/feed/compilations` | RSS 2.0 compilations feed |
+| `POST /api/admin/compilations/:id/sync-spotify` | Sync compilation to Spotify |
+| `POST /api/admin/discord/test-webhook` | Test Discord webhook |
+| `GET /api/cron/weekly-digest` | Weekly email digest (Vercel cron) |
+
+#### Production Hardening
+- **Security headers** added to all responses via `src/middleware.ts` (HSTS, CSP, X-Frame-Options, etc.)
+- **Sitemap** at `src/app/sitemap.ts` (dynamic, includes all bands and compilations)
+- **robots.txt** at `src/app/robots.ts`
+- **Environment variables** for Resend, Discord, Upstash Redis, Sentry documented in `.env.example`
