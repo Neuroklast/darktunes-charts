@@ -2,7 +2,7 @@
  * @module domain/genres/taxonomy
  *
  * Hierarchical genre taxonomy for Dark Music.
- * Defines 5 root categories and 26 sub-genres used for band and release classification.
+ * Defines 5 root categories and 23 sub-genres used for band and release classification.
  *
  * The taxonomy was designed to represent the diversity of the DACH dark music scene,
  * covering distinct sub-cultures with their own venues, DJs, and fan bases.
@@ -33,7 +33,7 @@ export interface SubGenre {
  */
 export type GenreTag = string
 
-/** Complete hierarchical genre taxonomy — 5 roots, 26 sub-genres. */
+/** Complete hierarchical genre taxonomy — 5 roots, 23 sub-genres. */
 export const GENRE_TAXONOMY: Record<GenreRoot, SubGenre[]> = {
   gothic: [
     { id: 'darkwave', name: 'Darkwave', root: 'gothic' },

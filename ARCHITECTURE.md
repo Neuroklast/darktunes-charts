@@ -223,13 +223,13 @@ A companion `src/infrastructure/api/` layer wraps the iTunes and Odesli HTTP cli
 
 ---
 
-## ADR-015: Genre Taxonomy (26 Sub-Genres, Hierarchical)
+## ADR-015: Genre Taxonomy (23 Sub-Genres, Hierarchical)
 
 **Status:** Accepted
 
 **Context:** The original genre model used only 3 coarse genres (`Goth`, `Metal`, `Dark Electro`). This fails to represent the rich diversity of the dark music scene — genres like EBM, Darkwave, Neofolk, Aggrotech, and Post-Punk are distinct scenes with their own venues, DJs, and fan bases. A band misclassified as "Metal" when they play "Neue Deutsche Härte" will feel unrepresented and disengage from the platform.
 
-**Decision:** Introduce a hierarchical genre taxonomy in `src/domain/genres/taxonomy.ts` with 5 root categories and 26 sub-genres:
+**Decision:** Introduce a hierarchical genre taxonomy in `src/domain/genres/taxonomy.ts` with 5 root categories and 23 sub-genres:
 
 - **Gothic** (5): Darkwave, Deathrock, Gothic Rock, Ethereal Wave, Gothic Metal
 - **Electronic** (7): EBM, Dark Electro, Aggrotech, Futurepop, Synthpop, Industrial, Witch House
