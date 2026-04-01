@@ -24,16 +24,16 @@ import {
 describe('Payment–Ranking Separation (§3.2)', () => {
   describe('identical votes with different payment status yield identical scores', () => {
     /**
-     * Two bands submit tracks that receive *exactly* the same fan, DJ, and
-     * peer scores. One band is on the free tier, the other on a premium tier.
+     * Two bands submit tracks that receive *exactly* the same fan and DJ
+     * scores. One band is on the free tier, the other on a premium tier.
      * Their combined scores and ranks MUST be equal because payment status is
      * not part of the TrackScores interface consumed by calculateCombinedScores.
      */
     it('bands with identical votes receive identical combined scores regardless of payment', () => {
       const scores: TrackScores[] = [
-        { trackId: 'free-tier-band', fanScore: 75, djScore: 60, peerScore: 80 },
-        { trackId: 'macro-tier-band', fanScore: 75, djScore: 60, peerScore: 80 },
-        { trackId: 'baseline', fanScore: 10, djScore: 10, peerScore: 10 },
+        { trackId: 'free-tier-band', fanScore: 75, djScore: 60 },
+        { trackId: 'macro-tier-band', fanScore: 75, djScore: 60 },
+        { trackId: 'baseline', fanScore: 10, djScore: 10 },
       ]
 
       const result = calculateCombinedScores(scores)
@@ -44,14 +44,13 @@ describe('Payment–Ranking Separation (§3.2)', () => {
       expect(freeBand.combinedScore).toBe(macroBand.combinedScore)
       expect(freeBand.normalizedFanScore).toBe(macroBand.normalizedFanScore)
       expect(freeBand.normalizedDJScore).toBe(macroBand.normalizedDJScore)
-      expect(freeBand.normalizedPeerScore).toBe(macroBand.normalizedPeerScore)
     })
 
     it('ranks are identical for tracks with identical votes', () => {
       const scores: TrackScores[] = [
-        { trackId: 'paid-band', fanScore: 90, djScore: 85, peerScore: 70 },
-        { trackId: 'free-band', fanScore: 90, djScore: 85, peerScore: 70 },
-        { trackId: 'other', fanScore: 20, djScore: 15, peerScore: 10 },
+        { trackId: 'paid-band', fanScore: 90, djScore: 85 },
+        { trackId: 'free-band', fanScore: 90, djScore: 85 },
+        { trackId: 'other', fanScore: 20, djScore: 15 },
       ]
 
       const combined = calculateCombinedScores(scores)
@@ -65,7 +64,6 @@ describe('Payment–Ranking Separation (§3.2)', () => {
         trackId: 'test',
         fanScore: 0,
         djScore: 0,
-        peerScore: 0,
       }
 
       // The interface accepts only voting-related fields.
@@ -133,15 +131,15 @@ describe('Payment–Ranking Separation (§3.2)', () => {
   describe('tier pricing changes do not affect ranking output', () => {
     /**
      * Simulates a scenario where tier prices could hypothetically vary.
-     * Regardless of what a band pays, only fan/DJ/peer scores determine
+     * Regardless of what a band pays, only fan/DJ scores determine
      * the combined chart position.
      */
     const baseVotes: TrackScores[] = [
-      { trackId: 'band-micro', fanScore: 100, djScore: 80, peerScore: 60 },
-      { trackId: 'band-emerging', fanScore: 80, djScore: 100, peerScore: 70 },
-      { trackId: 'band-established', fanScore: 60, djScore: 70, peerScore: 100 },
-      { trackId: 'band-international', fanScore: 50, djScore: 50, peerScore: 50 },
-      { trackId: 'band-macro', fanScore: 90, djScore: 90, peerScore: 90 },
+      { trackId: 'band-micro', fanScore: 100, djScore: 80 },
+      { trackId: 'band-emerging', fanScore: 80, djScore: 100 },
+      { trackId: 'band-established', fanScore: 60, djScore: 70 },
+      { trackId: 'band-international', fanScore: 50, djScore: 50 },
+      { trackId: 'band-macro', fanScore: 90, djScore: 90 },
     ]
 
     it('ranking is stable across tiers — only votes matter', () => {
@@ -168,7 +166,7 @@ describe('Payment–Ranking Separation (§3.2)', () => {
       const withExtraProps = baseVotes.map(v => ({
         ...v,
         // These hypothetical payment fields are spread in, but the function
-        // only reads trackId, fanScore, djScore, peerScore.
+        // only reads trackId, fanScore, djScore.
       }))
 
       const original = calculateCombinedScores(baseVotes)
@@ -177,14 +175,14 @@ describe('Payment–Ranking Separation (§3.2)', () => {
       expect(withExtra).toEqual(original)
     })
 
-    it('combined score depends ONLY on the three voting dimensions', () => {
+    it('combined score depends ONLY on the two voting dimensions', () => {
       // If we swap the trackIds but keep votes the same, scores are identical
       const variant: TrackScores[] = [
-        { trackId: 'x', fanScore: 100, djScore: 80, peerScore: 60 },
-        { trackId: 'y', fanScore: 80, djScore: 100, peerScore: 70 },
-        { trackId: 'z', fanScore: 60, djScore: 70, peerScore: 100 },
-        { trackId: 'w', fanScore: 50, djScore: 50, peerScore: 50 },
-        { trackId: 'v', fanScore: 90, djScore: 90, peerScore: 90 },
+        { trackId: 'x', fanScore: 100, djScore: 80 },
+        { trackId: 'y', fanScore: 80, djScore: 100 },
+        { trackId: 'z', fanScore: 60, djScore: 70 },
+        { trackId: 'w', fanScore: 50, djScore: 50 },
+        { trackId: 'v', fanScore: 90, djScore: 90 },
       ]
 
       const original = calculateCombinedScores(baseVotes)

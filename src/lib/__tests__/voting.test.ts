@@ -4,14 +4,12 @@ import {
   calculateMaxVotesForCredits,
   validateFanVotes,
   calculateSchulzeWinner,
-  calculateCliqueCoefficient,
   getTierFromListeners,
   calculateCategoryPrice,
   calculateSubmissionCost,
   generateAIPrediction,
-  applyCliqueWeighting,
 } from '../voting'
-import type { Band, FanVote, DJBallot, BandVote } from '../types'
+import type { Band, FanVote, DJBallot } from '../types'
 
 describe('calculateQuadraticCost', () => {
   it('returns 0 for 0 votes', () => expect(calculateQuadraticCost(0)).toBe(0))
@@ -27,7 +25,7 @@ describe('calculateMaxVotesForCredits', () => {
 })
 
 describe('validateFanVotes', () => {
-  it('is valid when total credits <= 100', () => {
+  it('is valid when total credits <= 150', () => {
     const votes: FanVote[] = [
       { trackId: 't1', votes: 5, creditsSpent: 25 },
       { trackId: 't2', votes: 5, creditsSpent: 25 },
@@ -37,14 +35,14 @@ describe('validateFanVotes', () => {
     expect(result.totalCredits).toBe(50)
   })
 
-  it('is invalid when total credits > 100', () => {
+  it('is invalid when total credits > 150', () => {
     const votes: FanVote[] = [
-      { trackId: 't1', votes: 8, creditsSpent: 64 },
-      { trackId: 't2', votes: 7, creditsSpent: 49 },
+      { trackId: 't1', votes: 9, creditsSpent: 81 },
+      { trackId: 't2', votes: 9, creditsSpent: 81 },
     ]
     const result = validateFanVotes(votes)
     expect(result.valid).toBe(false)
-    expect(result.totalCredits).toBe(113)
+    expect(result.totalCredits).toBe(162)
   })
 
   it('is valid with 0 votes', () => {
@@ -83,28 +81,7 @@ describe('calculateSchulzeWinner', () => {
   })
 })
 
-describe('calculateCliqueCoefficient', () => {
-  it('returns 1.0 when no reciprocal vote', () => {
-    const allVotes = new Map([['a', ['c']], ['b', ['c']]])
-    expect(calculateCliqueCoefficient('a', 'b', allVotes)).toBe(1.0)
-  })
 
-  it('reduces weight for simple reciprocal vote', () => {
-    const allVotes = new Map([['a', ['b']], ['b', ['a']]])
-    const coeff = calculateCliqueCoefficient('a', 'b', allVotes)
-    expect(coeff).toBe(1.0) // no mutual connections other than direct reciprocal
-  })
-
-  it('reduces weight more for high mutual connections', () => {
-    const allVotes = new Map([
-      ['a', ['b', 'c', 'd', 'e', 'f']],
-      ['b', ['a', 'c', 'd', 'e', 'f']],
-    ])
-    const coeff = calculateCliqueCoefficient('a', 'b', allVotes)
-    expect(coeff).toBeLessThan(1.0)
-    expect(coeff).toBeGreaterThanOrEqual(0.4)
-  })
-})
 
 describe('getTierFromListeners', () => {
   it('returns Micro for 0 listeners', () => expect(getTierFromListeners(0)).toBe('Micro'))
@@ -179,22 +156,3 @@ describe('generateAIPrediction', () => {
   })
 })
 
-describe('applyCliqueWeighting', () => {
-  it('applies full weight when no clique detected', () => {
-    const votes: BandVote[] = [{ voterId: 'voter-x', votedBandId: 'band-a', weight: 1.0 }]
-    const allBandVotes = new Map<string, string[]>()
-    const result = applyCliqueWeighting(votes, allBandVotes)
-    expect(result[0].weight).toBe(1.0)
-  })
-
-  it('reduces weight for reciprocal vote ring', () => {
-    const votes: BandVote[] = [{ voterId: 'band-a', votedBandId: 'band-b', weight: 1.0 }]
-    const allBandVotes = new Map([
-      ['band-a', ['band-b', 'band-c', 'band-d']],
-      ['band-b', ['band-a', 'band-c', 'band-d']],
-    ])
-    const result = applyCliqueWeighting(votes, allBandVotes)
-    expect(result[0].weight).toBeLessThan(1.0)
-    expect(result[0].weight).toBeGreaterThanOrEqual(0.4)
-  })
-})

@@ -7,7 +7,6 @@
  * Sub-modules:
  * - `quadratic`  — Quadratic Voting (fan pillar): cost function, budget validation
  * - `schulze`    — Schulze Beatpath method (DJ pillar): ranked-choice Condorcet voting
- * - `peer`       — Peer review anti-collusion (band pillar): clique coefficient
  * - `tiers`      — Five-tier band classification and progressive pricing
  * - `audit`      — Transparency log and bot detection
  * - `prediction` — AI breakthrough prediction algorithm
@@ -26,11 +25,6 @@ export {
   calculateSchulzeWinner,
   getPairwiseComparison,
 } from './schulze'
-
-export {
-  calculateCliqueCoefficient,
-  applyCliqueWeighting,
-} from './peer'
 
 export type { CategoryCostItem, SubmissionCostResult } from './tiers'
 export {

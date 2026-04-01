@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Heart, Disc, UsersThree, TrendUp, TrendDown, Minus, SpotifyLogo, ArrowSquareOut, LinkSimple, Trophy, ChartBar } from '@phosphor-icons/react'
+import { Heart, Disc, TrendUp, TrendDown, Minus, SpotifyLogo, ArrowSquareOut, LinkSimple, Trophy, ChartBar } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -47,23 +47,20 @@ interface ChartRow {
   band: Band
   fanCredits: number
   djScore: number
-  peerScore: number
   compositeScore: number
 }
 
 /**
- * Score algorithm constants for the three voting pillars.
- * DJ and peer scores are seeded until real ballot data is connected.
- * The multipliers (30, 5, 20, 3) scale the seeded pseudo-random values
+ * Score algorithm constants for the two voting pillars.
+ * DJ scores are seeded until real ballot data is connected.
+ * The multipliers (30, 5) scale the seeded pseudo-random values
  * into the same rough range as fan credit spending.
  */
 const DJ_SCORE_RANGE = 30
 const DJ_SCORE_BASE = 5
-const PEER_SCORE_RANGE = 20
-const PEER_SCORE_BASE = 3
 
-/** Equal weight in percent for display when all pillars carry the same share. */
-const EQUAL_PILLAR_PERCENT = 100 / 3
+/** Equal weight in percent for display when both pillars carry the same share. */
+const EQUAL_PILLAR_PERCENT = 50
 
 function buildChartRows(
   tracks: Track[],
@@ -71,7 +68,7 @@ function buildChartRows(
   fanVotes: Record<string, FanVote>,
   genreFilter: ChartFilter,
 ): ChartRow[] {
-  // Overall chart uses equal 1/3 weights; genre sub-tabs also use equal weights
+  // Overall chart uses equal 50/50 weights; genre sub-tabs also use equal weights
   // since genre ≠ AllCategory. Category-specific weights are applied when the
   // platform exposes a per-category chart view in a future iteration.
   const weights = resolveWeights()
@@ -90,10 +87,9 @@ function buildChartRows(
 
       const fanCredits = fanVotes[track.id]?.creditsSpent ?? 0
       const djScore = Math.floor(seededRandom(idx * 3 + 1) * DJ_SCORE_RANGE + idx * DJ_SCORE_BASE)
-      const peerScore = Math.floor(seededRandom(idx * 3 + 2) * PEER_SCORE_RANGE + idx * PEER_SCORE_BASE)
-      const compositeScore = calculateWeightedScore(fanCredits, djScore, peerScore, weights)
+      const compositeScore = calculateWeightedScore(fanCredits, djScore, weights)
 
-      return { track, band, fanCredits, djScore, peerScore, compositeScore }
+      return { track, band, fanCredits, djScore, compositeScore }
     })
     .filter((row): row is ChartRow => row !== null)
     .sort((a, b) => b.compositeScore - a.compositeScore)
@@ -106,8 +102,8 @@ type ViewMode = 'rankings' | 'awards'
  * Main Charts view with genre-specific tabs, artist spotlight, and special awards.
  *
  * Displays Overall + per-genre rankings (Dark Electro, Metal, Gothic).
- * Fan credits are sourced from real KV vote data; DJ and peer scores are
- * deterministically seeded until the respective voting pillars are connected.
+ * Fan credits are sourced from real KV vote data; DJ scores are
+ * deterministically seeded until the DJ voting pillar is connected.
  * The layout uses a 2-column grid on desktop: charts on the left,
  * special awards + artist spotlight on the right.
  */
@@ -124,11 +120,10 @@ export function ChartsView({ bands, tracks, fanVotes }: ChartsViewProps) {
     [tracks, bands, fanVotes, activeFilter],
   )
 
-  // Weights for the subtitle — overall/genre tabs always use equal thirds
+  // Weights for the subtitle — overall/genre tabs always use equal halves
   const activeWeights = resolveWeights()
   const fanWeightPct = Math.round(activeWeights.fan * 100)
   const djWeightPct  = Math.round(activeWeights.dj  * 100)
-  const peerWeightPct = Math.round(activeWeights.peer * 100)
 
   return (
     <div className="space-y-6">
@@ -139,7 +134,7 @@ export function ChartsView({ bands, tracks, fanVotes }: ChartsViewProps) {
             {activeFilter === 'overall' ? 'OVERALL CHARTS' : `${activeFilter.toUpperCase()} CHARTS`}
           </h2>
           <p className="text-muted-foreground text-sm">
-            Kombination aller drei Voting-Säulen · Fan {fanWeightPct} % · DJ {djWeightPct} % · Peer {peerWeightPct} %
+            Kombination beider Voting-Säulen · Fan {fanWeightPct} % · DJ {djWeightPct} %
           </p>
         </div>
         {/* View mode toggle */}
@@ -185,14 +180,13 @@ export function ChartsView({ bands, tracks, fanVotes }: ChartsViewProps) {
           ) : chartRows.length === 0 ? (
             <EmptyCharts genre={activeFilter} />
           ) : (
-            chartRows.map(({ track, band, fanCredits, djScore, peerScore }, rank) => (
+            chartRows.map(({ track, band, fanCredits, djScore }, rank) => (
               <ChartCard
                 key={track.id}
                 track={track}
                 band={band}
                 fanCredits={fanCredits}
                 djScore={djScore}
-                peerScore={peerScore}
                 rank={rank}
               />
             ))
@@ -220,7 +214,6 @@ interface ChartCardProps {
   band: Band
   fanCredits: number
   djScore: number
-  peerScore: number
   rank: number
 }
 
@@ -232,13 +225,12 @@ function RankMovement({ rank, seed }: { rank: number; seed: number }) {
   return <Minus className="w-3.5 h-3.5 text-muted-foreground" weight="bold" />
 }
 
-function ChartCard({ track, band, fanCredits, djScore, peerScore, rank }: ChartCardProps) {
+function ChartCard({ track, band, fanCredits, djScore, rank }: ChartCardProps) {
   const weights = resolveWeights()
-  const compositeScore = calculateWeightedScore(fanCredits, djScore, peerScore, weights)
-  const totalScore = fanCredits + djScore + peerScore
+  const compositeScore = calculateWeightedScore(fanCredits, djScore, weights)
+  const totalScore = fanCredits + djScore
   const fanPercent  = totalScore > 0 ? (fanCredits / totalScore) * 100 : EQUAL_PILLAR_PERCENT
   const djPercent   = totalScore > 0 ? (djScore   / totalScore) * 100 : EQUAL_PILLAR_PERCENT
-  const peerPercent = totalScore > 0 ? (peerScore  / totalScore) * 100 : EQUAL_PILLAR_PERCENT
 
   const artworkSrc = track.coverArtUrl ?? band.coverArtUrl ?? band.logoUrl ?? null
 
@@ -368,7 +360,7 @@ function ChartCard({ track, band, fanCredits, djScore, peerScore, rank }: ChartC
           </div>
 
           {/* Score pillars */}
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="grid grid-cols-2 gap-2 mb-3">
             <PillarScore
               icon={<Heart className="w-3.5 h-3.5 text-primary" />}
               label="Fan"
@@ -378,11 +370,6 @@ function ChartCard({ track, band, fanCredits, djScore, peerScore, rank }: ChartC
               icon={<Disc className="w-3.5 h-3.5 text-accent" />}
               label="DJ"
               value={djScore}
-            />
-            <PillarScore
-              icon={<UsersThree className="w-3.5 h-3.5 text-destructive" />}
-              label="Peer"
-              value={peerScore}
             />
           </div>
 
@@ -398,11 +385,6 @@ function ChartCard({ track, band, fanCredits, djScore, peerScore, rank }: ChartC
               style={{ width: `${djPercent}%` }}
               title={`DJ: ${djScore}`}
             />
-            <div
-              className="bg-destructive transition-all duration-500"
-              style={{ width: `${peerPercent}%` }}
-              title={`Peer: ${peerScore}`}
-            />
           </div>
           <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
@@ -411,9 +393,6 @@ function ChartCard({ track, band, fanCredits, djScore, peerScore, rank }: ChartC
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" /> DJ
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-destructive inline-block" /> Peer
               </span>
             </div>
             <span className="text-xs font-mono font-bold">{compositeScore.toFixed(1)}</span>

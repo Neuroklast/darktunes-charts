@@ -16,12 +16,10 @@ const GENRE_TABS: { value: ChartFilter; label: string }[] = [
   { value: 'Goth',         label: 'Gothic' },
 ]
 
-/** DJ and Peer score range constants — mirror those in ChartsView. */
+/** DJ score range constants — mirror those in ChartsView. */
 const DJ_SCORE_MULTIPLIER   = 30
 const DJ_SCORE_BASE         = 5
-const PEER_SCORE_MULTIPLIER = 20
-const PEER_SCORE_BASE       = 3
-const PILLAR_WEIGHT         = 0.333
+const PILLAR_WEIGHT         = 0.5
 
 interface ChartEntry {
   band: Band
@@ -47,8 +45,7 @@ function buildFilteredTop5(
       const band = bands.find(b => b.id === track.bandId)
       if (!band) return null
       const djScore   = Math.floor(seededRandom(idx * 3 + 1) * DJ_SCORE_MULTIPLIER + idx * DJ_SCORE_BASE)
-      const peerScore = Math.floor(seededRandom(idx * 3 + 2) * PEER_SCORE_MULTIPLIER + idx * PEER_SCORE_BASE)
-      const compositeScore = (djScore * PILLAR_WEIGHT) + (peerScore * PILLAR_WEIGHT)
+      const compositeScore = djScore * PILLAR_WEIGHT
       return { band, track, compositeScore }
     })
     .filter((r): r is ChartEntry => r !== null)

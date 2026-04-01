@@ -6,7 +6,7 @@ describe('getCategoryMetadata', () => {
     const meta = getCategoryMetadata('track')
     expect(meta.id).toBe('track')
     expect(meta.name).toBe('Track of the Month')
-    expect(meta.fanWeight + meta.djWeight + meta.peerWeight).toBeCloseTo(1.0)
+    expect(meta.fanWeight + meta.djWeight).toBeCloseTo(1.0)
   })
 
   it('returns underground-anthem with tier restriction', () => {
@@ -38,17 +38,17 @@ describe('canBandCompeteInCategory', () => {
 
 describe('calculateCategoryScore', () => {
   it('returns 0 for all zero inputs', () => {
-    expect(calculateCategoryScore('track', 0, 0, 0)).toBe(0)
+    expect(calculateCategoryScore('track', 0, 0)).toBe(0)
   })
 
   it('returns weighted composite score', () => {
-    const score = calculateCategoryScore('track', 100, 100, 100)
+    const score = calculateCategoryScore('track', 100, 100)
     expect(score).toBeCloseTo(100)
   })
 
   it('respects different weights per category', () => {
-    const trackScore = calculateCategoryScore('track', 100, 0, 0)
-    const coverArtScore = calculateCategoryScore('best-cover-art', 100, 0, 0)
+    const trackScore = calculateCategoryScore('track', 100, 0)
+    const coverArtScore = calculateCategoryScore('best-cover-art', 100, 0)
     expect(coverArtScore).toBeGreaterThan(trackScore)
   })
 })

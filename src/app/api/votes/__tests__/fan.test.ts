@@ -116,12 +116,12 @@ describe('POST /api/votes/fan – domain: quadratic credit validation', () => {
     expect(body.totalCreditsSpent).toBe(100)
   })
 
-  it('returns 422 when total quadratic cost exceeds 100-credit budget', async () => {
-    // 10² + 1² = 101 > 100
+  it('returns 422 when total quadratic cost exceeds 150-credit budget', async () => {
+    // 10² + 8² = 100 + 64 = 164 > 150
     const res = await POST(postRequest({
       votes: [
         { trackId: TRACK_A, votes: 10, periodId: PERIOD },
-        { trackId: TRACK_B, votes: 1, periodId: PERIOD },
+        { trackId: TRACK_B, votes: 8, periodId: PERIOD },
       ],
     }))
     expect(res.status).toBe(422)

@@ -20,7 +20,7 @@ import type { TransparencyLogEntry, BotDetectionAlert } from '@/lib/types'
 export function createTransparencyLogEntry(
   trackId: string,
   userId: string,
-  voteType: 'fan' | 'dj' | 'peer',
+  voteType: 'fan' | 'dj',
   rawVotes: number,
   creditsSpent: number | undefined,
   weight: number,

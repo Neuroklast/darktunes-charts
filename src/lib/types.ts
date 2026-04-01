@@ -82,7 +82,7 @@ export interface DJBallot {
 }
 
 export interface BandVote {
-  voterId: string       // ID of the band casting this peer vote
+  voterId: string       // ID of the band casting this vote
   votedBandId: string
   weight: number
 }
@@ -127,7 +127,6 @@ export interface ChartEntry {
   fanVotes: number
   fanCreditsSpent: number
   djScore: number
-  peerVotes: number
   overallRank: number
 }
 
@@ -147,7 +146,7 @@ export interface TransparencyLogEntry {
   timestamp: number
   trackId: string
   userId: string
-  voteType: 'fan' | 'dj' | 'peer'
+  voteType: 'fan' | 'dj'
   rawVotes: number
   creditsSpent?: number
   weight: number

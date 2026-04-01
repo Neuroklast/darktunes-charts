@@ -43,7 +43,7 @@
 
 ## ADR-004: Clique Detection via Network Graph Analysis
 
-**Status:** Accepted
+**Status:** Superseded by ADR-014
 
 **Context:** Peer voting pillar is vulnerable to vote-trading rings where bands agree to mutually vote each other up.
 
@@ -208,3 +208,77 @@ A companion `src/infrastructure/api/` layer wraps the iTunes and Odesli HTTP cli
 **Decision:** Move the canonical category definitions (interfaces, constants, functions) into `src/domain/categories/index.ts`. Convert `src/lib/categories.ts` into a deprecated re-export shim pointing at the domain module.
 
 **Consequences:** The domain layer (`src/domain/categories/`) is now self-contained with zero dependencies on `src/lib/`. Existing consumers importing from `@/lib/categories` continue to work via the shim. New code should import from `@/domain/categories`.
+
+---
+
+## ADR-014: Elimination of Peer-Voting Pillar
+
+**Status:** Accepted — Supersedes ADR-004
+
+**Context:** ADR-004 introduced a third voting pillar ("Peer Review") where bands could vote for each other, protected by a clique-coefficient anti-collusion graph algorithm. In practice this created significant complexity (triadic census, Mahalanobis distance anomaly detection, intellectual distance scoring) while remaining fundamentally vulnerable to sophisticated collusion rings. More importantly, allowing bands to influence chart outcomes creates an inherent conflict of interest that undermines platform trust. The academic elegance of the anti-collusion system does not outweigh the perception problem: fans and DJs assume bands vote strategically, not fairly.
+
+**Decision:** Remove the peer-voting pillar entirely. The chart scoring model is reduced to two pillars: Fan (Quadratic Voting) and DJ (Schulze Ranked Choice). All peer-voting domain files (`peer.ts`, `triadicCensus.ts`, `mahalanobis.ts`, `intellectualDistance.ts`) are deleted. The `PillarWeights` type now contains only `fan` and `dj`. Category weights are updated to sum to 1.0 across the two pillars. The default equal-weight fallback changes from 1/3 to 0.5 per pillar.
+
+**Consequences:** Simpler, more trustworthy system. ~20 kB of anti-collusion code eliminated. Category weights redistributed according to the v2 weight matrix (see ADR-017). The monthly fan credit budget is raised from 100 to 150 credits to compensate for the removed peer pillar's influence. All tests updated to reflect 2-pillar model.
+
+---
+
+## ADR-015: Genre Taxonomy (23 Sub-Genres, Hierarchical)
+
+**Status:** Accepted
+
+**Context:** The original genre model used only 3 coarse genres (`Goth`, `Metal`, `Dark Electro`). This fails to represent the rich diversity of the dark music scene — genres like EBM, Darkwave, Neofolk, Aggrotech, and Post-Punk are distinct scenes with their own venues, DJs, and fan bases. A band misclassified as "Metal" when they play "Neue Deutsche Härte" will feel unrepresented and disengage from the platform.
+
+**Decision:** Introduce a hierarchical genre taxonomy in `src/domain/genres/taxonomy.ts` with 5 root categories and 23 sub-genres:
+
+- **Gothic** (5): Darkwave, Deathrock, Gothic Rock, Ethereal Wave, Gothic Metal
+- **Electronic** (7): EBM, Dark Electro, Aggrotech, Futurepop, Synthpop, Industrial, Witch House
+- **Metal-Adjacent** (4): Neue Deutsche Härte, Symphonic Metal, Doom Metal, Black Metal / DSBM
+- **Folk & Ambient** (4): Neofolk, Dark Ambient, Martial Industrial, Medieval / Mittelalterrock
+- **Post-Punk / Neue Welle** (3): Post-Punk Revival, Coldwave, Neue Deutsche Welle
+
+Bands may select 1–3 genre tags (1 primary + up to 2 secondary). The `validateBandGenres()` function enforces the 3-genre cap and validates against the taxonomy.
+
+**Consequences:** Bands self-identify within their actual scene. DJs can filter their Schulze ballots by genre root. Future features (genre-filtered charts, genre-specific DJ pools) become trivially implementable.
+
+---
+
+## ADR-016: Release-Level Voting (DJs Rank Releases, Not Tracks)
+
+**Status:** Accepted
+
+**Context:** The original DJ voting model had DJs rank individual tracks via Schulze ballots. In reality, DJs evaluate full releases (albums, EPs, singles) when deciding what to play. A single track is rarely representative of an artist's output or club-readiness. Release-level voting allows DJs to consider the complete work.
+
+**Decision:** Extend the release domain model (`src/domain/releases/index.ts`) with a `Release` interface, `PlatformLink` type, `validateRelease()` function, and `canSubmitToCategory()` function. DJs submit ranked-choice ballots over releases. The `canSubmitToCategory()` function enforces type constraints (albums/EPs → album categories, singles → track categories). Streaming links support 6 platforms (Spotify, Apple Music, YouTube Music, Bandcamp, Tidal, Deezer) to avoid vendor lock-in.
+
+**Consequences:** More authentic DJ voting. Bands submit releases (not just tracks) for DJ evaluation. The platform becomes platform-agnostic — Bandcamp artists are no longer second-class citizens.
+
+---
+
+## ADR-017: Two-Pillar Weighted Scoring (Dynamic Fan/DJ Weights Per Category)
+
+**Status:** Accepted
+
+**Context:** With peer voting removed (ADR-014), category weights needed to be re-calibrated. Different categories have genuinely different audiences: "Best Cover Art" is inherently a fan-preference question; "Synthesis & Steel" (genre fusion) requires expert DJ judgment; "Riff Architect" rewards technical skill that trained ears evaluate better.
+
+**Decision:** Define a category-specific weight matrix where `fanWeight + djWeight = 1.0` for all 13 categories:
+
+| Category | Fan | DJ |
+|---|---|---|
+| Track of the Month | 0.55 | 0.45 |
+| Album of the Month | 0.40 | 0.60 |
+| Voice of the Void | 0.35 | 0.65 |
+| Riff Architect | 0.35 | 0.65 |
+| Synthesis & Steel | 0.30 | 0.70 |
+| Best Cover Art | 0.80 | 0.20 |
+| Best Merch | 0.85 | 0.15 |
+| Best Music Video | 0.60 | 0.40 |
+| Chronicler of the Night | 0.70 | 0.30 |
+| Dark Integrity Award | 0.65 | 0.35 |
+| Lyricist of the Shadows | 0.40 | 0.60 |
+| Underground Anthem | 0.45 | 0.55 |
+| Dark Concept | 0.40 | 0.60 |
+
+The `resolveWeights()` function in `combined.ts` returns these per-category weights; the overall chart fallback is 0.5/0.5.
+
+**Consequences:** Visual/fan-preference categories remain fan-dominated. Technical/craft categories give DJs majority influence. The weights are transparent and published in `CATEGORY_DEFINITIONS`, visible in the UI via `appliedWeights` in every `CombinedScore`.
