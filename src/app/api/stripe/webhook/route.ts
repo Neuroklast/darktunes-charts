@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { handleWebhook } from '@/infrastructure/payment/stripeAdapter'
+import { prisma } from '@/lib/prisma'
 
 /**
  * POST /api/stripe/webhook
@@ -11,6 +12,7 @@ import { handleWebhook } from '@/infrastructure/payment/stripeAdapter'
  *
  * Currently handled events:
  * - `checkout.session.completed` → activates band's paid categories in DB
+ * - `checkout.session.completed` (purpose=ad_booking) → activates ad booking (ADR-018)
  */
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature')
@@ -36,6 +38,35 @@ export async function POST(request: NextRequest) {
       //   where: { id: result.bandId },
       //   data: { paidCategorySlots: result.paidCategories },
       // })
+      return NextResponse.json({ received: true, processed: result.type })
+    }
+
+    if (result.type === 'checkout.session.completed.ad_booking') {
+      // Idempotent: activate the ad booking on payment confirmation
+      type AdBookingPrisma = {
+        adBooking: {
+          updateMany: (args: { where: { id: string; stripeCheckoutSessionId: string }; data: { status: string } }) => Promise<{ count: number }>
+        }
+        auditLog: {
+          create: (args: { data: { action: string; entityType: string; entityId: string; userId?: string; metadata: unknown } }) => Promise<unknown>
+        }
+      }
+      const db = prisma as unknown as AdBookingPrisma
+
+      await db.adBooking.updateMany({
+        where: { id: result.bookingId, stripeCheckoutSessionId: result.sessionId },
+        data: { status: 'PAID' },
+      })
+
+      await db.auditLog.create({
+        data: {
+          action: 'ad_booking_paid',
+          entityType: 'ad_booking',
+          entityId: result.bookingId,
+          metadata: { stripeSessionId: result.sessionId },
+        },
+      })
+
       return NextResponse.json({ received: true, processed: result.type })
     }
 

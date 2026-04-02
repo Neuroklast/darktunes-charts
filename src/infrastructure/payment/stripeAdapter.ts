@@ -93,6 +93,7 @@ export async function createCheckoutSession(
 
 export type StripeWebhookResult =
   | { type: 'checkout.session.completed'; bandId: string; paidCategories: number }
+  | { type: 'checkout.session.completed.ad_booking'; bookingId: string; sessionId: string }
   | { type: 'unhandled'; eventType: string }
 
 /**
@@ -117,6 +118,13 @@ export async function handleWebhook(
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
+
+    // Route by purpose metadata (ADR-018: ad bookings use separate routing)
+    if (session.metadata?.purpose === 'ad_booking') {
+      const bookingId = session.metadata.bookingId ?? ''
+      return { type: 'checkout.session.completed.ad_booking', bookingId, sessionId: session.id }
+    }
+
     const bandId = session.metadata?.bandId ?? ''
     const paidCategories = parseInt(session.metadata?.paidCategories ?? '0', 10)
     return { type: 'checkout.session.completed', bandId, paidCategories }

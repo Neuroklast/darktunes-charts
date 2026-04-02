@@ -3,12 +3,21 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
 
-const { mockHandleWebhook } = vi.hoisted(() => ({
+const { mockHandleWebhook, mockAdBookingUpdateMany, mockAuditLogCreate } = vi.hoisted(() => ({
   mockHandleWebhook: vi.fn(),
+  mockAdBookingUpdateMany: vi.fn().mockResolvedValue({ count: 1 }),
+  mockAuditLogCreate: vi.fn().mockResolvedValue({}),
 }))
 
 vi.mock('@/infrastructure/payment/stripeAdapter', () => ({
   handleWebhook: mockHandleWebhook,
+}))
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    adBooking: { updateMany: mockAdBookingUpdateMany },
+    auditLog: { create: mockAuditLogCreate },
+  },
 }))
 
 import { POST } from '../webhook/route'
@@ -91,5 +100,25 @@ describe('POST /api/stripe/webhook – event handling', () => {
 
     const body = await res.json() as { error: string }
     expect(body.error).toBe('Webhook processing failed')
+  })
+
+  it('activates ad booking and returns 200 for checkout.session.completed.ad_booking', async () => {
+    mockHandleWebhook.mockResolvedValue({
+      type: 'checkout.session.completed.ad_booking',
+      bookingId: 'booking-abc',
+      sessionId: 'cs_test_xyz',
+    })
+
+    const res = await POST(webhookRequest('{}', 'whsec_test'))
+    expect(res.status).toBe(200)
+
+    const body = await res.json() as { received: boolean; processed: string }
+    expect(body.received).toBe(true)
+    expect(body.processed).toBe('checkout.session.completed.ad_booking')
+    expect(mockAdBookingUpdateMany).toHaveBeenCalledWith({
+      where: { id: 'booking-abc', stripeCheckoutSessionId: 'cs_test_xyz' },
+      data: { status: 'PAID' },
+    })
+    expect(mockAuditLogCreate).toHaveBeenCalled()
   })
 })
