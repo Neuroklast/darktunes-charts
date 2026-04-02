@@ -11,8 +11,9 @@ export type Tier = 'Micro' | 'Emerging' | 'Established' | 'International' | 'Mac
  * - editor: Editorial staff; can write spotlights and manage nominations
  * - admin: Full platform administration and KYC verification
  * - ar: A&R professional with access to B2B scouting dashboard
+ * - label: Record label managing a roster of bands
  */
-export type UserRole = 'fan' | 'dj' | 'band' | 'editor' | 'admin' | 'ar'
+export type UserRole = 'fan' | 'dj' | 'band' | 'editor' | 'admin' | 'ar' | 'label'
 
 export type CategoryGroup = 'music' | 'visuals' | 'community' | 'newcomer'
 
