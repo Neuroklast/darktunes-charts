@@ -25,3 +25,5 @@ export type { ChartResultData, ChartResultRecord } from './chartRepository'
 
 export { VotingPeriodRepository, votingPeriodRepository } from './votingPeriodRepository'
 export type { VotingPeriodRecord, CreateVotingPeriodData } from './votingPeriodRepository'
+
+export { LabelRepository } from './labelRepository'

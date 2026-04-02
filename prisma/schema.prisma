@@ -78,6 +78,7 @@ model Band {
   isVerified              Boolean           @default(false)
   verified                Boolean           @default(false)
   ownerId                 String            @unique
+  labelId                 String?
   stripeCustomerId        String?
   stripeSubscriptionId    String?
   subscriptionTier        SubscriptionTier  @default(FREE)
@@ -85,6 +86,7 @@ model Band {
   updatedAt               DateTime          @updatedAt
 
   owner                User                 @relation("BandOwner", fields: [ownerId], references: [id])
+  label                Label?               @relation(fields: [labelId], references: [id])
   tracks               Track[]
   releases             Release[]
   bandVotesReceived    BandVote[]           @relation("VotedBand")
@@ -95,7 +97,11 @@ model Band {
   awards               Award[]
   spotlights           Spotlight[]
   djFeedbackReceived   DJFeedback[]         @relation("BandFeedback")
+  marketSnapshots      MarketSnapshot[]
+  promoSubmissions     PromoSubmission[]
+  adBookings           AdBooking[]
 
+  @@index([labelId])
   @@map("bands")
 }
 
@@ -671,4 +677,170 @@ enum AchievementRarity {
   RARE
   EPIC
   LEGENDARY
+}
+
+// ─── Phase 4 Models: Monetization Foundations ────────────────────────────────
+
+// ── Label Organisation ────────────────────────────────────────────────────────
+
+model Label {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  websiteUrl   String?
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  members LabelMember[]
+  bands   Band[]
+
+  @@map("labels")
+}
+
+model LabelMember {
+  id        String          @id @default(uuid())
+  labelId   String
+  userId    String
+  role      LabelMemberRole @default(MEMBER)
+  createdAt DateTime        @default(now())
+
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([labelId, userId])
+  @@index([userId])
+  @@map("label_members")
+}
+
+enum LabelMemberRole {
+  ADMIN
+  MEMBER
+}
+
+// ── Market Signal (Dark Market Index) ────────────────────────────────────────
+
+model MarketSnapshot {
+  id           String              @id @default(uuid())
+  bandId       String
+  source       MarketDataSource
+  value        Float
+  metadata     Json?
+  snapshotDate DateTime
+  createdAt    DateTime            @default(now())
+
+  band Band @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@index([bandId, snapshotDate])
+  @@map("market_snapshots")
+}
+
+enum MarketDataSource {
+  SPOTIFY
+  YOUTUBE
+  BANDCAMP
+  WEBRADIO
+}
+
+// ── Promo Pool ────────────────────────────────────────────────────────────────
+
+model PromoSubmission {
+  id               String             @id @default(uuid())
+  submittedByUserId String
+  bandId           String
+  releaseId        String?
+  message          String?
+  status           PromoStatus        @default(PENDING)
+  createdAt        DateTime           @default(now())
+
+  band      Band              @relation(fields: [bandId], references: [id])
+  djInbox   DJInboxItem[]
+
+  @@index([bandId])
+  @@index([submittedByUserId])
+  @@map("promo_submissions")
+}
+
+model DJInboxItem {
+  id               String          @id @default(uuid())
+  promoSubmissionId String
+  djUserId         String
+  status           DJInboxStatus   @default(UNREAD)
+  feedbackMessage  String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  submission PromoSubmission @relation(fields: [promoSubmissionId], references: [id], onDelete: Cascade)
+
+  @@unique([promoSubmissionId, djUserId])
+  @@index([djUserId])
+  @@map("dj_inbox_items")
+}
+
+enum PromoStatus {
+  PENDING
+  REVIEWED
+  SELECTED
+  REJECTED
+}
+
+enum DJInboxStatus {
+  UNREAD
+  READ
+  PLAYED
+  PASSED
+}
+
+// ── Sponsored Ad Slots ────────────────────────────────────────────────────────
+
+model AdSlot {
+  id          String      @id @default(uuid())
+  slotType    AdSlotType
+  weekStart   DateTime
+  isAvailable Boolean     @default(true)
+  maxBookings Int         @default(1)
+  priceEur    Float
+  createdAt   DateTime    @default(now())
+
+  bookings AdBooking[]
+
+  @@unique([slotType, weekStart])
+  @@index([weekStart])
+  @@map("ad_slots")
+}
+
+model AdBooking {
+  id                   String          @id @default(uuid())
+  adSlotId             String
+  bandId               String
+  startDate            DateTime
+  endDate              DateTime
+  weekCount            Int
+  status               AdBookingStatus @default(RESERVED)
+  stripeSessionId      String?         @unique
+  stripePaymentIntentId String?
+  assetUrl             String?
+  headline             String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  adSlot AdSlot @relation(fields: [adSlotId], references: [id])
+  band   Band   @relation(fields: [bandId], references: [id])
+
+  @@index([bandId])
+  @@index([startDate, endDate])
+  @@map("ad_bookings")
+}
+
+enum AdSlotType {
+  NEU_HOT
+  GENRE_PAGE
+  SIDEBAR
+}
+
+enum AdBookingStatus {
+  RESERVED
+  PENDING_PAYMENT
+  ACTIVE
+  EXPIRED
+  CANCELLED
 }

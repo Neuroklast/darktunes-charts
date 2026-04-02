@@ -5,12 +5,13 @@ import {
 } from '../auth/roles'
 
 describe('ROLE_PERMISSIONS', () => {
-  it('defines permissions for all 4 roles', () => {
-    expect(Object.keys(ROLE_PERMISSIONS)).toHaveLength(4)
+  it('defines permissions for all 5 roles', () => {
+    expect(Object.keys(ROLE_PERMISSIONS)).toHaveLength(5)
     expect(ROLE_PERMISSIONS.fan).toBeDefined()
     expect(ROLE_PERMISSIONS.dj).toBeDefined()
     expect(ROLE_PERMISSIONS.band).toBeDefined()
     expect(ROLE_PERMISSIONS.curator).toBeDefined()
+    expect(ROLE_PERMISSIONS.label).toBeDefined()
   })
 })
 
@@ -49,5 +50,25 @@ describe('hasPermission', () => {
 
   it('allows curators to vote:dj', () => {
     expect(hasPermission('curator', 'vote:dj')).toBe(true)
+  })
+
+  it('allows labels to manage:roster', () => {
+    expect(hasPermission('label', 'manage:roster')).toBe(true)
+  })
+
+  it('allows labels to submit:promo', () => {
+    expect(hasPermission('label', 'submit:promo')).toBe(true)
+  })
+
+  it('allows labels to book:ad-slot', () => {
+    expect(hasPermission('label', 'book:ad-slot')).toBe(true)
+  })
+
+  it('denies labels vote:fan', () => {
+    expect(hasPermission('label', 'vote:fan')).toBe(false)
+  })
+
+  it('allows bands to submit:promo', () => {
+    expect(hasPermission('band', 'submit:promo')).toBe(true)
   })
 })

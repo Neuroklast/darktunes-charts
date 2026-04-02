@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { handleWebhook } from '@/infrastructure/payment/stripeAdapter'
+import { prisma } from '@/lib/prisma'
 
 /**
  * POST /api/stripe/webhook
@@ -11,6 +12,7 @@ import { handleWebhook } from '@/infrastructure/payment/stripeAdapter'
  *
  * Currently handled events:
  * - `checkout.session.completed` → activates band's paid categories in DB
+ * - `checkout.session.completed` (with bookingId metadata) → activates AdBooking
  */
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature')
@@ -37,6 +39,19 @@ export async function POST(request: NextRequest) {
       //   data: { paidCategorySlots: result.paidCategories },
       // })
       return NextResponse.json({ received: true, processed: result.type })
+    }
+
+    if (result.type === 'ad-booking.activated') {
+      // Activate the ad booking after confirmed payment
+      await (prisma as unknown as {
+        adBooking: {
+          update: (args: unknown) => Promise<{ id: string }>
+        }
+      }).adBooking.update({
+        where: { id: result.bookingId },
+        data: { status: 'ACTIVE' },
+      })
+      return NextResponse.json({ received: true, processed: 'ad-booking.activated' })
     }
 
     return NextResponse.json({ received: true, processed: 'unhandled' })
