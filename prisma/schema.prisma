@@ -95,6 +95,8 @@ model Band {
   awards               Award[]
   spotlights           Spotlight[]
   djFeedbackReceived   DJFeedback[]         @relation("BandFeedback")
+  marketSignals        MarketSignalSnapshot[]
+  marketIndexes        MarketIndexSnapshot[]
 
   @@map("bands")
 }
@@ -671,4 +673,149 @@ enum AchievementRarity {
   RARE
   EPIC
   LEGENDARY
+}
+
+// ─── Phase 4: Monetization Foundations ───────────────────────────────────────
+
+// Market Signal / Dark Market Index
+
+model MarketSignalSnapshot {
+  id          String   @id @default(uuid())
+  bandId      String
+  source      MarketSignalSource
+  payload     Json
+  collectedAt DateTime @default(now())
+
+  band Band @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@index([bandId, collectedAt])
+  @@map("market_signal_snapshots")
+}
+
+model MarketIndexSnapshot {
+  id          String   @id @default(uuid())
+  bandId      String
+  indexValue  Float
+  breakdown   Json
+  computedAt  DateTime @default(now())
+
+  band Band @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@index([bandId, computedAt])
+  @@map("market_index_snapshots")
+}
+
+enum MarketSignalSource {
+  SPOTIFY
+  YOUTUBE
+  WEB_RADIO
+  BANDCAMP
+  MANUAL
+}
+
+// DJ Promo Pool
+
+model PromoSubmission {
+  id          String        @id @default(uuid())
+  bandId      String?
+  labelId     String?
+  releaseId   String?
+  status      PromoStatus   @default(PENDING)
+  createdAt   DateTime      @default(now())
+
+  feedbacks   PromoFeedback[]
+  assets      PromoAsset[]
+
+  @@index([bandId])
+  @@index([labelId])
+  @@map("promo_submissions")
+}
+
+model PromoFeedback {
+  id           String          @id @default(uuid())
+  submissionId String
+  djUserId     String
+  decision     PromoDecision
+  note         String?
+  createdAt    DateTime        @default(now())
+
+  submission PromoSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, djUserId])
+  @@index([submissionId])
+  @@index([djUserId])
+  @@map("promo_feedbacks")
+}
+
+model PromoAsset {
+  id           String   @id @default(uuid())
+  submissionId String
+  type         String
+  url          String
+  createdAt    DateTime @default(now())
+
+  submission PromoSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@map("promo_assets")
+}
+
+enum PromoStatus {
+  PENDING
+  ACTIVE
+  CLOSED
+}
+
+enum PromoDecision {
+  PLAYED
+  CONSIDERED
+  PASS
+}
+
+// Sponsored Placements / Ad Booking
+
+model AdSlot {
+  id            String       @id @default(uuid())
+  type          AdSlotType   @unique
+  maxConcurrent Int          @default(3)
+
+  bookings AdBooking[]
+
+  @@map("ad_slots")
+}
+
+model AdBooking {
+  id                      String          @id @default(uuid())
+  slotType                AdSlotType
+  bandId                  String?
+  labelId                 String?
+  startDate               DateTime
+  endDate                 DateTime
+  status                  AdBookingStatus @default(RESERVED)
+  creative                Json
+  stripeCheckoutSessionId String?         @unique
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  slot AdSlot @relation(fields: [slotType], references: [type])
+
+  @@index([slotType, status, startDate, endDate])
+  @@index([bandId])
+  @@index([labelId])
+  @@map("ad_bookings")
+}
+
+enum AdSlotType {
+  HOME_HERO
+  HOME_SIDEBAR
+  GENRE_BANNER
+  NEW_AND_HOT_LIST
+}
+
+enum AdBookingStatus {
+  RESERVED
+  PAID
+  ACTIVE
+  EXPIRED
+  CANCELED
 }

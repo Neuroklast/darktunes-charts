@@ -282,3 +282,35 @@ Bands may select 1–3 genre tags (1 primary + up to 2 secondary). The `validate
 The `resolveWeights()` function in `combined.ts` returns these per-category weights; the overall chart fallback is 0.5/0.5.
 
 **Consequences:** Visual/fan-preference categories remain fan-dominated. Technical/craft categories give DJs majority influence. The weights are transparent and published in `CATEGORY_DEFINITIONS`, visible in the UI via `appliedWeights` in every `CombinedScore`.
+
+---
+
+## ADR-018: Monetization Without Pay-to-Win
+
+**Status:** Accepted
+
+**Context:** Label feedback and community discussions revealed that darkTunes Charts needs sustainable revenue streams to cover infrastructure costs and grow the platform. However, the platform's core promise is that chart rankings are purely merit-based — influenced only by fan votes and DJ expertise, never by financial transactions. Any monetization model that could even *appear* to influence rankings would destroy community trust and invalidate the platform's reason to exist.
+
+Three specific monetization mechanisms were requested: (1) market intelligence data for bands and labels, (2) a DJ promo workflow similar to DAC, and (3) paid visibility/ad slots for releases (a "Neu & Hot" sponsored placement). Additionally, web radio tracking data (inspired by MI On Air) was identified as a unique, high-value data source for the market index.
+
+**Decision:** Implement monetization on a strict separation-of-concerns principle. The chart ranking engine (`src/domain/charts/`) remains completely isolated from all monetization features. Paid features are additive services:
+
+1. **Charts are unbuyable.** No payment, subscription, or action can increase a band's chart position, vote weight, or category eligibility beyond what is earned through votes. The `computeCombinedScore()` function has no payment inputs and never will. All chart-eligible code paths are tested with explicit non-payment assertions.
+
+2. **Visibility is bookable.** Bands and labels may purchase time-limited display slots (`AdBooking`) for sponsored placements on designated UI surfaces (`home_hero`, `home_sidebar`, `genre_banner`, `new_and_hot_list`). These placements are **always labeled** with a "Sponsored" indicator in the UI. Sponsored placements appear on separate UI sections — they are never mixed into ranked chart lists. The `AdBooking` model stores `isSponsoredVisible: true` for all active bookings to enforce this separation.
+
+3. **Tools and data are purchasable.** The Dark Market Index (`src/domain/market/`) aggregates Spotify, YouTube, web radio (MI On Air format), Bandcamp, and manual metrics into a 0–100 signal index. This index is a *separate* score from chart rankings — it measures market reach, not artistic merit as voted by the community. Access is gated by `subscriptionTier` (PRO/PRO_PLUS). The index value is never injected into chart scoring.
+
+4. **Clear UI labeling rules.** Every sponsored placement must render a visible "Gesponsert" / "Sponsored" badge using the `AdBadge` component. Chart results must never include a "Sponsored" field. If a band occupies both a chart position and a sponsored slot, these are rendered in distinct page sections. The rule: if it has a rank number, it is not sponsored. If it has a "Sponsored" badge, it has no rank.
+
+5. **Audit logging for all monetization actions.** Every booking creation, payment confirmation, promo submission, and market index access is written to `AuditLog` with `entityType` values of `ad_booking`, `promo_submission`, and `market_index_access`. This enables retrospective verification that no monetization action influenced chart data.
+
+**Implementation boundary rules:**
+
+- `src/domain/market/` — market intelligence only; imports nothing from `src/domain/charts/`
+- `src/domain/promo/` — promo workflow only; explicitly excludes promo feedback from vote tallying
+- `src/domain/ads/` — booking logic only; never touches `FanVote`, `DJBallot`, or `ChartResult`
+- `src/domain/charts/` — chart engine; must not import from `market/`, `promo/`, or `ads/`
+- Stripe webhook: routing is by `metadata.purpose` field — booking payments handled separately from subscription payments
+
+**Consequences:** Revenue streams are added without any risk of pay-to-win dynamics. The strict module boundary prevents accidental coupling. Auditors, labels, and the community can verify that sponsored bookings have zero influence on rankings by reading the chart engine source — it has no imports from the monetization modules. The "Sponsored" label requirement protects against confusion. Long-term, the platform can add more market intelligence features (e.g., MusicBrainz integration, Bandcamp sales data) as separate purchasable add-ons without touching the core voting logic.
