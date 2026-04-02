@@ -5,7 +5,28 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Added
+### Added (Phase 4 — Production-Ready & Community Growth)
+- **Security Headers** — All HTTP responses now include HSTS, X-Content-Type-Options, X-Frame-Options, CSP, Referrer-Policy, and Permissions-Policy via middleware (OWASP A05)
+- **Health Check** — `GET /api/health` endpoint returns DB connectivity, uptime, and version info
+- **GDPR Compliance** — `DELETE /api/auth/me` (account deletion, anonymises votes per GDPR Art. 17), `GET /api/auth/me/data-export` (data portability per GDPR Art. 20)
+- **Privacy Policy** — `/privacy` page (DSGVO-required)
+- **Imprint** — `/imprint` page (§5 TMG required for German law)
+- **Compilations Page** — `/compilations` compilation browser with genre tags and Spotify status
+- **Band Profiles (slug-based)** — `/bands/[slug]` with releases, streaming links, and JSON-LD structured data (schema.org MusicGroup)
+- **Band Analytics** — `/bands/[slug]/analytics` gated by subscription tier (Free/Pro/Pro+)
+- **Community Awards** — `/awards` public awards page with nominating/voting/closed status
+- **RSS Feeds** — `GET /api/feed/charts` and `GET /api/feed/compilations` (RSS 2.0)
+- **Sitemap** — `src/app/sitemap.ts` dynamic sitemap including all bands and compilations
+- **robots.txt** — `src/app/robots.ts` with proper allow/disallow rules
+- **Embed Widgets** — `/embed/charts` and `/embed/band/[slug]` iframe-friendly widgets
+- **Discord Webhook** — `src/infrastructure/discord/webhook.ts` + `POST /api/admin/discord/test-webhook`
+- **Spotify Playlist Sync** — `src/infrastructure/spotify/playlistSync.ts` + `POST /api/admin/compilations/:id/sync-spotify`
+- **Email Service** — `src/infrastructure/email/service.ts` (Resend) with welcome, chart published, award nomination, and DJ application templates
+- **Weekly Digest Cron** — `GET /api/cron/weekly-digest` for weekly chart emails
+- **`.env.example`** updated with RESEND_API_KEY, DISCORD_WEBHOOK_URL, UPSTASH_REDIS_*, SENTRY_DSN, NEXT_PUBLIC_SITE_URL
+- **New ADRs** — ADR-018 (Resend), ADR-019 (Upstash), ADR-020 (Sentry), ADR-021 (GDPR anonymisation), ADR-022 (embed iframe), ADR-023 (Discord webhook), ADR-024 (security headers)
+- **24 new tests** across 6 new test files (771 total, 54 files)
+
 - **Documentation Suite**: Complete bilingual documentation set for all platform areas:
   - `QUICKSTART.md` — Bilingual (DE/EN) quick start guide with installation, commands, demo accounts, and deployment steps
   - `docs/HANDBUCH_DE.md` — Vollständiges Benutzerhandbuch (14 Kapitel, Deutsch)
