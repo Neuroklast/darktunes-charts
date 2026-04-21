@@ -3,10 +3,11 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
 
-const { mockHandleWebhook, mockAdBookingFindUnique, mockAdBookingUpdate } = vi.hoisted(() => ({
+const { mockHandleWebhook, mockAdBookingFindUnique, mockAdBookingUpdate, mockBandUpdate } = vi.hoisted(() => ({
   mockHandleWebhook: vi.fn(),
   mockAdBookingFindUnique: vi.fn(),
   mockAdBookingUpdate: vi.fn(),
+  mockBandUpdate: vi.fn(),
 }))
 
 vi.mock('@/infrastructure/payment/stripeAdapter', () => ({
@@ -15,6 +16,9 @@ vi.mock('@/infrastructure/payment/stripeAdapter', () => ({
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    band: {
+      update: mockBandUpdate,
+    },
     adBooking: {
       findUnique: mockAdBookingFindUnique,
       update: mockAdBookingUpdate,
@@ -42,6 +46,7 @@ function webhookRequest(body: string, signature: string | null): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockBandUpdate.mockResolvedValue({ id: 'mock-band-id' })
 })
 
 describe('POST /api/stripe/webhook – signature validation', () => {

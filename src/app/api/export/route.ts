@@ -1,5 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { withAuth } from '@/infrastructure/security'
+import { prisma } from '@/lib/prisma'
+
+type ExportDb = {
+  band: {
+    findMany: (args: unknown) => Promise<Array<{
+      id: string
+      name: string
+      tier: string
+      fanVotes: Array<{ votes: number }>
+    }>>
+  }
+}
 
 /**
  * Escapes a value for safe inclusion in a CSV cell.
@@ -50,30 +62,23 @@ const EXPORT_COLUMNS = [
  *   Only LABEL, AR, or ADMIN roles can access this endpoint.
  */
 export const GET = withAuth(['LABEL', 'AR', 'ADMIN'], async (_request: NextRequest) => {
-  // In production: fetch mandated bands + scores from Prisma.
-  // For now, generate example rows to demonstrate the CSV structure.
-  const exampleRows: Record<string, string | number | null>[] = [
-    {
-      Band: 'Nightwish',
-      Tier: 'MAJOR',
-      'QV-Score': 8750,
-      'DJ-Score': 0.92,
-      'Peer-Score': 0.87,
-      'Combined-Score': 0.91,
-      Trend: '+12%',
-    },
-    {
-      Band: 'Lacuna Coil',
-      Tier: 'INDIE',
-      'QV-Score': 5230,
-      'DJ-Score': 0.78,
-      'Peer-Score': 0.81,
-      'Combined-Score': 0.79,
-      Trend: '+4%',
-    },
-  ]
+  const db = prisma as unknown as ExportDb
+  const bands = await db.band.findMany({
+    include: { fanVotes: { select: { votes: true } } },
+    orderBy: { name: 'asc' },
+  })
 
-  const csv = toCsv(EXPORT_COLUMNS, exampleRows)
+  const rows: Record<string, string | number | null>[] = bands.map((b) => ({
+    Band: b.name,
+    Tier: b.tier,
+    'QV-Score': b.fanVotes.reduce((sum, v) => sum + v.votes, 0),
+    'DJ-Score': 0,
+    'Peer-Score': 0,
+    'Combined-Score': 0,
+    Trend: '',
+  }))
+
+  const csv = toCsv(EXPORT_COLUMNS, rows)
   const dateStr = new Date().toISOString().slice(0, 10)
   const filename = `darktunes-ar-export-${dateStr}.csv`
 

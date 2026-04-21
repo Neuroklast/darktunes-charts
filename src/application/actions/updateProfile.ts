@@ -3,6 +3,13 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+
+type UpdateProfileDb = {
+  user: {
+    update: (args: unknown) => Promise<unknown>
+  }
+}
 
 const updateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -43,10 +50,11 @@ export async function updateProfile(input: UpdateProfileInput): Promise<UpdatePr
     }
 
     // In production with Prisma:
-    // await prisma.user.update({
-    //   where: { id: user.id },
-    //   data: { ...parsed.data, updatedAt: new Date() },
-    // })
+    const db = prisma as unknown as UpdateProfileDb
+    await db.user.update({
+      where: { id: user.id },
+      data: { ...parsed.data, updatedAt: new Date() },
+    })
 
     revalidatePath('/profile')
 

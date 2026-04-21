@@ -3,6 +3,22 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { calculateCombinedScores, type TrackScores } from '@/domain/voting/combined'
+import { prisma } from '@/lib/prisma'
+
+type ComputeDb = {
+  fanVote: {
+    groupBy: (args: unknown) => Promise<Array<{
+      releaseId: string | null
+      _sum: { votes: number | null; creditsSpent: number | null }
+    }>>
+  }
+  votingPeriod: {
+    findFirst: (args: unknown) => Promise<{ id: string } | null>
+  }
+  user: {
+    findUnique: (args: unknown) => Promise<{ role: string } | null>
+  }
+}
 
 export interface ComputeChartsResult {
   success: boolean
@@ -34,15 +50,35 @@ export async function computeCharts(): Promise<ComputeChartsResult> {
       return { success: false, error: 'Nicht angemeldet' }
     }
 
-    // In production, fetch raw scores from database:
-    // const rawScores = await prisma.fanVote.groupBy({ ... })
+    const db = prisma as unknown as ComputeDb
 
-    // Example with mock data for now:
-    const mockScores: TrackScores[] = []
-    const combinedScores = calculateCombinedScores(mockScores)
+    // Admin-only guard
+    const dbUser = await db.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (!dbUser || dbUser.role !== 'ADMIN') {
+      return { success: false, error: 'Nur Admins können Charts manuell berechnen' }
+    }
 
-    // In production, write ChartSnapshot records:
-    // await prisma.$transaction(combinedScores.map(score => ...))
+    const period = await db.votingPeriod.findFirst({ where: { isActive: true }, select: { id: true } })
+    if (!period) {
+      return { success: false, error: 'Kein aktiver Abstimmungszeitraum' }
+    }
+
+    const grouped = await db.fanVote.groupBy({
+      by: ['releaseId'],
+      where: { periodId: period.id, releaseId: { not: null } },
+      _sum: { votes: true, creditsSpent: true },
+    })
+
+    const rawScores: TrackScores[] = grouped
+      .filter((g) => g.releaseId)
+      .map((g) => ({
+        trackId: g.releaseId!,
+        fanScore: g._sum.votes ?? 0,
+        djScore: 0,
+        peerScore: 0,
+      }))
+
+    const combinedScores = calculateCombinedScores(rawScores)
 
     revalidatePath('/charts')
     revalidatePath('/')

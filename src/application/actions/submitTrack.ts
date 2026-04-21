@@ -5,6 +5,14 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { lookupItunesTrack } from '@/infrastructure/api/itunes'
 import { fetchOdesliLinks } from '@/infrastructure/api/odesli'
+import { prisma } from '@/lib/prisma'
+
+type SubmitTrackDb = {
+  track: {
+    findUnique: (args: unknown) => Promise<{ id: string } | null>
+    create: (args: unknown) => Promise<{ id: string }>
+  }
+}
 
 const submitTrackSchema = z.object({
   title: z.string().min(1).max(200),
@@ -83,15 +91,36 @@ export async function submitTrack(input: SubmitTrackInput): Promise<SubmitTrackR
       }
     }
 
-    // In production with Prisma:
-    // const trackId = crypto.randomUUID()
-    // await prisma.track.create({ data: { id: trackId, title, isrc, bandId: parsed.data.bandId, genre: parsed.data.genre } })
+    const db = prisma as unknown as SubmitTrackDb
+
+    // 5. ISRC deduplication
+    if (isrc) {
+      const existing = await db.track.findUnique({ where: { isrc }, select: { id: true } })
+      if (existing) {
+        return { success: false, error: 'Track mit dieser ISRC existiert bereits', trackId: existing.id }
+      }
+    }
+
+    // 6. Persist track
+    const trackId = crypto.randomUUID()
+    await db.track.create({
+      data: {
+        id: trackId,
+        title: parsed.data.title,
+        bandId: parsed.data.bandId,
+        genre: parsed.data.genre as never,
+        isrc: isrc ?? null,
+        spotifyTrackId: parsed.data.spotifyTrackId ?? null,
+        itunesTrackId: parsed.data.itunesTrackId ?? null,
+      },
+    })
 
     revalidatePath('/charts')
     revalidatePath('/dashboard/band')
 
     return {
       success: true,
+      trackId,
       isrc,
       odesliPageUrl,
     }

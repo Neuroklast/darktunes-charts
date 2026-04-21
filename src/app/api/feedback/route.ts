@@ -1,6 +1,21 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+
+type FeedbackDb = {
+  user: {
+    findUnique: (args: unknown) => Promise<{ role: string; isDJVerified: boolean } | null>
+  }
+  dJFeedback: {
+    findMany: (args: unknown) => Promise<Array<{
+      id: string; djId: string; bandId: string; trackId: string | null; message: string; createdAt: Date
+    }>>
+    create: (args: unknown) => Promise<{
+      id: string; djId: string; bandId: string; trackId: string | null; message: string; createdAt: Date
+    }>
+  }
+}
 
 const feedbackSchema = z.object({
   bandId: z.string().uuid('Invalid band ID'),
@@ -26,7 +41,12 @@ export async function GET(_request: NextRequest) {
 
     // In a real implementation this would query Prisma; returning empty array
     // until the database is provisioned.  The route contract is fully defined.
-    return NextResponse.json({ feedback: [] })
+    const db = prisma as unknown as FeedbackDb
+    const feedback = await db.dJFeedback.findMany({
+      where: { OR: [{ djId: user.id }, { bandId: user.id }] },
+      orderBy: { createdAt: 'desc' },
+    })
+    return NextResponse.json({ feedback })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -63,25 +83,20 @@ export async function POST(request: NextRequest) {
 
     const { bandId, trackId, message } = parsed.data
 
-    // TODO: Persist to database via Prisma when provisioned:
-    // const feedback = await prisma.dJFeedback.create({
-    //   data: { djId: user.id, bandId, trackId, message },
-    // })
-    // return NextResponse.json({ success: true, feedback }, { status: 201 })
+    const db = prisma as unknown as FeedbackDb
+    const dbUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: { role: true, isDJVerified: true },
+    })
 
-    // Interim: acknowledge receipt but note persistence is pending DB setup
-    return NextResponse.json({
-      success: true,
-      pending: true,
-      message: 'Feedback received. Database persistence will be active once provisioned.',
-      feedback: {
-        djId: user.id,
-        bandId,
-        trackId: trackId ?? null,
-        message,
-        createdAt: new Date().toISOString(),
-      },
-    }, { status: 202 })
+    if (!dbUser || (dbUser.role !== 'DJ' && dbUser.role !== 'ADMIN') || (dbUser.role === 'DJ' && !dbUser.isDJVerified)) {
+      return NextResponse.json({ error: 'Nur verifizierte DJs können Feedback einreichen' }, { status: 403 })
+    }
+
+    const feedback = await db.dJFeedback.create({
+      data: { djId: user.id, bandId, trackId: trackId ?? null, message },
+    })
+    return NextResponse.json({ success: true, feedback }, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

@@ -3,6 +3,14 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+
+type ReviewKYCDb = {
+  user: {
+    findUnique: (args: unknown) => Promise<{ role: string } | null>
+    update: (args: unknown) => Promise<unknown>
+  }
+}
 
 const reviewKYCSchema = z.object({
   userId: z.string().uuid(),
@@ -42,16 +50,23 @@ export async function reviewKYC(input: ReviewKYCInput): Promise<ReviewKYCResult>
       return { success: false, error: 'Ungültige KYC-Daten: ' + parsed.error.message }
     }
 
-    // In production with Prisma:
-    // await prisma.user.update({
-    //   where: { id: parsed.data.userId },
-    //   data: {
-    //     kycStatus: parsed.data.decision,
-    //     isDJVerified: parsed.data.decision === 'APPROVED',
-    //     kycReviewedBy: user.id,
-    //     kycReviewedAt: new Date(),
-    //   }
-    // })
+    const db = prisma as unknown as ReviewKYCDb
+
+    // Admin-only check via database
+    const caller = await db.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (!caller || caller.role !== 'ADMIN') {
+      return { success: false, error: 'Nur Admins können KYC prüfen' }
+    }
+
+    await db.user.update({
+      where: { id: parsed.data.userId },
+      data: {
+        kycStatus: parsed.data.decision,
+        isDJVerified: parsed.data.decision === 'APPROVED',
+        kycReviewedBy: user.id,
+        kycReviewedAt: new Date(),
+      },
+    })
 
     revalidatePath('/admin/kyc')
 

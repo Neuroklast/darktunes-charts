@@ -1,6 +1,36 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+
+type TransparencyDb = {
+  transparencyLogEntry: {
+    findMany: (args: unknown) => Promise<Array<{
+      id: string
+      timestamp: Date
+      trackId: string
+      userId: string
+      voteType: string
+      rawVotes: number
+      creditsSpent: number | null
+      weight: number
+      finalContribution: number
+      reason: string | null
+    }>>
+    create: (args: unknown) => Promise<{
+      id: string
+      timestamp: Date
+      trackId: string
+      userId: string
+      voteType: string
+      rawVotes: number
+      creditsSpent: number | null
+      weight: number
+      finalContribution: number
+      reason: string | null
+    }>
+  }
+}
 
 const createLogEntrySchema = z.object({
   trackId: z.string().uuid(),
@@ -19,9 +49,14 @@ const createLogEntrySchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const trackId = request.nextUrl.searchParams.get('trackId')
-    const limit = parseInt(request.nextUrl.searchParams.get('limit') ?? '50', 10)
-    // In production: const logs = await prisma.transparencyLogEntry.findMany({ where: trackId ? { trackId } : {}, take: limit, orderBy: { timestamp: 'desc' } })
-    return NextResponse.json({ logs: [], trackId, limit })
+    const limit = Math.min(parseInt(request.nextUrl.searchParams.get('limit') ?? '50', 10), 200)
+    const db = prisma as unknown as TransparencyDb
+    const logs = await db.transparencyLogEntry.findMany({
+      where: trackId ? { trackId } : undefined,
+      take: limit,
+      orderBy: { timestamp: 'desc' },
+    })
+    return NextResponse.json({ logs, trackId, limit })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -51,7 +86,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ success: true, logEntry: { id: 'new-log-id', userId: user.id, timestamp: new Date().toISOString(), ...parsed.data } })
+    const db = prisma as unknown as TransparencyDb
+    const logEntry = await db.transparencyLogEntry.create({
+      data: {
+        trackId: parsed.data.trackId,
+        userId: user.id,
+        voteType: parsed.data.voteType,
+        rawVotes: parsed.data.rawVotes,
+        creditsSpent: parsed.data.creditsSpent ?? null,
+        weight: parsed.data.weight,
+        finalContribution: parsed.data.finalContribution,
+        reason: parsed.data.reason ?? null,
+      },
+    })
+    return NextResponse.json({ success: true, logEntry })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

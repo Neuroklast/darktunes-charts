@@ -33,11 +33,15 @@ export async function POST(request: NextRequest) {
     const result = await handleWebhook(payload, signature)
 
     if (result.type === 'checkout.session.completed') {
-      // In production with Prisma:
-      // await prisma.band.update({
-      //   where: { id: result.bandId },
-      //   data: { paidCategorySlots: result.paidCategories },
-      // })
+      const prismaDb = prisma as unknown as {
+        band: { update: (args: unknown) => Promise<{ id: string }> }
+      }
+      if (result.bandId) {
+        await prismaDb.band.update({
+          where: { id: result.bandId },
+          data: { subscriptionTier: 'PRO' },
+        })
+      }
       return NextResponse.json({ received: true, processed: result.type })
     }
 

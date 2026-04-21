@@ -3,9 +3,11 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
 
-const { mockGetUser, mockFindUnique } = vi.hoisted(() => ({
+const { mockGetUser, mockFindUnique, mockMandateCreate, mockMandateUpdate } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFindUnique: vi.fn(),
+  mockMandateCreate: vi.fn(),
+  mockMandateUpdate: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -17,6 +19,11 @@ vi.mock('@/lib/supabase/server', () => ({
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: { findUnique: mockFindUnique },
+    labelBandMandate: {
+      create: mockMandateCreate,
+      update: mockMandateUpdate,
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }))
 
@@ -50,6 +57,8 @@ const VALID_MANDATE_ID = '33333333-3333-3333-3333-333333333333'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockMandateCreate.mockResolvedValue({ id: 'mock-mandate-id' })
+  mockMandateUpdate.mockResolvedValue({ id: 'mock-mandate-id' })
 })
 
 describe('POST /api/mandates – role validation', () => {
