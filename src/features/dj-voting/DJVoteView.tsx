@@ -97,7 +97,9 @@ export function DJVoteView({ bands, tracks, periodId }: DJVoteViewProps) {
           description: 'Kein aktiver Abstimmungszeitraum — Ballot nur lokal gespeichert',
         })
       }
-    } catch {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
+      console.error('[DJVoteView] Ballot submission error:', message)
       toast.error('Netzwerkfehler beim Einreichen des Ballots')
     } finally {
       setIsSubmitting(false)
