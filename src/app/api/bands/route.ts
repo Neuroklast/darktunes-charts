@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 
 const createBandSchema = z.object({
   name: z.string().min(1).max(200),
@@ -16,8 +17,20 @@ const createBandSchema = z.object({
  */
 export async function GET() {
   try {
-    // In production: const bands = await prisma.band.findMany({ include: { tracks: true } })
-    return NextResponse.json({ bands: [] })
+    const db = prisma as unknown as {
+      band: {
+        findMany: (args: unknown) => Promise<Array<{
+          id: string; name: string; slug: string | null; genre: string; tier: string;
+          spotifyMonthlyListeners: number; country: string | null; bio: string | null;
+          isVerified: boolean; tracks: Array<{ id: string; title: string }>
+        }>>
+      }
+    }
+    const bands = await db.band.findMany({
+      include: { tracks: { select: { id: true, title: true } } },
+      orderBy: { name: 'asc' },
+    })
+    return NextResponse.json({ bands })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -48,7 +61,13 @@ export async function POST(request: NextRequest) {
     }
 
     // In production: const band = await prisma.band.create({ data: { ...parsed.data, ownerId: user.id } })
-    return NextResponse.json({ success: true, band: { id: 'new-band-id', ...parsed.data } })
+    const db = prisma as unknown as {
+      band: {
+        create: (args: unknown) => Promise<{ id: string; name: string; genre: string; tier: string; spotifyMonthlyListeners: number; isVerified: boolean }>
+      }
+    }
+    const band = await db.band.create({ data: { ...parsed.data, ownerId: user.id } })
+    return NextResponse.json({ success: true, band })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

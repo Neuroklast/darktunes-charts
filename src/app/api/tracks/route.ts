@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { TrackSubmissionSchema } from '@/domain/releases/index'
+import { prisma } from '@/lib/prisma'
 
 const createTrackSchema = z.object({
   title: z.string().min(1).max(200),
@@ -19,8 +20,20 @@ const createTrackSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const genre = request.nextUrl.searchParams.get('genre')
-    // In production: const tracks = await prisma.track.findMany({ where: genre ? { genre: genre as Genre } : {}, include: { band: true } })
-    return NextResponse.json({ tracks: [], genre })
+    const db = prisma as unknown as {
+      track: {
+        findMany: (args: unknown) => Promise<Array<{
+          id: string; title: string; genre: string; isrc: string | null;
+          spotifyTrackId: string | null; bandId: string; band: { id: string; name: string }
+        }>>
+      }
+    }
+    const tracks = await db.track.findMany({
+      where: genre ? { genre } : undefined,
+      include: { band: { select: { id: true, name: true } } },
+      orderBy: { submittedAt: 'desc' },
+    })
+    return NextResponse.json({ tracks, genre })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -62,15 +75,24 @@ export async function POST(request: NextRequest) {
     }
 
     // ISRC deduplication:
-    // if (parsed.data.isrc) {
-    //   const existing = await prisma.track.findUnique({ where: { isrc: parsed.data.isrc } })
-    //   if (existing) return NextResponse.json({ error: 'Track with this ISRC already exists', existingTrackId: existing.id }, { status: 409 })
-    // }
+    const db = prisma as unknown as {
+      track: {
+        findUnique: (args: unknown) => Promise<{ id: string } | null>
+        create: (args: unknown) => Promise<{ id: string; title: string; genre: string; isrc: string | null; spotifyTrackId: string | null; bandId: string }>
+      }
+    }
+    if (parsed.data.isrc) {
+      const existing = await db.track.findUnique({ where: { isrc: parsed.data.isrc } })
+      if (existing) {
+        return NextResponse.json({ error: 'Track with this ISRC already exists', existingTrackId: existing.id }, { status: 409 })
+      }
+    }
+    const track = await db.track.create({ data: { ...parsed.data } })
 
     // After DB insert, trigger async enrichment (fire-and-forget):
     // void enrichTrack({ trackId: track.id, title: track.title, artistName: band.name, spotifyTrackId: track.spotifyTrackId })
 
-    return NextResponse.json({ success: true, track: { id: 'new-track-id', ...parsed.data }, enrichmentQueued: true })
+    return NextResponse.json({ success: true, track, enrichmentQueued: Boolean(parsed.data.spotifyTrackId) })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

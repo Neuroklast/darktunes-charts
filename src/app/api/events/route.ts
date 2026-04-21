@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { rankEvents, filterUpcomingEvents } from '@/domain/events/ranking'
 import { withAuth } from '@/infrastructure/security'
+import { prisma } from '@/lib/prisma'
 
 const createEventSchema = z.object({
   name: z.string().min(1).max(200),
@@ -19,10 +20,23 @@ const createEventSchema = z.object({
  */
 export async function GET() {
   try {
-    // In production, load events with intent counts:
-    // const events = await prisma.event.findMany({ include: { _count: { select: { intents: true } } } })
-    const mockEvents = filterUpcomingEvents([])
-    const ranked = rankEvents(mockEvents)
+    const db = prisma as unknown as {
+      event: {
+        findMany: (args: unknown) => Promise<Array<{
+          id: string; name: string; venue: string; city: string; country: string;
+          date: Date; description: string | null; imageUrl: string | null;
+          createdAt: Date; _count: { intents: number }
+        }>>
+      }
+    }
+    const rows = await db.event.findMany({
+      include: { _count: { select: { intents: true } } },
+      orderBy: { date: 'asc' },
+    })
+    const events = filterUpcomingEvents(
+      rows.map(r => ({ ...r, date: r.date.toISOString(), intentCount: r._count.intents }))
+    )
+    const ranked = rankEvents(events)
     return NextResponse.json({ events: ranked })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
@@ -47,5 +61,14 @@ export const POST = withAuth(['ADMIN', 'EDITOR'], async (request: NextRequest) =
     )
   }
 
-  return NextResponse.json({ success: true, event: { id: 'new-event-id', intentCount: 0, ...parsed.data } })
+  const eventDb = prisma as unknown as {
+    event: {
+      create: (args: unknown) => Promise<{
+        id: string; name: string; venue: string; city: string; country: string;
+        date: Date; description: string | null; imageUrl: string | null
+      }>
+    }
+  }
+  const event = await eventDb.event.create({ data: { ...parsed.data, date: new Date(parsed.data.date) } })
+  return NextResponse.json({ success: true, event: { ...event, date: event.date.toISOString(), intentCount: 0 } })
 })
