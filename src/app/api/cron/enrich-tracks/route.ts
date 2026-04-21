@@ -46,8 +46,8 @@ export async function POST(req: Request) {
         spotifyArtistId: track.band.spotifyArtistId ?? undefined,
       })
       processed++
-    } catch {
-      // Continue with next track on failure
+    } catch (err) {
+      console.error('Enrichment failed for track', track.id, err)
     }
   }
 

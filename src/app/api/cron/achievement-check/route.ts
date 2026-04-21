@@ -20,8 +20,9 @@ type AchievementDb = {
   }
 }
 
-/**
- * POST /api/cron/achievement-check
+const MS_PER_MONTH = 1000 * 60 * 60 * 24 * 30
+
+
  *
  * Vercel Cron Job that evaluates pending achievement grants for all users.
  * Secured by CRON_SECRET — must be called with `Authorization: Bearer <CRON_SECRET>`.
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
     const grantedIds = new Set(earned.map((e) => e.achievementId))
 
     const accountAgeMonths = Math.floor(
-      (Date.now() - u.createdAt.getTime()) / (1000 * 60 * 60 * 24 * 30),
+      (Date.now() - u.createdAt.getTime()) / MS_PER_MONTH,
     )
     const totalCycles = Math.floor(u.fanVotes.length / 5)
     const subGenres = new Set(u.fanVotes.map((v) => v.categoryId).filter(Boolean)).size
