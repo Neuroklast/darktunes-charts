@@ -46,7 +46,6 @@ export interface FanAchievementContext {
 export interface BandAchievementContext {
   userId: string
   role: 'BAND'
-  peerRank1: boolean
   superListenerDensityRank: number
   genreChartCount: number
   reciprocityPenaltyRate: number
@@ -135,7 +134,7 @@ const CHECKERS: Record<string, Checker> = {
   founding_fan:       (c) => (c as FanAchievementContext).accountAgeMonths <= 12,
 
   // BAND
-  musicians_choice:   (c) => (c as BandAchievementContext).peerRank1,
+  musicians_choice:   (c) => (c as BandAchievementContext).combinedRank1,
   high_intensity_core:(c) => (c as BandAchievementContext).superListenerDensityRank === 1,
   genre_bender:       (c) => (c as BandAchievementContext).genreChartCount >= 3,
   honest_player:      (c) => (c as BandAchievementContext).reciprocityPenaltyRate === 0,

@@ -9,9 +9,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { QuadraticVotingSlider } from '@/components/QuadraticVotingSlider'
 import { VotingHelpButton, QuadraticVotingInfo } from '@/features/voting/VotingMethodInfo'
 import type { Band, Track, FanVote, Genre } from '@/lib/types'
-import { calculateQuadraticCost } from '@/lib/voting'
-
-const TOTAL_CREDITS = 100
+import { calculateQuadraticCost, MONTHLY_CREDIT_BUDGET } from '@/lib/voting'
+import { getTierBadgeVariant } from '@/lib/utils'
 
 type GenreFilter = 'All' | Genre
 
@@ -22,16 +21,6 @@ interface FanVoteViewProps {
   onVoteChange: (trackId: string, votes: number) => void
   onSubmitVotes: () => void
   onResetVotes?: () => void
-}
-
-function getTierBadgeVariant(tier: string): 'destructive' | 'default' | 'secondary' | 'outline' {
-  switch (tier) {
-    case 'Macro':         return 'destructive'
-    case 'International': return 'destructive'
-    case 'Established':   return 'default'
-    case 'Emerging':      return 'secondary'
-    default:              return 'outline'
-  }
 }
 
 function EmptyVoteList() {
@@ -64,7 +53,7 @@ export function FanVoteView({ bands, tracks, fanVotes, onVoteChange, onSubmitVot
     () => Object.values(fanVotes).reduce((sum, vote) => sum + calculateQuadraticCost(vote.votes), 0),
     [fanVotes]
   )
-  const availableCredits = TOTAL_CREDITS - usedCredits
+  const availableCredits = MONTHLY_CREDIT_BUDGET - usedCredits
   const votedTrackCount = Object.keys(fanVotes).length
 
   const filteredTracks = useMemo(
@@ -101,9 +90,9 @@ export function FanVoteView({ bands, tracks, fanVotes, onVoteChange, onSubmitVot
           <p className="text-xs text-muted-foreground mb-2">Voice Credits</p>
           <div className="flex items-baseline gap-2 mb-3">
             <span className="text-3xl font-mono font-bold">{availableCredits}</span>
-            <span className="text-muted-foreground">/ {TOTAL_CREDITS}</span>
+            <span className="text-muted-foreground">/ {MONTHLY_CREDIT_BUDGET}</span>
           </div>
-          <Progress value={usedCredits} className="h-2" />
+          <Progress value={usedCredits} max={MONTHLY_CREDIT_BUDGET} className="h-2" />
           <p className="text-xs text-muted-foreground mt-2">{usedCredits} Credits verbraucht</p>
         </Card>
       </div>
@@ -168,7 +157,7 @@ export function FanVoteView({ bands, tracks, fanVotes, onVoteChange, onSubmitVot
             )}
             <Button
               onClick={onSubmitVotes}
-              disabled={usedCredits === 0 || usedCredits > TOTAL_CREDITS}
+              disabled={usedCredits === 0 || usedCredits > MONTHLY_CREDIT_BUDGET}
               className="gap-2"
               size="lg"
             >

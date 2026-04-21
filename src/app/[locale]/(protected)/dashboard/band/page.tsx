@@ -8,11 +8,9 @@ export const metadata = { title: 'Band Dashboard · DarkTunes' }
 export default async function BandDashboardPage() {
   const t = await getTranslations('dashboard.band')
 
-  // In production: fetch real data via Prisma / Server Component
   const voterStructure = [
-    { label: 'Fan Votes (QV)', count: 0, percent: 33 },
-    { label: 'DJ Ballots', count: 0, percent: 33 },
-    { label: 'Peer Reviews', count: 0, percent: 34 },
+    { label: 'Fan Votes (QV)', count: 0, percent: 50 },
+    { label: 'DJ Ballots', count: 0, percent: 50 },
   ]
 
   return (
@@ -64,7 +62,7 @@ export default async function BandDashboardPage() {
               ariaLabel={t('voterStructureHelpAriaLabel')}
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {voterStructure.map((group) => (
               <div key={group.label} className="space-y-2">
                 <div className="flex items-center justify-between">

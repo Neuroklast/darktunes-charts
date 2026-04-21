@@ -42,12 +42,31 @@ export async function POST(request: NextRequest) {
     }
 
     if (result.type === 'ad-booking.activated') {
-      // Activate the ad booking after confirmed payment
-      await (prisma as unknown as {
+      // Idempotency guard: only activate if booking is in PENDING state.
+      // Stripe retries webhooks on timeout — without this check the same
+      // booking would be activated multiple times.
+      const adBookingDb = prisma as unknown as {
         adBooking: {
+          findUnique: (args: unknown) => Promise<{ id: string; status: string } | null>
           update: (args: unknown) => Promise<{ id: string }>
         }
-      }).adBooking.update({
+      }
+
+      const booking = await adBookingDb.adBooking.findUnique({
+        where: { id: result.bookingId },
+        select: { id: true, status: true },
+      })
+
+      if (!booking) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      }
+
+      if (booking.status === 'ACTIVE') {
+        // Already processed — idempotent success
+        return NextResponse.json({ received: true, processed: 'ad-booking.already-active' })
+      }
+
+      await adBookingDb.adBooking.update({
         where: { id: result.bookingId },
         data: { status: 'ACTIVE' },
       })

@@ -12,7 +12,6 @@ import {
   Question,
   Heart,
   Disc,
-  UsersThree,
   CheckCircle,
   Warning,
   LockKey,
@@ -212,91 +211,6 @@ export function SchulzeMethodInfo({ open, onClose }: SchulzeMethodInfoProps) {
               Borda-Count ist anfällig für den <em>„Spoiler-Effekt"</em> und strategisches
               Downvoting. Die Schulze-Methode eliminiert taktisches Abstimmen vollständig,
               da kein DJ durch strategische Platzierungen das Ergebnis manipulieren kann.
-            </p>
-          </InfoBlock>
-
-          <div className="flex items-center gap-2 pt-1">
-            <Badge variant="outline" className="text-xs">Gewichtung im Gesamt-Ranking</Badge>
-            <span className="font-mono font-bold">33.3 %</span>
-            <span className="text-muted-foreground text-xs">der Gesamt-Punktzahl</span>
-          </div>
-        </div>
-
-        <Separator />
-        <Button variant="outline" onClick={onClose} className="w-full">Schließen</Button>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Anti-Collusion Peer Review Info (Band Vote)
-// ---------------------------------------------------------------------------
-
-interface PeerReviewInfoProps {
-  open: boolean
-  onClose: () => void
-}
-
-/**
- * Explains the Anti-Collusion algorithm used for the Bands Choice pillar.
- *
- * Source: Musik-Charts PDF, Section 4.3 – Bands Choice: Anti-Kollusions-Metriken
- */
-export function PeerReviewInfo({ open, onClose }: PeerReviewInfoProps) {
-  return (
-    <Dialog open={open} onOpenChange={open ? onClose : undefined}>
-      <DialogContent className="glassmorphism max-w-lg animate-modal-in overflow-y-auto max-h-[85vh]">
-        <DialogHeader>
-          <DialogTitle className="font-display text-xl tracking-tight flex items-center gap-2">
-            <UsersThree className="w-5 h-5 text-destructive" weight="duotone" />
-            Band-Voting: Anti-Kollusions-Peer-Review
-          </DialogTitle>
-          <DialogDescription>
-            Kollusionsresistentes Peer-Review mit KI-gestützter Cliquen-Erkennung.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 text-sm">
-          <InfoBlock icon={<UsersThree className="w-4 h-4 text-destructive shrink-0" weight="duotone" />} title="Das Prinzip">
-            <p className="text-muted-foreground">
-              Registrierte Bands bewerten andere Bands im Peer-Review-Verfahren.
-              Musiker erkennen oft <strong>kompositorische Tiefe</strong> und technische
-              Raffinessen, die Fans und DJs entgehen. Diese Perspektive ist wertvoll –
-              muss aber gegen <em>Cliquenbildung und Vote-Trading</em> geschützt werden.
-            </p>
-          </InfoBlock>
-
-          <InfoBlock icon={<Warning className="w-4 h-4 text-yellow-500 shrink-0" weight="duotone" />} title="Das Problem: Cliquenbildung">
-            <p className="text-muted-foreground">
-              Langzeitstudien zum Eurovision Song Contest (60 Jahre) zeigen: Bands neigen
-              dazu, befreundete Acts zu bevorzugen (Reziprozität) oder sich in informellen
-              Voting-Zirkeln abzusprechen. Ungefiltertes Peer-Voting wäre nicht neutral.
-            </p>
-          </InfoBlock>
-
-          <InfoBlock icon={<LockKey className="w-4 h-4 text-accent shrink-0" weight="duotone" />} title="Der Anti-Kollusions-Algorithmus">
-            <ul className="space-y-2 text-muted-foreground">
-              <li className="flex gap-2">
-                <span className="shrink-0 font-mono text-foreground">01.</span>
-                <span><strong>Reziprokes Voting:</strong> Wenn Band A immer Band B wählt und Band B immer Band A, wird das Stimmgewicht beider automatisch abgewertet.</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="shrink-0 font-mono text-foreground">02.</span>
-                <span><strong>Mahalanobis-Distanz:</strong> Stimmen, die statistisch signifikant von der Gesamt-Peer-Meinung abweichen, werden normalisiert (Outlier-Detection).</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="shrink-0 font-mono text-foreground">03.</span>
-                <span><strong>Intellektuelle Distanz:</strong> Bands, die für Acts abstimmen, mit denen sie kein gemeinsames Label, keine Tour und keine geografische Nähe teilen, erhalten <em>höheres Stimmgewicht</em>.</span>
-              </li>
-            </ul>
-          </InfoBlock>
-
-          <InfoBlock icon={<CheckCircle className="w-4 h-4 text-accent shrink-0" weight="duotone" />} title="Kryptografische Integrität">
-            <p className="text-muted-foreground">
-              Jede Stimme wird mit einem Zeitstempel kryptografisch gehasht.
-              Nachträgliche Manipulationen – auch durch Administratoren – sind
-              mathematisch nachweisbar und im Transparency-Log auditierbar.
             </p>
           </InfoBlock>
 

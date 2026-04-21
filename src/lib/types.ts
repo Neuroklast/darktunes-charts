@@ -5,8 +5,8 @@ export type Tier = 'Micro' | 'Emerging' | 'Established' | 'International' | 'Mac
 
 /**
  * Platform user roles with distinct permissions.
- * - fan: Public voter with 100 Voice Credits/month (Quadratic Voting)
- * - band: Registered artist; peer-review voter; free 1 category/month
+ * - fan: Public voter with 150 Voice Credits/month (Quadratic Voting)
+ * - band: Registered artist; free 1 category/month
  * - dj: Verified scene DJ; ranked-choice Schulze ballot voter
  * - editor: Editorial staff; can write spotlights and manage nominations
  * - admin: Full platform administration and KYC verification
@@ -80,12 +80,6 @@ export interface FanVote {
 
 export interface DJBallot {
   rankings: string[]
-}
-
-export interface BandVote {
-  voterId: string       // ID of the band casting this vote
-  votedBandId: string
-  weight: number
 }
 
 /**

@@ -32,15 +32,7 @@ export interface DJBallotDraft {
   savedAt: string
 }
 
-/** A serialisable draft for Band peer voting: bandId → weight allocated. */
-export interface BandVoteDraft {
-  periodId: string
-  /** Map of bandId → weight (0–1). */
-  weights: Record<string, number>
-  savedAt: string
-}
-
-type DraftType = 'fan' | 'dj' | 'band'
+type DraftType = 'fan' | 'dj'
 
 function storageKey(type: DraftType, voterId: string, periodId: string): string {
   return `darktunes:draft:${type}:${voterId}:${periodId}`
@@ -116,31 +108,4 @@ export function loadDJBallotDraft(voterId: string, periodId: string): DJBallotDr
 export function clearDJBallotDraft(voterId: string, periodId: string): void {
   if (!isBrowser()) return
   localStorage.removeItem(storageKey('dj', voterId, periodId))
-}
-
-// ---------------------------------------------------------------------------
-// Band Peer Vote Draft
-// ---------------------------------------------------------------------------
-
-export function saveBandVoteDraft(voterId: string, draft: BandVoteDraft): void {
-  if (!isBrowser()) return
-  const key = storageKey('band', voterId, draft.periodId)
-  const toStore: BandVoteDraft = { ...draft, savedAt: new Date().toISOString() }
-  localStorage.setItem(key, JSON.stringify(toStore))
-}
-
-export function loadBandVoteDraft(voterId: string, periodId: string): BandVoteDraft | null {
-  if (!isBrowser()) return null
-  const raw = localStorage.getItem(storageKey('band', voterId, periodId))
-  if (!raw) return null
-  try {
-    return JSON.parse(raw) as BandVoteDraft
-  } catch {
-    return null
-  }
-}
-
-export function clearBandVoteDraft(voterId: string, periodId: string): void {
-  if (!isBrowser()) return
-  localStorage.removeItem(storageKey('band', voterId, periodId))
 }
