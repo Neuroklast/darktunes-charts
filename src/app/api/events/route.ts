@@ -34,7 +34,17 @@ export async function GET() {
       orderBy: { date: 'asc' },
     })
     const events = filterUpcomingEvents(
-      rows.map(r => ({ ...r, date: r.date.toISOString(), intentCount: r._count.intents }))
+      rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        venue: r.venue,
+        city: r.city,
+        country: r.country,
+        date: r.date,
+        description: r.description ?? undefined,
+        imageUrl: r.imageUrl ?? undefined,
+        intentCount: r._count.intents,
+      }))
     )
     const ranked = rankEvents(events)
     return NextResponse.json({ events: ranked })

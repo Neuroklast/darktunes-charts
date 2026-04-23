@@ -22,7 +22,8 @@ type AchievementDb = {
 
 const MS_PER_MONTH = 1000 * 60 * 60 * 24 * 30
 
-
+/**
+ * POST /api/cron/achievement-check
  *
  * Vercel Cron Job that evaluates pending achievement grants for all users.
  * Secured by CRON_SECRET — must be called with `Authorization: Bearer <CRON_SECRET>`.

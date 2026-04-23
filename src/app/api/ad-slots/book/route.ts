@@ -45,6 +45,7 @@ export const POST = withAuth(['BAND', 'LABEL', 'ADMIN'], async (request: NextReq
     adBooking: {
       create: (args: unknown) => Promise<{ id: string; status: string; startDate: Date; endDate: Date }>
       count: (args: unknown) => Promise<number>
+      update: (args: unknown) => Promise<{ id: string; status: string; stripeSessionId: string | null }>
     }
   }
 
