@@ -112,7 +112,7 @@
     "lint-staged": "^16.4.0",
     "tailwindcss": "^4.1.11",
     "typescript": "~5.7.2",
-    "typescript-eslint": "^8.38.0",
+    "typescript-eslint": "^8.59.0",
     "vite": "^7.2.6",
     "vitest": "^4.1.5"
   },
