@@ -1,4 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { classifyBandTier } from '@/application/actions/classifyBandTier'
+
+type TierRefreshDb = {
+  band: {
+    findMany: (args: unknown) => Promise<Array<{ id: string; spotifyArtistId: string | null }>>
+  }
+}
 
 /**
  * GET /api/cron/tier-refresh
@@ -22,25 +30,26 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // In production with Prisma + classifyBandTier:
-    // const bands = await prisma.band.findMany({
-    //   where: { isActive: true, spotifyArtistId: { not: null } },
-    //   select: { id: true, spotifyArtistId: true },
-    // })
-    //
-    // const results = await Promise.allSettled(
-    //   bands.map((band) => classifyBandTier(band.id, band.spotifyArtistId!))
-    // )
-    //
-    // const succeeded = results.filter((r) => r.status === 'fulfilled' && r.value.success).length
-    // const failed = results.length - succeeded
+    const db = prisma as unknown as TierRefreshDb
+    const bands = await db.band.findMany({
+      where: { spotifyArtistId: { not: null } } as unknown as never,
+      select: { id: true, spotifyArtistId: true },
+    })
 
-    const succeeded = 0
-    const failed = 0
+    const results = await Promise.allSettled(
+      bands
+        .filter((b) => b.spotifyArtistId)
+        .map((b) => classifyBandTier(b.id, b.spotifyArtistId!)),
+    )
+
+    const succeeded = results.filter(
+      (r) => r.status === 'fulfilled' && (r as PromiseFulfilledResult<{ success: boolean }>).value.success,
+    ).length
+    const failed = results.length - succeeded
 
     return NextResponse.json({
       success: true,
-      processed: succeeded + failed,
+      processed: results.length,
       succeeded,
       failed,
       runAt: new Date().toISOString(),

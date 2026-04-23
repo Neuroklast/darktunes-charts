@@ -3,9 +3,11 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
 
-const { mockHandleWebhook, mockAdBookingUpdate } = vi.hoisted(() => ({
+const { mockHandleWebhook, mockAdBookingFindUnique, mockAdBookingUpdate, mockBandUpdate } = vi.hoisted(() => ({
   mockHandleWebhook: vi.fn(),
+  mockAdBookingFindUnique: vi.fn(),
   mockAdBookingUpdate: vi.fn(),
+  mockBandUpdate: vi.fn(),
 }))
 
 vi.mock('@/infrastructure/payment/stripeAdapter', () => ({
@@ -14,7 +16,11 @@ vi.mock('@/infrastructure/payment/stripeAdapter', () => ({
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    band: {
+      update: mockBandUpdate,
+    },
     adBooking: {
+      findUnique: mockAdBookingFindUnique,
       update: mockAdBookingUpdate,
     },
   },
@@ -40,6 +46,7 @@ function webhookRequest(body: string, signature: string | null): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockBandUpdate.mockResolvedValue({ id: 'mock-band-id' })
 })
 
 describe('POST /api/stripe/webhook – signature validation', () => {
@@ -107,6 +114,7 @@ describe('POST /api/stripe/webhook – event handling', () => {
       type: 'ad-booking.activated',
       bookingId: 'booking-xyz',
     })
+    mockAdBookingFindUnique.mockResolvedValue({ id: 'booking-xyz', status: 'PENDING' })
     mockAdBookingUpdate.mockResolvedValue({ id: 'booking-xyz' })
 
     const res = await POST(webhookRequest('{}', 'whsec_test'))
@@ -119,5 +127,20 @@ describe('POST /api/stripe/webhook – event handling', () => {
       where: { id: 'booking-xyz' },
       data: { status: 'ACTIVE' },
     })
+  })
+
+  it('returns idempotent success when AdBooking is already ACTIVE', async () => {
+    mockHandleWebhook.mockResolvedValue({
+      type: 'ad-booking.activated',
+      bookingId: 'booking-xyz',
+    })
+    mockAdBookingFindUnique.mockResolvedValue({ id: 'booking-xyz', status: 'ACTIVE' })
+
+    const res = await POST(webhookRequest('{}', 'whsec_test'))
+    expect(res.status).toBe(200)
+
+    const body = await res.json() as { received: boolean; processed: string }
+    expect(body.processed).toBe('ad-booking.already-active')
+    expect(mockAdBookingUpdate).not.toHaveBeenCalled()
   })
 })

@@ -1,5 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { selectBandOfTheDay, todayUTCDateString } from '@/domain/spotlight/randomBand'
+import { prisma } from '@/lib/prisma'
+
+type SpotlightDb = {
+  band: {
+    findMany: (args: unknown) => Promise<Array<{ id: string; name: string; tier: string; genre: string }>>
+  }
+  spotlight: {
+    create: (args: unknown) => Promise<{ id: string }>
+  }
+}
 
 /**
  * Vercel Cron Job: /api/cron/random-band
@@ -19,21 +29,27 @@ export async function GET(request: NextRequest) {
   try {
     const today = todayUTCDateString()
 
-    // In production, load eligible bands from database:
-    // const bands = await prisma.band.findMany({
-    //   where: { tier: { in: ['MICRO', 'EMERGING'] } },
-    //   select: { id: true, name: true, tier: true, genre: true }
-    // })
-    const bands: Parameters<typeof selectBandOfTheDay>[0] = []
+    const db = prisma as unknown as SpotlightDb
+    const bands = await db.band.findMany({
+      where: { tier: { in: ['MICRO', 'EMERGING'] } } as unknown as never,
+      select: { id: true, name: true, tier: true, genre: true },
+    })
 
-    const selected = selectBandOfTheDay(bands, today)
+    const selected = selectBandOfTheDay(
+      bands as Parameters<typeof selectBandOfTheDay>[0],
+      today,
+    )
 
     if (!selected) {
       return NextResponse.json({ message: 'No eligible bands found', date: today })
     }
 
-    // In production, upsert into Spotlight table:
-    // await prisma.spotlight.create({ data: { bandId: selected.id, date: new Date(today) } })
+    // Create spotlight entry; duplicate on same day is caught and ignored
+    try {
+      await db.spotlight.create({ data: { bandId: selected.id, date: new Date(today) } })
+    } catch {
+      // Already created for today — idempotent
+    }
 
     return NextResponse.json({
       success: true,

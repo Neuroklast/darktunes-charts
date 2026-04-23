@@ -34,12 +34,6 @@ const djBallotRequestSchema = z.object({
   candidates: z.array(z.string().uuid()).min(1).max(100),
 })
 
-const peerVoteRequestSchema = z.object({
-  votedBandId: z.string().uuid(),
-  periodId: z.string().uuid(),
-  rawWeight: z.number().min(0).max(1).default(1.0),
-})
-
 const checkoutSchema = z.object({
   bandId: z.string().uuid(),
   tier: z.enum(['Micro', 'Emerging', 'Established', 'International', 'Macro']),
@@ -156,59 +150,6 @@ describe('Contract: POST /api/votes/dj', () => {
   })
 })
 
-// ── Peer Vote Contract ────────────────────────────────────────────────────────
-
-describe('Contract: POST /api/votes/peer', () => {
-  const BAND   = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-  const PERIOD = '33333333-3333-3333-3333-333333333333'
-
-  it('accepts the canonical frontend payload with explicit rawWeight', () => {
-    const result = peerVoteRequestSchema.safeParse({
-      votedBandId: BAND,
-      periodId: PERIOD,
-      rawWeight: 0.8,
-    })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.rawWeight).toBe(0.8)
-    }
-  })
-
-  it('defaults rawWeight to 1.0 when omitted', () => {
-    const result = peerVoteRequestSchema.safeParse({
-      votedBandId: BAND,
-      periodId: PERIOD,
-    })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.rawWeight).toBe(1.0)
-    }
-  })
-
-  it('rejects rawWeight above 1.0', () => {
-    const result = peerVoteRequestSchema.safeParse({
-      votedBandId: BAND,
-      periodId: PERIOD,
-      rawWeight: 1.1,
-    })
-    expect(result.success).toBe(false)
-  })
-
-  it('rejects negative rawWeight', () => {
-    const result = peerVoteRequestSchema.safeParse({
-      votedBandId: BAND,
-      periodId: PERIOD,
-      rawWeight: -0.5,
-    })
-    expect(result.success).toBe(false)
-  })
-
-  it('rejects missing votedBandId', () => {
-    const result = peerVoteRequestSchema.safeParse({ periodId: PERIOD })
-    expect(result.success).toBe(false)
-  })
-})
-
 // ── Stripe Checkout Contract ──────────────────────────────────────────────────
 
 describe('Contract: POST /api/stripe/checkout', () => {
@@ -261,12 +202,6 @@ describe('Contract: API response shapes', () => {
     }),
   })
 
-  const peerVoteResponseSchema = z.object({
-    success: z.literal(true),
-    cliqueCoefficient: z.number().min(0).max(1),
-    finalWeight: z.number().min(0).max(1),
-  })
-
   const checkoutResponseSchema = z.object({
     sessionId: z.string().min(1),
     sessionUrl: z.string().url(),
@@ -288,11 +223,6 @@ describe('Contract: API response shapes', () => {
       },
     }
     expect(djVoteResponseSchema.safeParse(payload).success).toBe(true)
-  })
-
-  it('peer vote success response matches expected shape', () => {
-    const payload = { success: true as const, cliqueCoefficient: 1.0, finalWeight: 1.0 }
-    expect(peerVoteResponseSchema.safeParse(payload).success).toBe(true)
   })
 
   it('stripe checkout success response matches expected shape', () => {

@@ -3,9 +3,11 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
 
-const { mockGetUser, mockFindRoleById } = vi.hoisted(() => ({
+const { mockGetUser, mockFindRoleById, mockEventCreate, mockEventFindMany } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFindRoleById: vi.fn(),
+  mockEventCreate: vi.fn(),
+  mockEventFindMany: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -15,7 +17,12 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 vi.mock('@/lib/prisma', () => ({
-  prisma: {},
+  prisma: {
+    event: {
+      create: mockEventCreate,
+      findMany: mockEventFindMany,
+    },
+  },
 }))
 
 vi.mock('@/infrastructure/repositories', () => ({
@@ -48,6 +55,17 @@ const VALID_EVENT = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockEventCreate.mockResolvedValue({
+    id: 'mock-event-id',
+    name: 'Test Event',
+    venue: 'Test Venue',
+    city: 'Berlin',
+    country: 'DE',
+    date: new Date('2026-06-01'),
+    description: null,
+    imageUrl: null,
+  })
+  mockEventFindMany.mockResolvedValue([])
 })
 
 describe('POST /api/events – role authorization', () => {

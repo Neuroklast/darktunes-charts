@@ -3,6 +3,16 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+
+type DJFeedbackDb = {
+  user: {
+    findUnique: (args: unknown) => Promise<{ role: string; isDJVerified: boolean } | null>
+  }
+  dJFeedback: {
+    create: (args: unknown) => Promise<{ id: string }>
+  }
+}
 
 const feedbackSchema = z.object({
   bandId: z.string().uuid('Ungültige Band-ID'),
@@ -50,29 +60,28 @@ export async function submitDJFeedback(input: DJFeedbackInput): Promise<SubmitDJ
       return { success: false, error: parsed.error.errors[0]?.message ?? 'Ungültige Eingabe' }
     }
 
-    const { bandId, trackId: _trackId, message: _message } = parsed.data
+    const { bandId, trackId, message } = parsed.data
 
-    // 3. Verify DJ role: check user metadata from Supabase auth
-    // The user_metadata.role is set during OAuth sign-in or by admin
-    const userRole = user.user_metadata?.role as string | undefined
-    const isDJVerified = user.user_metadata?.isDJVerified as boolean | undefined
+    // 3. Verify DJ role via database (authoritative source)
+    const db = prisma as unknown as DJFeedbackDb
+    const dbUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: { role: true, isDJVerified: true },
+    })
 
-    if (userRole !== 'DJ' && userRole !== 'ADMIN' && !isDJVerified) {
+    if (!dbUser || (dbUser.role !== 'DJ' && dbUser.role !== 'ADMIN') || (dbUser.role === 'DJ' && !dbUser.isDJVerified)) {
       return { success: false, error: 'DJ-Verifizierung erforderlich' }
     }
 
-    // 4. In production: create record via Prisma
-    // const feedback = await prisma.dJFeedback.create({
-    //   data: { djId: user.id, bandId, trackId, message },
-    // })
+    // 4. Persist feedback
+    const feedback = await db.dJFeedback.create({
+      data: { djId: user.id, bandId, trackId: trackId ?? null, message },
+    })
 
     revalidatePath('/dashboard/band')
     revalidatePath('/dashboard/dj')
 
-    // Return a placeholder ID until DB is provisioned
-    const feedbackId = `${user.id}-${bandId}-${Date.now()}`
-
-    return { success: true, feedbackId }
+    return { success: true, feedbackId: feedback.id }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
     return { success: false, error: message }

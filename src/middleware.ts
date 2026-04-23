@@ -66,7 +66,7 @@ function applySecurityHeaders(response: NextResponse, isEmbedRoute = false): Nex
   // A05: Enforces HTTPS and prevents protocol downgrade attacks
   response.headers.set(
     'Strict-Transport-Security',
-    'max-age=31536000; includeSubDomains',
+    'max-age=31536000; includeSubDomains; preload',
   )
   // A05: Prevents MIME type sniffing (defence against content-type confusion attacks)
   response.headers.set('X-Content-Type-Options', 'nosniff')
@@ -139,9 +139,9 @@ export async function middleware(request: NextRequest) {
         },
       })
 
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { user } } = await supabase.auth.getUser()
 
-      if (!session) {
+      if (!user) {
         const loginUrl = request.nextUrl.clone()
         loginUrl.pathname = LOGIN_PATH
         loginUrl.searchParams.set('redirectTo', request.nextUrl.pathname)

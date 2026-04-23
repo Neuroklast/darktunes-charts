@@ -27,7 +27,7 @@ export default async function TransparencyPage() {
     },
     {
       key: 'combined',
-      badge: '33/33/33',
+      badge: '50/50',
       content: [
         { label: null, text: t('combined.description') },
         { label: 'Min-Max-Normalisierung', text: t('combined.normalization') },

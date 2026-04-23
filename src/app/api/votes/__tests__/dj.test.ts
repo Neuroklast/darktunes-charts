@@ -3,14 +3,21 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
 
-const { mockGetUser } = vi.hoisted(() => ({
+const { mockGetUser, mockUserFindUnique } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
+  mockUserFindUnique: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => ({
     auth: { getUser: mockGetUser },
   })),
+}))
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    user: { findUnique: mockUserFindUnique },
+  },
 }))
 
 // Mock the new persistence dependencies so tests stay in-memory
@@ -57,6 +64,7 @@ function postRequest(body: Record<string, unknown>): NextRequest {
 }
 
 const AUTHENTICATED_USER = { id: 'dj-user-id' }
+const VERIFIED_DJ_DB_USER = { role: 'DJ', isDJVerified: true }
 
 const VALID_BODY = {
   periodId: PERIOD,
@@ -83,9 +91,50 @@ describe('POST /api/votes/dj – authentication', () => {
   })
 })
 
+describe('POST /api/votes/dj – role authorisation', () => {
+  beforeEach(() => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER }, error: null })
+  })
+
+  it('returns 403 when user has FAN role', async () => {
+    mockUserFindUnique.mockResolvedValue({ role: 'FAN', isDJVerified: false })
+
+    const res = await POST(postRequest(VALID_BODY))
+    expect(res.status).toBe(403)
+
+    const body = await res.json() as { error: string }
+    expect(body.error).toMatch(/DJ role required/)
+  })
+
+  it('returns 403 when user has BAND role', async () => {
+    mockUserFindUnique.mockResolvedValue({ role: 'BAND', isDJVerified: false })
+
+    const res = await POST(postRequest(VALID_BODY))
+    expect(res.status).toBe(403)
+  })
+
+  it('returns 403 when DJ role but account not verified', async () => {
+    mockUserFindUnique.mockResolvedValue({ role: 'DJ', isDJVerified: false })
+
+    const res = await POST(postRequest(VALID_BODY))
+    expect(res.status).toBe(403)
+
+    const body = await res.json() as { error: string }
+    expect(body.error).toMatch(/not yet verified/)
+  })
+
+  it('returns 200 when user has ADMIN role (no isDJVerified required)', async () => {
+    mockUserFindUnique.mockResolvedValue({ role: 'ADMIN', isDJVerified: false })
+
+    const res = await POST(postRequest(VALID_BODY))
+    expect(res.status).toBe(200)
+  })
+})
+
 describe('POST /api/votes/dj – request validation', () => {
   beforeEach(() => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER }, error: null })
+    mockUserFindUnique.mockResolvedValue(VERIFIED_DJ_DB_USER)
   })
 
   it('returns 400 when periodId is missing', async () => {
@@ -121,6 +170,7 @@ describe('POST /api/votes/dj – request validation', () => {
 describe('POST /api/votes/dj – domain: Schulze method calculation', () => {
   beforeEach(() => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER }, error: null })
+    mockUserFindUnique.mockResolvedValue(VERIFIED_DJ_DB_USER)
   })
 
   it('returns 200 with schulzeResult containing rankings array', async () => {

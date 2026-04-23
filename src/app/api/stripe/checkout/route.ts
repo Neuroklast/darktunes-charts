@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { createCheckoutSession } from '@/infrastructure/payment/stripeAdapter'
 import type { Tier } from '@/lib/types'
 
@@ -20,8 +21,9 @@ const ALLOWED_ORIGINS = ALLOWED_ORIGINS_ENV
  * POST /api/stripe/checkout
  * Creates a Stripe Checkout session for additional chart category fees.
  *
- * Only authenticated band users may call this endpoint.
- * Financial contribution has ZERO effect on chart rankings (Spec §3.2).
+ * Only authenticated band users may call this endpoint, and only for bands
+ * they own (ownerId === user.id). Financial contribution has ZERO effect on
+ * chart rankings (Spec §3.2).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -51,6 +53,23 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid request body', details: parsed.error.flatten() },
         { status: 400 }
       )
+    }
+
+    // Verify band ownership: the requesting user must be the band's owner.
+    // This prevents IDOR — one user creating a checkout session for another user's band.
+    const band = await (prisma as unknown as {
+      band: { findUnique: (args: unknown) => Promise<{ ownerId: string } | null> }
+    }).band.findUnique({
+      where: { id: parsed.data.bandId },
+      select: { ownerId: true },
+    })
+
+    if (!band) {
+      return NextResponse.json({ error: 'Band not found' }, { status: 404 })
+    }
+
+    if (band.ownerId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden: you do not own this band' }, { status: 403 })
     }
 
     const { sessionId, sessionUrl } = await createCheckoutSession({

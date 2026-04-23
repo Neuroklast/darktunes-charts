@@ -3,9 +3,10 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
 
-const { mockGetUser, mockCreateCheckoutSession } = vi.hoisted(() => ({
+const { mockGetUser, mockCreateCheckoutSession, mockBandFindUnique } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockCreateCheckoutSession: vi.fn(),
+  mockBandFindUnique: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -18,12 +19,19 @@ vi.mock('@/infrastructure/payment/stripeAdapter', () => ({
   createCheckoutSession: mockCreateCheckoutSession,
 }))
 
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    band: { findUnique: mockBandFindUnique },
+  },
+}))
+
 import { POST } from '../checkout/route'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const BAND_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-const ORIGIN  = 'https://darktunes.com'
+const BAND_ID  = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+const OWNER_ID = 'band-user-id'
+const ORIGIN   = 'https://darktunes.com'
 
 function postRequest(body: Record<string, unknown>, origin = ORIGIN): NextRequest {
   return new NextRequest('http://localhost/api/stripe/checkout', {
@@ -42,7 +50,7 @@ const VALID_BODY = {
   totalCategories: 3,
 }
 
-const AUTHENTICATED_USER = { id: 'band-user-id' }
+const AUTHENTICATED_USER = { id: OWNER_ID }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +60,8 @@ beforeEach(() => {
     sessionId: 'cs_test_123',
     sessionUrl: `${ORIGIN}/dashboard/band?payment=success`,
   })
+  // Default: band exists and is owned by the authenticated user
+  mockBandFindUnique.mockResolvedValue({ ownerId: OWNER_ID })
 })
 
 describe('POST /api/stripe/checkout – origin validation', () => {
@@ -89,6 +99,32 @@ describe('POST /api/stripe/checkout – authentication', () => {
 
     const body = await res.json() as { error: string }
     expect(body.error).toBe('Unauthorized')
+  })
+})
+
+describe('POST /api/stripe/checkout – band ownership', () => {
+  beforeEach(() => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER }, error: null })
+  })
+
+  it('returns 404 when band does not exist', async () => {
+    mockBandFindUnique.mockResolvedValue(null)
+
+    const res = await POST(postRequest(VALID_BODY))
+    expect(res.status).toBe(404)
+
+    const body = await res.json() as { error: string }
+    expect(body.error).toMatch(/not found/i)
+  })
+
+  it('returns 403 when authenticated user does not own the band', async () => {
+    mockBandFindUnique.mockResolvedValue({ ownerId: 'someone-else' })
+
+    const res = await POST(postRequest(VALID_BODY))
+    expect(res.status).toBe(403)
+
+    const body = await res.json() as { error: string }
+    expect(body.error).toMatch(/do not own/i)
   })
 })
 

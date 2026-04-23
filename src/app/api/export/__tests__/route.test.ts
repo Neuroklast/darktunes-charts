@@ -3,9 +3,10 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
 
-const { mockGetUser, mockFindRoleById } = vi.hoisted(() => ({
+const { mockGetUser, mockFindRoleById, mockBandFindMany } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFindRoleById: vi.fn(),
+  mockBandFindMany: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -15,7 +16,9 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 vi.mock('@/lib/prisma', () => ({
-  prisma: {},
+  prisma: {
+    band: { findMany: mockBandFindMany },
+  },
 }))
 
 vi.mock('@/infrastructure/repositories', () => ({
@@ -36,6 +39,7 @@ function getRequest(): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockBandFindMany.mockResolvedValue([])
 })
 
 describe('GET /api/export – role authorization', () => {

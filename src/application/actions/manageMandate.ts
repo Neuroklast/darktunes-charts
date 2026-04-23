@@ -3,6 +3,14 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+
+type MandateDb = {
+  labelBandMandate: {
+    create: (args: unknown) => Promise<{ id: string }>
+    update: (args: unknown) => Promise<{ id: string }>
+  }
+}
 
 const grantMandateSchema = z.object({
   labelId: z.string().uuid(),
@@ -43,14 +51,15 @@ export async function grantMandate(input: z.infer<typeof grantMandateSchema>): P
     }
 
     // In production with Prisma:
-    // const mandate = await prisma.labelBandMandate.create({
-    //   data: { labelId: parsed.data.labelId, bandId: parsed.data.bandId, status: 'PENDING' }
-    // })
+    const db = prisma as unknown as MandateDb
+    const mandate = await db.labelBandMandate.create({
+      data: { labelId: parsed.data.labelId, bandId: parsed.data.bandId, status: 'PENDING' },
+    })
 
     revalidatePath('/profile')
     revalidatePath('/dashboard/label')
 
-    return { success: true, mandateId: 'new-mandate-id' }
+    return { success: true, mandateId: mandate.id }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unbekannter Fehler'
     return { success: false, error: message }
@@ -80,10 +89,11 @@ export async function revokeMandate(input: z.infer<typeof revokeMandateSchema>):
     }
 
     // In production with Prisma:
-    // await prisma.labelBandMandate.update({
-    //   where: { id: parsed.data.mandateId },
-    //   data: { status: 'REVOKED', revokedAt: new Date() }
-    // })
+    const db2 = prisma as unknown as MandateDb
+    await db2.labelBandMandate.update({
+      where: { id: parsed.data.mandateId },
+      data: { status: 'REVOKED', revokedAt: new Date() },
+    })
 
     revalidatePath('/profile')
     revalidatePath('/dashboard/label')

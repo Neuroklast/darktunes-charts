@@ -3,9 +3,11 @@ import { NextRequest } from 'next/server'
 
 // ── Mocks (hoisted before vi.mock factories) ─────────────────────────────────
 
-const { mockGetUser, mockFindRoleById } = vi.hoisted(() => ({
+const { mockGetUser, mockFindRoleById, mockBotAlertFindMany, mockBotAlertUpdate } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFindRoleById: vi.fn(),
+  mockBotAlertFindMany: vi.fn(),
+  mockBotAlertUpdate: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -15,7 +17,12 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 vi.mock('@/lib/prisma', () => ({
-  prisma: {},
+  prisma: {
+    botDetectionAlert: {
+      findMany: mockBotAlertFindMany,
+      update: mockBotAlertUpdate,
+    },
+  },
 }))
 
 vi.mock('@/infrastructure/repositories', () => ({
@@ -52,6 +59,8 @@ function postRequest(body: Record<string, unknown>): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockBotAlertFindMany.mockResolvedValue([])
+  mockBotAlertUpdate.mockResolvedValue({ id: 'mock-alert-id' })
 })
 
 describe('GET /api/bot-detection – admin only', () => {

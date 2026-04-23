@@ -22,8 +22,26 @@ const createMandateSchema = z.object({
  */
 export async function GET() {
   try {
-    // In production: const mandates = await prisma.labelBandMandate.findMany({ ... })
-    return NextResponse.json({ mandates: [] })
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const db = prisma as unknown as {
+      labelBandMandate: {
+        findMany: (args: unknown) => Promise<Array<{
+          id: string; labelId: string; bandId: string; status: string;
+          grantedAt: Date | null; createdAt: Date
+        }>>
+      }
+    }
+    const mandates = await db.labelBandMandate.findMany({
+      where: { OR: [{ labelId: user.id }, { band: { ownerId: user.id } }] },
+      orderBy: { createdAt: 'desc' },
+    })
+    return NextResponse.json({ mandates })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -61,7 +79,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ success: true, mandate: { id: 'new-mandate-id', status: 'PENDING', ...parsed.data } })
+    const mandateDb = prisma as unknown as {
+      labelBandMandate: {
+        create: (args: unknown) => Promise<{ id: string; status: string; labelId: string; bandId: string }>
+      }
+    }
+    const mandate = await mandateDb.labelBandMandate.create({
+      data: { labelId: parsed.data.labelId, bandId: parsed.data.bandId, status: 'PENDING' },
+    })
+    return NextResponse.json({ success: true, mandate })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -94,6 +120,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'mandateId parameter required' }, { status: 400 })
     }
 
+    const revokeDb = prisma as unknown as {
+      labelBandMandate: {
+        update: (args: unknown) => Promise<{ id: string }>
+      }
+    }
+    await revokeDb.labelBandMandate.update({
+      where: { id: mandateId },
+      data: { status: 'REVOKED', revokedAt: new Date() },
+    })
     return NextResponse.json({ success: true })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'

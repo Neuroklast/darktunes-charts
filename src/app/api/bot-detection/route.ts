@@ -3,6 +3,19 @@ import { z } from 'zod'
 import { analyzeVotingPatterns, type VoteRecord } from '@/domain/security/botDetection'
 import { calculateSuspicionScore, type UserBehavior } from '@/domain/security/fingerprintAnalysis'
 import { withAuth } from '@/infrastructure/security'
+import { prisma } from '@/lib/prisma'
+
+type BotDetectionDb = {
+  botDetectionAlert: {
+    findMany: (args: unknown) => Promise<Array<{
+      id: string; trackId: string; bandId: string; alertType: string; severity: string
+      votesCount: number; timeWindow: number; suspiciousIPs: string[]
+      newAccountRatio: number | null; status: string; timestamp: Date
+      reviewedById: string | null; reviewedAt: Date | null
+    }>>
+    update: (args: unknown) => Promise<{ id: string }>
+  }
+}
 
 const updateAlertSchema = z.object({
   alertId: z.string().uuid(),
@@ -31,10 +44,11 @@ const analyzeBodySchema = z.discriminatedUnion('type', [
  * Access control: ADMIN only.
  */
 export const GET = withAuth(['ADMIN'], async () => {
-  // In production: fetch vote records from DB and run pattern analysis
-  // const votes = await prisma.voteRecord.findMany({ orderBy: { timestamp: 'desc' }, take: 1000 })
-  // const alerts = analyzeVotingPatterns(votes as VoteRecord[])
-  const alerts = analyzeVotingPatterns([])
+  const db = prisma as unknown as BotDetectionDb
+  const alerts = await db.botDetectionAlert.findMany({
+    orderBy: { timestamp: 'desc' },
+    take: 100,
+  })
   return NextResponse.json({ alerts })
 })
 
@@ -55,6 +69,11 @@ export const PUT = withAuth(['ADMIN'], async (request: NextRequest) => {
     )
   }
 
+  const db = prisma as unknown as BotDetectionDb
+  await db.botDetectionAlert.update({
+    where: { id: parsed.data.alertId },
+    data: { status: parsed.data.status, reviewedAt: new Date() },
+  })
   return NextResponse.json({ success: true })
 })
 

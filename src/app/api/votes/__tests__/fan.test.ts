@@ -57,6 +57,8 @@ function postRequest(body: Record<string, unknown>): NextRequest {
 }
 
 const AUTHENTICATED_USER = { id: 'fan-user-id' }
+const RELEASE_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+const CATEGORY  = 'track'
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
@@ -119,11 +121,11 @@ describe('POST /api/votes/fan – domain: quadratic credit validation', () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER }, error: null })
   })
 
-  it('returns 200 for valid votes within budget (cost = 1² + 1² = 2 credits)', async () => {
+  it('returns 200 for valid Phase 2 votes within budget (cost = 1² + 1² = 2 credits)', async () => {
     const res = await POST(postRequest({
       votes: [
-        { trackId: TRACK_A, votes: 1, periodId: PERIOD },
-        { trackId: TRACK_B, votes: 1, periodId: PERIOD },
+        { trackId: TRACK_A, votes: 1, periodId: PERIOD, releaseId: RELEASE_A, categoryId: CATEGORY },
+        { trackId: TRACK_B, votes: 1, periodId: PERIOD, releaseId: RELEASE_A, categoryId: CATEGORY },
       ],
     }))
     expect(res.status).toBe(200)
@@ -135,7 +137,7 @@ describe('POST /api/votes/fan – domain: quadratic credit validation', () => {
 
   it('returns 200 with correct cost for 10 votes on one track (cost = 10² = 100 credits)', async () => {
     const res = await POST(postRequest({
-      votes: [{ trackId: TRACK_A, votes: 10, periodId: PERIOD }],
+      votes: [{ trackId: TRACK_A, votes: 10, periodId: PERIOD, releaseId: RELEASE_A, categoryId: CATEGORY }],
     }))
     expect(res.status).toBe(200)
 
@@ -147,14 +149,24 @@ describe('POST /api/votes/fan – domain: quadratic credit validation', () => {
     // 10² + 8² = 100 + 64 = 164 > 150
     const res = await POST(postRequest({
       votes: [
-        { trackId: TRACK_A, votes: 10, periodId: PERIOD },
-        { trackId: TRACK_B, votes: 8, periodId: PERIOD },
+        { trackId: TRACK_A, votes: 10, periodId: PERIOD, releaseId: RELEASE_A, categoryId: CATEGORY },
+        { trackId: TRACK_B, votes: 8, periodId: PERIOD, releaseId: RELEASE_A, categoryId: CATEGORY },
       ],
     }))
     expect(res.status).toBe(422)
 
     const body = await res.json() as { error: string }
     expect(body.error).toMatch(/budget exceeded/i)
+  })
+
+  it('returns 422 when votes lack releaseId/categoryId (no silent data loss)', async () => {
+    const res = await POST(postRequest({
+      votes: [{ trackId: TRACK_A, votes: 1, periodId: PERIOD }],
+    }))
+    expect(res.status).toBe(422)
+
+    const body = await res.json() as { error: string }
+    expect(body.error).toMatch(/releaseId.*categoryId|not persisted/i)
   })
 
   it('returns 200 for empty votes array (zero credits spent)', async () => {

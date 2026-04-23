@@ -77,10 +77,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Persist votes when releaseId + categoryId are provided (Phase 2 format)
+    // Persist votes when releaseId + categoryId are provided (Phase 2 format).
+    // Votes that lack these fields cannot be attributed to a category and are rejected
+    // to prevent silent data loss — the caller must supply a valid releaseId and categoryId.
     const persistableVotes = parsed.data.votes.filter(
       (v) => v.releaseId && v.categoryId,
     )
+
+    if (parsed.data.votes.length > 0 && persistableVotes.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'Votes not persisted: each vote must include releaseId and categoryId to be recorded.',
+        },
+        { status: 422 },
+      )
+    }
 
     if (persistableVotes.length > 0) {
       try {

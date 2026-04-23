@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { calculateSchulzeMethod } from '@/domain/voting/schulze'
 import { voteRepository } from '@/infrastructure/repositories/voteRepository'
 import { votingPeriodRepository } from '@/infrastructure/repositories/votingPeriodRepository'
@@ -23,6 +24,7 @@ const djBallotRequestSchema = z.object({
  * Validates and triggers Schulze calculation. Persists ballot when
  * categoryId is provided (Phase 2 format).
  *
+ * Auth: Requires DJ role with verified status, or ADMIN role.
  * Body: { periodId, genre, rankings, candidates, categoryId? }
  * Returns: { success, schulzeResult }
  */
@@ -33,6 +35,27 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify that the caller has the DJ or ADMIN role, and that DJ accounts
+    // have been verified by an admin (KYC). Fans and band accounts are
+    // explicitly forbidden from submitting DJ ballots to protect chart integrity.
+    const dbUser = await (prisma as unknown as {
+      user: { findUnique: (args: unknown) => Promise<{ role: string; isDJVerified: boolean } | null> }
+    }).user.findUnique({
+      where: { id: user.id },
+      select: { role: true, isDJVerified: true },
+    })
+
+    if (!dbUser || (dbUser.role !== 'DJ' && dbUser.role !== 'ADMIN')) {
+      return NextResponse.json({ error: 'Forbidden: DJ role required' }, { status: 403 })
+    }
+
+    if (dbUser.role === 'DJ' && !dbUser.isDJVerified) {
+      return NextResponse.json(
+        { error: 'Forbidden: DJ account not yet verified. Contact an admin to complete KYC.' },
+        { status: 403 },
+      )
     }
 
     // Rate limiting: max 60 requests/minute per user

@@ -15,15 +15,18 @@ import { VotingHelpButton, SchulzeMethodInfo } from '@/features/voting/VotingMet
 interface DJVoteViewProps {
   bands: Band[]
   tracks: Track[]
+  /** Active voting period ID. When provided, the ballot is submitted to the API. */
+  periodId?: string
 }
 
-export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
+export function DJVoteView({ bands, tracks, periodId }: DJVoteViewProps) {
   const [djBallots, setDjBallots] = useKV<BallotRanking[]>('dj-ballots', [])
   const [currentRankings, setCurrentRankings] = useState<string[]>(
     tracks.slice(0, 8).map(t => t.id)
   )
   const [showCalculation, setShowCalculation] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleMoveUp = useCallback((index: number) => {
     if (index === 0) return
@@ -43,17 +46,65 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
     })
   }, [])
 
-  const handleSubmit = useCallback(() => {
-    const newBallot: BallotRanking = {
-      djId: `dj-${Date.now()}`,
-      rankings: [...currentRankings]
-    }
+  const handleSubmit = useCallback(async () => {
+    if (isSubmitting) return
+    setIsSubmitting(true)
 
-    setDjBallots((current) => [...(current ?? []), newBallot])
-    toast.success('DJ ballot submitted!', {
-      description: `${currentRankings.length} tracks ranked`
-    })
-  }, [currentRankings, setDjBallots])
+    try {
+      if (periodId) {
+        // Submit ballot to the API when a voting period is active
+        const response = await fetch('/api/votes/dj', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            periodId,
+            genre: 'all',
+            rankings: currentRankings,
+            candidates: tracks.map(t => t.id),
+          }),
+        })
+
+        if (!response.ok) {
+          const data = await response.json() as { error?: string }
+          toast.error('Ballot konnte nicht eingereicht werden', {
+            description: data.error ?? `HTTP ${response.status}`,
+          })
+          return
+        }
+
+        const data = await response.json() as { schulzeResult?: { rankings: string[] } }
+
+        // Update local preview state with server-confirmed Schulze result
+        if (data.schulzeResult) {
+          const confirmedBallot: BallotRanking = {
+            djId: 'server',
+            rankings: currentRankings,
+          }
+          setDjBallots((current) => [...(current ?? []), confirmedBallot])
+        }
+
+        toast.success('DJ ballot eingereicht!', {
+          description: `${currentRankings.length} Tracks gerankt und gespeichert`,
+        })
+      } else {
+        // No active period — update only the local Schulze preview
+        const localBallot: BallotRanking = {
+          djId: 'local-preview',
+          rankings: [...currentRankings],
+        }
+        setDjBallots((current) => [...(current ?? []), localBallot])
+        toast.info('Vorschau aktualisiert', {
+          description: 'Kein aktiver Abstimmungszeitraum — Ballot nur lokal gespeichert',
+        })
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
+      console.error('[DJVoteView] Ballot submission error:', message)
+      toast.error('Netzwerkfehler beim Einreichen des Ballots')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [currentRankings, isSubmitting, periodId, tracks, setDjBallots])
 
   const handleReset = useCallback(() => {
     setCurrentRankings(tracks.slice(0, 8).map(t => t.id))
@@ -154,9 +205,9 @@ export function DJVoteView({ bands, tracks }: DJVoteViewProps) {
           <Separator className="my-4" />
 
           <div className="flex gap-2">
-            <Button onClick={handleSubmit} className="flex-1 gap-2">
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 gap-2">
               <CheckCircle className="w-4 h-4" weight="duotone" />
-              Ballot einreichen
+              {isSubmitting ? 'Wird eingereicht…' : 'Ballot einreichen'}
             </Button>
             <Button
               variant="outline"

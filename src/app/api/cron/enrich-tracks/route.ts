@@ -1,15 +1,24 @@
 import { NextResponse } from 'next/server'
 import { enrichTrack } from '@/infrastructure/pipeline/enrichmentPipeline'
+import { prisma } from '@/lib/prisma'
+
+type EnrichDb = {
+  track: {
+    findMany: (args: unknown) => Promise<Array<{
+      id: string
+      title: string
+      spotifyTrackId: string | null
+      band: { name: string; spotifyArtistId: string | null }
+    }>>
+  }
+}
 
 /**
  * POST /api/cron/enrich-tracks
  *
  * Vercel Cron Job that processes the enrichment queue.
+ * Fetches up to 20 tracks that are missing cover art and enriches them.
  * Secured by CRON_SECRET to prevent unauthorized triggering.
- *
- * In production:
- *   const pending = await prisma.track.findMany({ where: { enrichmentStatus: 'PENDING' }, take: 20 })
- *   for (const track of pending) { await enrichTrack({ ... }) }
  */
 export async function POST(req: Request) {
   const authHeader = req.headers.get('Authorization')
@@ -19,14 +28,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Demo run with a placeholder track
-  const result = await enrichTrack({
-    trackId: 'demo-track-id',
-    title: 'Demo Track',
-    artistName: 'Demo Artist',
-    spotifyTrackId: undefined,
-    spotifyArtistId: undefined,
+  const db = prisma as unknown as EnrichDb
+  const pending = await db.track.findMany({
+    where: { coverArtUrl: null } as unknown as never,
+    include: { band: { select: { name: true, spotifyArtistId: true } } },
+    take: 20,
   })
 
-  return NextResponse.json({ processed: 1, result })
+  let processed = 0
+  for (const track of pending) {
+    try {
+      await enrichTrack({
+        trackId: track.id,
+        title: track.title,
+        artistName: track.band.name,
+        spotifyTrackId: track.spotifyTrackId ?? undefined,
+        spotifyArtistId: track.band.spotifyArtistId ?? undefined,
+      })
+      processed++
+    } catch (err) {
+      console.error('Enrichment failed for track', track.id, err)
+    }
+  }
+
+  return NextResponse.json({ processed, total: pending.length })
 }

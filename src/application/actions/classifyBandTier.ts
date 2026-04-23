@@ -2,6 +2,21 @@
 
 import { getTierFromListeners } from '@/domain/tiers'
 import { getMonthlyListeners } from '@/infrastructure/api/spotifyAdapter'
+import { prisma } from '@/lib/prisma'
+
+type ClassifyDb = {
+  band: {
+    update: (args: unknown) => Promise<unknown>
+  }
+  auditLog: {
+    create: (args: unknown) => Promise<unknown>
+  }
+}
+
+/** Maps domain Tier ('Micro', 'Emerging', …) to Prisma enum ('MICRO', 'EMERGING', …). */
+function toPrismaEnum(tier: string): string {
+  return tier.toUpperCase().replace(' ', '_')
+}
 
 export interface ClassifyBandTierResult {
   success: boolean
@@ -40,20 +55,26 @@ export async function classifyBandTier(
     // Use follower count as the monthly listener proxy (Spotify API limitation)
     const tier = getTierFromListeners(listeners.followers)
 
-    // In production with Prisma:
-    // await prisma.$transaction([
-    //   prisma.band.update({
-    //     where: { id: bandId },
-    //     data: { tier, spotifyFollowers: listeners.followers, lastTierRefresh: new Date() },
-    //   }),
-    //   prisma.transparencyLog.create({
-    //     data: {
-    //       eventType: 'TIER_CLASSIFICATION',
-    //       entityId: bandId,
-    //       payload: { tier, followers: listeners.followers, popularity: listeners.popularity },
-    //     },
-    //   }),
-    // ])
+    const db = prisma as unknown as ClassifyDb
+
+    await db.band.update({
+      where: { id: bandId },
+      data: {
+        tier: toPrismaEnum(tier) as never,
+        spotifyMonthlyListeners: listeners.followers,
+        updatedAt: new Date(),
+      },
+    })
+
+    // Fire-and-forget audit log
+    db.auditLog.create({
+      data: {
+        action: 'TIER_CLASSIFICATION',
+        entityType: 'Band',
+        entityId: bandId,
+        metadata: { tier, followers: listeners.followers, popularity: listeners.popularity },
+      },
+    }).catch(() => {})
 
     return {
       success: true,

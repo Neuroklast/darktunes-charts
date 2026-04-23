@@ -13,6 +13,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { withAuth } from '@/infrastructure/security'
 import { prisma } from '@/lib/prisma'
 import { BookAdSlotSchema, validateWeeklyBooking } from '@/domain/adslots'
+import { createCheckoutSession } from '@/infrastructure/payment/stripeAdapter'
+import type { Tier } from '@/lib/types'
 
 export const POST = withAuth(['BAND', 'LABEL', 'ADMIN'], async (request: NextRequest, _user) => {
   const body: unknown = await request.json()
@@ -43,6 +45,7 @@ export const POST = withAuth(['BAND', 'LABEL', 'ADMIN'], async (request: NextReq
     adBooking: {
       create: (args: unknown) => Promise<{ id: string; status: string; startDate: Date; endDate: Date }>
       count: (args: unknown) => Promise<number>
+      update: (args: unknown) => Promise<{ id: string; status: string; stripeSessionId: string | null }>
     }
   }
 
@@ -81,17 +84,29 @@ export const POST = withAuth(['BAND', 'LABEL', 'ADMIN'], async (request: NextReq
     },
   })
 
-  // In production, initiate Stripe Checkout here:
-  // const session = await stripe.checkout.sessions.create({ ... })
-  // await prismaTyped.adBooking.update({ where: { id: booking.id }, data: { stripeSessionId: session.id, status: 'PENDING_PAYMENT' } })
-  // return NextResponse.json({ booking, checkoutUrl: session.url }, { status: 201 })
-
-  return NextResponse.json(
-    {
-      booking,
-      message: 'Booking reserved. Complete payment via Stripe Checkout to activate.',
-      // checkoutUrl: '<stripe-checkout-url>',  — set after Stripe integration
-    },
-    { status: 201 },
-  )
+  // Initiate Stripe Checkout
+  try {
+    const origin = request.headers.get('origin') ?? process.env.NEXT_PUBLIC_APP_URL ?? 'https://darktunes.com'
+    const session = await createCheckoutSession({
+      bandId,
+      tier: 'Micro' as Tier,
+      totalCategories: weekCount + 1,
+      successUrl: `${origin}/dashboard/band?payment=success&bookingId=${booking.id}`,
+      cancelUrl: `${origin}/dashboard/band?payment=cancelled`,
+    })
+    await prismaTyped.adBooking.update({
+      where: { id: booking.id },
+      data: { stripeSessionId: session.sessionId, status: 'PENDING_PAYMENT' },
+    })
+    return NextResponse.json({ booking, checkoutUrl: session.sessionUrl }, { status: 201 })
+  } catch {
+    // Stripe unavailable — return reserved booking without checkout URL
+    return NextResponse.json(
+      {
+        booking,
+        message: 'Booking reserved. Stripe Checkout unavailable, please contact support.',
+      },
+      { status: 201 },
+    )
+  }
 })
