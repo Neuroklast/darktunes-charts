@@ -9,13 +9,12 @@
 
 ## Overview
 
-darkTunes Charts replaces pay-to-win chart systems with a **three-pillar voting architecture**:
+darkTunes Charts replaces pay-to-win chart systems with a **two-pillar voting architecture**:
 
 | Pillar | Method | Score Weight |
 |---|---|---|
-| **Fan Voting** | Quadratic Voting (100 credits/month) | 33.3% |
-| **DJ Choice** | Schulze (Beatpath) Condorcet method | 33.3% |
-| **Peer Review** | Clique-weighted anti-collusion network | 33.3% |
+| **Fan Voting** | Quadratic Voting (100 credits/month) | 50 % |
+| **DJ Choice** | Schulze (Beatpath) Condorcet method | 50 % |
 
 **Key guarantees:**
 - Zero advertisements
@@ -25,50 +24,81 @@ darkTunes Charts replaces pay-to-win chart systems with a **three-pillar voting 
 
 ---
 
+## Tech Stack
+
+| Technology | Version | Purpose |
+|---|---|---|
+| Next.js | 15 App Router | SSR, routing, Server Components |
+| React | 19 | UI library |
+| TypeScript | 5.7 | Strict typing |
+| Supabase | — | PostgreSQL + Auth |
+| Prisma | 7 | Type-safe ORM + migrations |
+| Tailwind CSS | v4 | Utility-first styling |
+| Framer Motion | 12 | Animations |
+| next-intl | 4 | Internationalisation (de/en) |
+| Vitest | — | Unit testing |
+| Playwright | — | End-to-end testing |
+| Vercel | — | Deployment |
+
+---
+
+## Brand Colors
+
+| Token | Hex | Usage |
+|---|---|---|
+| `--primary` | `#493687` | Violet — buttons, active states |
+| `--secondary` | `#7e1e37` | Pink — accents |
+| `--background` | `#101010` | Page background |
+| `--card` | `#292929` | Card background |
+| `--border` | `#383838` | Dividers |
+| `--foreground` | `#ffffff` | Primary text |
+
+---
+
 ## Repository Structure
 
 ```
 darktunes-charts/
-├── api/                        # Vercel Serverless Functions (backend)
-│   ├── _lib/                   # Shared service layer
-│   │   ├── store.ts            # In-memory data store (seeded with 76 bands)
-│   │   ├── data-processor.ts   # Chart computation & normalisation
-│   │   ├── csv-parser.ts       # Streaming CSV parser
-│   │   ├── validators.ts       # Zod schemas + field validators
-│   │   ├── error-handler.ts    # HTTP helpers (sendJson, sendError)
-│   │   └── cors.ts             # CORS header management
-│   ├── votes/
-│   │   ├── fan.ts              # POST /api/votes/fan  (Quadratic Voting)
-│   │   ├── dj.ts               # POST /api/votes/dj   (Schulze ballot)
-│   │   └── peer.ts             # POST /api/votes/peer (clique-weighted)
-│   ├── bands.ts                # GET/POST /api/bands
-│   ├── tracks.ts               # GET/POST /api/tracks
-│   ├── charts.ts               # GET /api/charts
-│   ├── transparency.ts         # GET/POST /api/transparency
-│   ├── bot-detection.ts        # GET/PUT /api/bot-detection
-│   ├── categories.ts           # GET /api/categories
-│   ├── ai-prediction.ts        # GET /api/ai-prediction
-│   └── spotify.ts              # GET /api/spotify
+├── middleware.ts               # Next.js middleware (locale + auth + security headers)
 ├── src/
-│   ├── domain/                 # Pure business logic (Clean Architecture)
-│   │   ├── voting/             # QV, Schulze, peer, tiers, audit, prediction
-│   │   └── categories/         # Category definitions & eligibility
-│   ├── infrastructure/
-│   │   └── api/                # iTunes & Odesli API adapters
-│   ├── lib/                    # Backward-compat re-export shims
-│   ├── components/             # Shared UI components
-│   ├── features/               # Page-level views (fan-vote, dj-voting, ...)
-│   └── app/                    # App entry point & routing
-├── docs/
-│   ├── HANDBUCH_DE.md          # Vollständiges Benutzerhandbuch (Deutsch)
-│   └── MANUAL_EN.md            # Complete user manual (English)
-├── .env.example                # All environment variables documented
-├── QUICKSTART.md               # Bilingual quick start guide
-├── ARCHITECTURE.md             # Architecture Decision Records (ADR-001–009)
-├── CHANGELOG.md                # Versioned change history
-├── SECURITY.md                 # Security policy
-├── vercel.json                 # Vercel deployment configuration
-└── vercel-deploy.sh            # One-step deployment script
+│   ├── app/                    # Next.js App Router
+│   │   ├── [locale]/           # Internationalised routes
+│   │   │   ├── (protected)/    # Auth-gated pages (dashboard, vote, admin)
+│   │   │   └── (public)/       # Public pages (charts, bands, login)
+│   │   ├── api/                # API route handlers
+│   │   ├── error.tsx           # Route-segment error boundary
+│   │   ├── global-error.tsx    # Global error boundary
+│   │   └── layout.tsx          # Root layout
+│   ├── domain/                 # Pure business logic (no React/network)
+│   │   ├── voting/             # QV, Schulze, Tier system, audit trail
+│   │   ├── categories/         # Genre taxonomy, eligibility
+│   │   ├── events/             # Domain EventBus
+│   │   └── repositories/       # Repository interfaces
+│   ├── application/            # Use-cases — orchestrate domain + infra
+│   ├── infrastructure/         # Prisma repos, external API adapters
+│   ├── features/               # Feature modules (fan-vote, dj-voting, ...)
+│   ├── lib/                    # Cross-cutting utilities
+│   │   ├── errors.ts           # ApiError + withErrorHandler
+│   │   ├── imageUtils.ts       # wsrv.nl image proxy helpers
+│   │   ├── component-contracts.ts  # Shared prop interfaces
+│   │   └── supabase/           # Supabase client/server/middleware
+│   ├── components/             # Shared generic UI components
+│   ├── hooks/                  # Global React hooks
+│   ├── workers/                # Web Workers (compute-intensive tasks)
+│   └── i18n/                   # next-intl configuration
+├── prisma/                     # Schema + migrations + seed
+├── messages/                   # Translation files (de.json, en.json)
+├── scripts/
+│   └── vercel-install.sh       # Install + env validation for Vercel
+├── e2e/                        # Playwright end-to-end tests
+├── docs/                       # User manuals (DE + EN)
+├── .env.example                # Environment variable reference
+├── AGENTS.md                   # AI agent + contributor guidelines
+├── ARCHITECTURE.md             # Architecture Decision Records (ADRs)
+├── DEPLOYMENT.md               # Deployment guide
+├── INTEGRATION-SUMMARY.md      # Implementation status
+├── CHANGELOG.md                # Version history
+└── vercel.json                 # Vercel configuration
 ```
 
 ---
@@ -81,12 +111,16 @@ git clone https://github.com/Neuroklast/darktunes-charts.git
 cd darktunes-charts
 npm install
 
-# 2. Configure environment variables (optional for dev)
+# 2. Configure environment variables
 cp .env.example .env.local
+# Edit .env.local with your Supabase credentials
 
-# 3. Start development server
+# 3. Set up the database
+npm run db:migrate
+
+# 4. Start development server
 npm run dev
-# → http://localhost:5173
+# → http://localhost:3000
 ```
 
 ### Available Commands
@@ -95,29 +129,33 @@ npm run dev
 |---|---|
 | `npm run dev` | Development server with hot reload |
 | `npm run build` | Production build |
-| `npm test` | Run all 115 tests |
+| `npm test` | Run unit tests |
 | `npm run test:coverage` | Tests with coverage report |
+| `npm run test:e2e` | End-to-end tests (Playwright) |
+| `npm run typecheck` | TypeScript type check |
 | `npm run lint` | Code quality check |
+| `npm run validate` | Prisma validate + typecheck + lint |
+| `npm run db:migrate` | Run Prisma migrations (local dev) |
+| `npm run db:push` | Push schema changes to dev DB |
+| `npm run db:seed` | Seed the database |
 
 ---
 
 ## Architecture
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for full ADR documentation (ADR-001 through ADR-009).
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for full ADR documentation.
+See [AGENTS.md](./AGENTS.md) for coding conventions and architecture rules.
 
 **Domain Layer** (`src/domain/`): Pure TypeScript business logic — zero React/network dependencies.
-**Infrastructure Layer** (`src/infrastructure/`): External API adapters (iTunes, Odesli).
-**API Layer** (`api/`): Vercel Serverless Functions with Zod validation.
+**Application Layer** (`src/application/`): Use-cases that orchestrate domain and infrastructure.
+**Infrastructure Layer** (`src/infrastructure/`): Prisma repositories, external API adapters.
+**Feature Layer** (`src/features/`): Page-level views and feature-specific components.
 
 ---
 
 ## Deployment
 
-### Prerequisites
-
-- Node.js ≥ 20, npm ≥ 9
-- Vercel CLI: `npm install -g vercel`
-- Vercel account: `vercel login`
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full deployment guide.
 
 ### One-Step Deploy
 
@@ -134,21 +172,25 @@ The script runs: dependency install → TypeScript check → tests → build →
 ### Manual Deploy (Vercel Dashboard)
 
 1. Import repository at [vercel.com/new](https://vercel.com/new)
-2. Framework: **Vite** (auto-detected)
-3. Build command: `npm run build`
-4. Output directory: `dist`
+2. Framework: **Next.js** (auto-detected)
+3. Build command: `npx prisma generate && npx prisma migrate deploy && next build`
+4. Install command: `bash scripts/vercel-install.sh`
 
 ### Environment Variables
 
-Configure in **Vercel project settings → Environment Variables**:
+Configure in **Vercel project settings → Environment Variables**.
+Full variable reference: [`.env.example`](./.env.example)
 
 | Variable | Required | Description |
 |---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (server-only) |
+| `DATABASE_URL` | Yes | PostgreSQL connection string (pgBouncer) |
+| `DIRECT_URL` | Yes | Direct PostgreSQL URL (for Prisma migrations) |
 | `SPOTIFY_CLIENT_ID` | Production | Spotify Web API client ID |
 | `SPOTIFY_CLIENT_SECRET` | Production | Spotify Web API client secret |
-| `EXCHANGE_RATE_API_KEY` | Optional | Exchange rate API for currency conversion |
-
-Full variable reference: [`.env.example`](./.env.example)
+| `CRON_SECRET` | Production | Vercel cron job authentication secret |
 
 ---
 
@@ -164,11 +206,10 @@ Full variable reference: [`.env.example`](./.env.example)
 | `GET` | `/api/categories` | Get category definitions |
 | `GET POST` | `/api/votes/fan` | Fan quadratic votes |
 | `GET POST` | `/api/votes/dj` | DJ ranked ballots + Schulze result |
-| `GET POST` | `/api/votes/peer` | Peer review votes |
 | `GET POST` | `/api/transparency` | Transparency log |
-| `GET PUT` | `/api/bot-detection` | Bot detection alerts |
 | `GET` | `/api/ai-prediction?bandId=X` | AI breakthrough prediction |
 | `GET` | `/api/spotify?bandId=X` | Spotify listener data |
+| `GET` | `/api/health` | Health check (DB status + uptime) |
 
 ---
 
@@ -189,27 +230,31 @@ Available in development (password: `demo1234`):
 ## Testing
 
 ```bash
-npm test               # 115 tests across 8 test files
-npm run test:coverage  # with coverage report
+npm test               # Unit tests (Vitest)
+npm run test:coverage  # With coverage report
+npm run test:e2e       # End-to-end tests (Playwright)
 ```
 
 Coverage:
-- `src/lib/__tests__/` — voting algorithms, categories, seed data, kv-shim
-- `api/__tests__/` — store, data-processor, validators, csv-parser
+- `src/__tests__/` — voting algorithms, image utils, categories, utilities
+- `e2e/` — user flows (voting, auth, charts)
 
 ---
 
 ## Documentation
 
-| Document | Language | Description |
-|---|---|---|
-| [QUICKSTART.md](./QUICKSTART.md) | 🇩🇪 🇬�� | Bilingual quick start |
-| [docs/HANDBUCH_DE.md](./docs/HANDBUCH_DE.md) | 🇩🇪 | Vollständiges Benutzerhandbuch |
-| [docs/MANUAL_EN.md](./docs/MANUAL_EN.md) | 🇬🇧 | Complete user manual |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | 🇬🇧 | Architecture Decision Records |
-| [CHANGELOG.md](./CHANGELOG.md) | 🇬🇧 | Version history |
-| [SECURITY.md](./SECURITY.md) | 🇬🇧 | Security policy |
-| [.env.example](./.env.example) | 🇬🇧 | Environment variable reference |
+| Document | Description |
+|---|---|
+| [AGENTS.md](./AGENTS.md) | AI agent guidelines + coding conventions |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Architecture Decision Records (ADRs) |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Full deployment guide |
+| [INTEGRATION-SUMMARY.md](./INTEGRATION-SUMMARY.md) | Implementation status |
+| [QUICKSTART.md](./QUICKSTART.md) | Bilingual quick start |
+| [docs/HANDBUCH_DE.md](./docs/HANDBUCH_DE.md) | Vollständiges Benutzerhandbuch (DE) |
+| [docs/MANUAL_EN.md](./docs/MANUAL_EN.md) | Complete user manual (EN) |
+| [CHANGELOG.md](./CHANGELOG.md) | Version history |
+| [SECURITY.md](./SECURITY.md) | Security policy |
+| [.env.example](./.env.example) | Environment variable reference |
 
 ---
 
