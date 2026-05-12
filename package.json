@@ -122,5 +122,10 @@
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
+  },
+  "overrides": {
+    "picomatch": "4.0.4",
+    "path-to-regexp": "8.4.0",
+    "lodash": "4.18.0"
   }
 }
