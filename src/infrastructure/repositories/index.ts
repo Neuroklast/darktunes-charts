@@ -1,14 +1,12 @@
 /**
  * @module infrastructure/repositories
  *
- * Concrete repository implementations.
- *
- * - Prisma implementations for production use.
- * - In-memory implementations for unit/integration testing.
+ * Concrete repository implementations backed by Supabase.
+ * In-memory implementations for unit/integration testing.
  */
-export { PrismaUserRepository } from './PrismaUserRepository'
-export { PrismaBandRepository } from './PrismaBandRepository'
-export { PrismaAchievementRepository } from './PrismaAchievementRepository'
+export { SupabaseUserRepository } from './SupabaseUserRepository'
+export { SupabaseBandRepository } from './SupabaseBandRepository'
+export { SupabaseAchievementRepository } from './SupabaseAchievementRepository'
 
 export { InMemoryUserRepository } from './InMemoryUserRepository'
 export { InMemoryBandRepository } from './InMemoryBandRepository'

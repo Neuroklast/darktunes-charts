@@ -1,213 +1,168 @@
-/**
- * @module infrastructure/repositories/voteRepository
- *
- * Prisma-backed repository for fan votes and DJ ballots.
- * Enforces quadratic credit budget per voting period.
- */
-import type { PrismaClient } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
-import { MONTHLY_CREDIT_BUDGET } from '@/domain/voting/quadratic'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export interface CreateFanVoteData {
-  userId: string
-  releaseId: string
-  categoryId: string
+  voterId: string
+  trackId: string
   periodId: string
-  votes: number
   creditsSpent: number
 }
 
-export interface FanVoteRecord {
+export interface FanVoteRecord extends CreateFanVoteData {
   id: string
-  userId: string
-  releaseId: string | null
-  categoryId: string | null
-  periodId: string
-  votes: number
-  creditsSpent: number
   createdAt: Date
 }
 
 export interface CreateDJBallotData {
-  userId: string
-  categoryId: string
+  voterId: string
   periodId: string
-  rankings: string[]
+  rankedTrackIds: string[]
 }
 
-export interface DJBallotRecord {
+export interface DJBallotRecord extends CreateDJBallotData {
   id: string
-  userId: string
-  categoryId: string | null
-  periodId: string
-  rankings: unknown
   createdAt: Date
 }
 
 export class VoteRepository {
-  constructor(private readonly db: PrismaClient = prisma as unknown as PrismaClient) {}
+  constructor(private readonly supabase: SupabaseClient) {}
 
-  /**
-   * Creates a fan vote for a release in a specific category.
-   * Caller must ensure credits budget is not exceeded (use getRemainingCredits first).
-   *
-   * @param data - Fan vote data including releaseId, categoryId, votes and credits cost.
-   * @returns The created fan vote record.
-   */
   async createFanVote(data: CreateFanVoteData): Promise<FanVoteRecord> {
-    return this.db.fanVote.create({
-      data: {
-        userId: data.userId,
-        releaseId: data.releaseId,
-        categoryId: data.categoryId,
-        periodId: data.periodId,
-        votes: data.votes,
-        credits: data.creditsSpent,
-        creditsSpent: data.creditsSpent,
-        weight: 1.0,
-      },
-      select: {
-        id: true,
-        userId: true,
-        releaseId: true,
-        categoryId: true,
-        periodId: true,
-        votes: true,
-        creditsSpent: true,
-        createdAt: true,
-      },
-    })
-  }
+    const { data: result, error } = await this.supabase
+      .from('fan_votes')
+      .insert({
+        voter_id: data.voterId,
+        track_id: data.trackId,
+        period_id: data.periodId,
+        credits_spent: data.creditsSpent
+      })
+      .select('*')
+      .single()
 
-  /**
-   * Returns all fan votes for a user in a specific voting period.
-   *
-   * @param userId   - The user's UUID.
-   * @param periodId - The voting period UUID.
-   * @returns Array of fan vote records.
-   */
-  async getUserVotesForPeriod(userId: string, periodId: string): Promise<FanVoteRecord[]> {
-    return this.db.fanVote.findMany({
-      where: { userId, periodId, releaseId: { not: null } },
-      select: {
-        id: true,
-        userId: true,
-        releaseId: true,
-        categoryId: true,
-        periodId: true,
-        votes: true,
-        creditsSpent: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    })
-  }
+    if (error) throw error
 
-  /**
-   * Calculates remaining credit budget for a user in a voting period.
-   *
-   * Credits spent = sum of all creditsSpent values for the user in the period.
-   * Budget = MONTHLY_CREDIT_BUDGET (150).
-   *
-   * @param userId   - The user's UUID.
-   * @param periodId - The voting period UUID.
-   * @returns Remaining credits available for voting.
-   */
-  async getRemainingCredits(userId: string, periodId: string): Promise<number> {
-    const result = await this.db.fanVote.aggregate({
-      where: { userId, periodId, releaseId: { not: null } },
-      _sum: { creditsSpent: true },
-    })
-    const spent = result._sum.creditsSpent ?? 0
-    return Math.max(0, MONTHLY_CREDIT_BUDGET - spent)
-  }
-
-  /**
-   * Creates a DJ ballot with an ordered ranking of releases for a category.
-   * Enforces one ballot per DJ per category per period.
-   *
-   * @param data - DJ ballot data with ordered releaseId rankings.
-   * @returns The created DJ ballot record.
-   * @throws Error if DJ already submitted a ballot for this category in this period.
-   */
-  async createDJBallot(data: CreateDJBallotData): Promise<DJBallotRecord> {
-    const existing = await this.db.dJBallot.findFirst({
-      where: {
-        userId: data.userId,
-        periodId: data.periodId,
-        categoryId: data.categoryId,
-      },
-    })
-
-    if (existing) {
-      throw new Error(
-        `DJ already submitted a ballot for category "${data.categoryId}" in this period`,
-      )
+    return {
+      id: result.id,
+      voterId: result.voter_id,
+      trackId: result.track_id,
+      periodId: result.period_id,
+      creditsSpent: result.credits_spent,
+      createdAt: new Date(result.created_at)
     }
-
-    return this.db.dJBallot.create({
-      data: {
-        userId: data.userId,
-        periodId: data.periodId,
-        categoryId: data.categoryId,
-        rankings: data.rankings,
-      },
-      select: {
-        id: true,
-        userId: true,
-        categoryId: true,
-        periodId: true,
-        rankings: true,
-        createdAt: true,
-      },
-    })
   }
 
-  /**
-   * Returns all DJ ballots for a given category in a voting period.
-   *
-   * @param categoryId - The chart category slug.
-   * @param periodId   - The voting period UUID.
-   * @returns Array of DJ ballot records.
-   */
-  async getDJBallotsForCategory(
-    categoryId: string,
-    periodId: string,
-  ): Promise<DJBallotRecord[]> {
-    return this.db.dJBallot.findMany({
-      where: { categoryId, periodId },
-      select: {
-        id: true,
-        userId: true,
-        categoryId: true,
-        periodId: true,
-        rankings: true,
-        createdAt: true,
-      },
-    })
+  async createDJBallot(data: CreateDJBallotData): Promise<DJBallotRecord> {
+    const { data: result, error } = await this.supabase
+      .from('dj_ballots')
+      .insert({
+        voter_id: data.voterId,
+        period_id: data.periodId,
+        ranked_track_ids: data.rankedTrackIds
+      })
+      .select('*')
+      .single()
+
+    if (error) throw error
+
+    return {
+      id: result.id,
+      voterId: result.voter_id,
+      periodId: result.period_id,
+      rankedTrackIds: result.ranked_track_ids,
+      createdAt: new Date(result.created_at)
+    }
   }
 
-  /**
-   * Returns DJ ballots submitted by a user for the active voting period.
-   *
-   * @param userId   - The DJ's UUID.
-   * @param periodId - The voting period UUID.
-   * @returns Array of DJ ballot records.
-   */
-  async getUserBallotsForPeriod(userId: string, periodId: string): Promise<DJBallotRecord[]> {
-    return this.db.dJBallot.findMany({
-      where: { userId, periodId, categoryId: { not: null } },
-      select: {
-        id: true,
-        userId: true,
-        categoryId: true,
-        periodId: true,
-        rankings: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+  async findFanVotesByPeriod(periodId: string): Promise<FanVoteRecord[]> {
+    const { data, error } = await this.supabase
+      .from('fan_votes')
+      .select('*')
+      .eq('period_id', periodId)
+
+    if (error || !data) return []
+
+    return data.map(d => ({
+      id: d.id,
+      voterId: d.voter_id,
+      trackId: d.track_id,
+      periodId: d.period_id,
+      creditsSpent: d.credits_spent,
+      createdAt: new Date(d.created_at)
+    }))
+  }
+
+  async findDJBallotsByPeriod(periodId: string): Promise<DJBallotRecord[]> {
+    const { data, error } = await this.supabase
+      .from('dj_ballots')
+      .select('*')
+      .eq('period_id', periodId)
+
+    if (error || !data) return []
+
+    return data.map(d => ({
+      id: d.id,
+      voterId: d.voter_id,
+      periodId: d.period_id,
+      rankedTrackIds: d.ranked_track_ids,
+      createdAt: new Date(d.created_at)
+    }))
+  }
+
+  async getRemainingCredits(voterId: string, periodId: string): Promise<number> {
+    const { data, error } = await this.supabase
+      .from('fan_votes')
+      .select('credits_spent')
+      .eq('voter_id', voterId)
+      .eq('period_id', periodId)
+
+    if (error || !data) return 100
+
+    const spent = data.reduce((acc: number, curr: any) => acc + curr.credits_spent, 0)
+    return Math.max(0, 100 - spent)
+  }
+
+  async getUserVotesForPeriod(voterId: string, periodId: string): Promise<FanVoteRecord[]> {
+    const { data, error } = await this.supabase
+      .from('fan_votes')
+      .select('*')
+      .eq('voter_id', voterId)
+      .eq('period_id', periodId)
+
+    if (error || !data) return []
+
+    return data.map((d: any) => ({
+      id: d.id,
+      voterId: d.voter_id,
+      trackId: d.track_id,
+      periodId: d.period_id,
+      creditsSpent: d.credits_spent,
+      createdAt: new Date(d.created_at)
+    }))
+  }
+
+  async getUserBallotsForPeriod(voterId: string, periodId: string): Promise<DJBallotRecord[]> {
+    const { data, error } = await this.supabase
+      .from('dj_ballots')
+      .select('*')
+      .eq('voter_id', voterId)
+      .eq('period_id', periodId)
+
+    if (error || !data) return []
+
+    return data.map((d: any) => ({
+      id: d.id,
+      voterId: d.voter_id,
+      periodId: d.period_id,
+      rankedTrackIds: d.ranked_track_ids,
+      createdAt: new Date(d.created_at)
+    }))
   }
 }
 
-export const voteRepository = new VoteRepository()
+let voteRepoInstance: VoteRepository | null = null
+
+export function voteRepository(supabase: SupabaseClient): VoteRepository {
+  if (!voteRepoInstance) {
+    voteRepoInstance = new VoteRepository(supabase)
+  }
+  return voteRepoInstance
+}

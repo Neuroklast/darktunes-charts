@@ -49,7 +49,7 @@ export default async function DJDashboardPage() {
         <Card className="p-6 glassmorphism mb-6">
           <h2 className="text-lg font-semibold mb-4">{t('feedback.title')}</h2>
           <DJFeedbackForm
-            bandId={EXAMPLE_BAND.id}
+
             bandName={EXAMPLE_BAND.name}
           />
         </Card>

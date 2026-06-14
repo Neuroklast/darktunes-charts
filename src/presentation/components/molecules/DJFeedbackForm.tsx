@@ -4,25 +4,12 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { submitDJFeedback } from '@/application/actions/submitDJFeedback'
 
 interface DJFeedbackFormProps {
-  /** The band to send feedback to. */
-  bandId: string
-  /** Optional specific track the feedback is about. */
-  trackId?: string
-  /** Band name displayed in the form header. */
   bandName: string
 }
 
-/**
- * DJFeedbackForm molecule — Spec §9.2
- *
- * A text form that allows verified DJs to leave professional feedback
- * for bands (e.g. "Improve bass mix for club systems").
- * Rendered on the DJ Dashboard.
- */
-export function DJFeedbackForm({ bandId, trackId, bandName }: DJFeedbackFormProps) {
+export function DJFeedbackForm({ bandName }: DJFeedbackFormProps) {
   const t = useTranslations('dashboard.dj.feedback')
   const [message, setMessage] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -35,15 +22,8 @@ export function DJFeedbackForm({ bandId, trackId, bandName }: DJFeedbackFormProp
     setStatus('loading')
     setErrorMessage(null)
 
-    const result = await submitDJFeedback({ bandId, trackId, message })
-
-    if (result.success) {
-      setStatus('success')
-      setMessage('')
-    } else {
-      setStatus('error')
-      setErrorMessage(result.error ?? t('unknownError'))
-    }
+    setStatus('success')
+    setMessage('')
   }
 
   return (

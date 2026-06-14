@@ -1,31 +1,46 @@
-/**
- * @module infrastructure/repositories/InMemoryBandRepository
- *
- * In-memory implementation of {@link IBandRepository} for testing.
- */
 import type { IBandRepository, CreateBandData, UpdateBandData } from '@/domain/repositories'
 
-interface BandRecord {
-  ownerId: string
-  name: string
-  genre: string
-  tier: string
-}
-
 export class InMemoryBandRepository implements IBandRepository {
-  private readonly bands = new Map<string, BandRecord>()
+  private bands: Map<string, any> = new Map()
 
   async upsertByOwnerId(ownerId: string, create: CreateBandData, update: UpdateBandData): Promise<void> {
-    const existing = this.bands.get(ownerId)
-    if (existing) {
-      this.bands.set(ownerId, { ...existing, name: update.name })
+    const existingKey = Array.from(this.bands.entries()).find(([, b]) => b.ownerId === ownerId)?.[0]
+
+    if (existingKey) {
+      const existing = this.bands.get(existingKey)
+      this.bands.set(existingKey, {
+        ...existing,
+        name: update.name ?? existing.name,
+        country: update.country ?? existing.country,
+        city: update.city ?? existing.city,
+        tier: update.tier ?? existing.tier,
+        description: update.description ?? existing.description,
+        imageUrl: update.imageUrl ?? existing.imageUrl,
+        spotifyId: update.spotifyId ?? existing.spotifyId,
+        monthlyListeners: update.monthlyListeners ?? existing.monthlyListeners
+      })
     } else {
-      this.bands.set(ownerId, { ownerId: create.ownerId, name: create.name, genre: create.genre, tier: create.tier })
+      const newId = `band-${Date.now()}`
+      this.bands.set(newId, {
+        id: newId,
+        ownerId: create.ownerId,
+        name: create.name,
+        country: create.country,
+        city: create.city,
+        tier: create.tier,
+        description: create.description,
+        imageUrl: create.imageUrl,
+        spotifyId: create.spotifyId,
+        monthlyListeners: create.monthlyListeners
+      })
     }
   }
 
-  /** Retrieve a band by owner ID (test helper). */
-  getByOwnerId(ownerId: string): BandRecord | undefined {
-    return this.bands.get(ownerId)
+  async findById(id: string): Promise<unknown | null> {
+    return this.bands.get(id) || null
+  }
+
+  async findByOwnerId(ownerId: string): Promise<unknown[]> {
+    return Array.from(this.bands.values()).filter(b => b.ownerId === ownerId)
   }
 }
