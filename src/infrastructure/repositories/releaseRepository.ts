@@ -1,139 +1,97 @@
-/**
- * @module infrastructure/repositories/releaseRepository
- *
- * Prisma-backed repository for Release entities.
- * Provides CRUD operations and domain-specific queries for music releases.
- */
-import type { PrismaClient } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export interface CreateReleaseData {
   bandId: string
   title: string
-  type: 'ALBUM' | 'EP' | 'SINGLE'
   releaseDate: Date
-  trackCount: number
-  genres: string[]
-  coverArtUrl?: string
+  releaseType: string
+  coverUrl?: string
 }
 
 export interface ReleaseRecord {
   id: string
   bandId: string
   title: string
-  type: string
   releaseDate: Date
-  trackCount: number
-  genres: string[]
-  coverArtUrl: string | null
+  releaseType: string
+  coverUrl?: string
   createdAt: Date
-  band?: { id: string; name: string; slug: string | null } | null
 }
-
-const RELEASE_SELECT = {
-  id: true,
-  bandId: true,
-  title: true,
-  type: true,
-  releaseDate: true,
-  trackCount: true,
-  genres: true,
-  coverArtUrl: true,
-  createdAt: true,
-} as const
-
-const RELEASE_SELECT_WITH_BAND = {
-  ...RELEASE_SELECT,
-  band: {
-    select: { id: true, name: true, slug: true },
-  },
-} as const
 
 export class ReleaseRepository {
-  constructor(private readonly db: PrismaClient = prisma as unknown as PrismaClient) {}
+  constructor(private readonly supabase: SupabaseClient) {}
 
-  /**
-   * Creates a new release record.
-   *
-   * @param data - The release data to persist.
-   * @returns The created release record.
-   */
   async create(data: CreateReleaseData): Promise<ReleaseRecord> {
-    return this.db.release.create({
-      data: {
-        bandId: data.bandId,
+    const { data: result, error } = await this.supabase
+      .from('releases')
+      .insert({
+        band_id: data.bandId,
         title: data.title,
-        type: data.type,
-        releaseDate: data.releaseDate,
-        trackCount: data.trackCount,
-        genres: data.genres,
-        coverArtUrl: data.coverArtUrl,
-      },
-      select: RELEASE_SELECT,
-    })
+        release_date: data.releaseDate.toISOString(),
+        release_type: data.releaseType,
+        cover_url: data.coverUrl
+      })
+      .select('*')
+      .single()
+
+    if (error) throw error
+
+    return {
+      id: result.id,
+      bandId: result.band_id,
+      title: result.title,
+      releaseDate: new Date(result.release_date),
+      releaseType: result.release_type,
+      coverUrl: result.cover_url,
+      createdAt: new Date(result.created_at)
+    }
   }
 
-  /**
-   * Finds a release by its unique ID.
-   *
-   * @param id - The release UUID.
-   * @returns The release, or null if not found.
-   */
   async findById(id: string): Promise<ReleaseRecord | null> {
-    return this.db.release.findUnique({
-      where: { id },
-      select: RELEASE_SELECT_WITH_BAND,
-    })
+    const { data, error } = await this.supabase
+      .from('releases')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error || !data) return null
+
+    return {
+      id: data.id,
+      bandId: data.band_id,
+      title: data.title,
+      releaseDate: new Date(data.release_date),
+      releaseType: data.release_type,
+      coverUrl: data.cover_url,
+      createdAt: new Date(data.created_at)
+    }
   }
 
-  /**
-   * Returns all releases for a given band.
-   *
-   * @param bandId - The band UUID.
-   * @returns Array of release records.
-   */
-  async findByBand(bandId: string): Promise<ReleaseRecord[]> {
-    return this.db.release.findMany({
-      where: { bandId },
-      select: RELEASE_SELECT,
-      orderBy: { releaseDate: 'desc' },
-    })
-  }
+  async findByBandId(bandId: string): Promise<ReleaseRecord[]> {
+    const { data, error } = await this.supabase
+      .from('releases')
+      .select('*')
+      .eq('band_id', bandId)
 
-  /**
-   * Returns releases submitted to a specific chart category.
-   *
-   * @param categoryId - The category slug (e.g. 'track', 'album').
-   * @returns Array of release records with band info.
-   */
-  async findByCategory(categoryId: string): Promise<ReleaseRecord[]> {
-    return this.db.release.findMany({
-      where: {
-        categorySubmissions: {
-          some: { categoryId },
-        },
-      },
-      select: RELEASE_SELECT_WITH_BAND,
-      orderBy: { releaseDate: 'desc' },
-    })
-  }
+    if (error || !data) return []
 
-  /**
-   * Returns releases within a date range.
-   *
-   * @param from - Start date (inclusive).
-   * @param to   - End date (inclusive).
-   * @returns Array of releases in the specified range.
-   */
-  async findByDateRange(from: Date, to: Date): Promise<ReleaseRecord[]> {
-    return this.db.release.findMany({
-      where: {
-        releaseDate: { gte: from, lte: to },
-      },
-      select: RELEASE_SELECT_WITH_BAND,
-      orderBy: { releaseDate: 'desc' },
-    })
+    return data.map(d => ({
+      id: d.id,
+      bandId: d.band_id,
+      title: d.title,
+      releaseDate: new Date(d.release_date),
+      releaseType: d.release_type,
+      coverUrl: d.cover_url,
+      createdAt: new Date(d.created_at)
+    }))
   }
 }
 
-export const releaseRepository = new ReleaseRepository()
+let releaseRepoInstance: ReleaseRepository | null = null
+
+export function releaseRepository(supabase: SupabaseClient): ReleaseRepository {
+  if (!releaseRepoInstance) {
+    releaseRepoInstance = new ReleaseRepository(supabase)
+  }
+  return releaseRepoInstance
+}
