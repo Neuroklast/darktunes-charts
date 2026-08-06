@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { prisma } from '@/lib/prisma'
 import { getTierBadgeVariant } from '@/lib/utils'
+import { safeJsonLd } from '@/lib/security/jsonLd'
 import { ArrowLeft, ExternalLink, Music2, BarChart3 } from 'lucide-react'
 
 type BandWithReleases = {
@@ -238,7 +239,7 @@ export default async function BandSlugPage({ params }: PageProps) {
           type="application/ld+json"
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonLd({
               '@context': 'https://schema.org',
               '@type': 'MusicGroup',
               name: band.name,
